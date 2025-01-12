@@ -1,0 +1,144 @@
+# prefix variables with "export" to preserve it when calling another makefile
+TARGET := bin
+TEXTEN := wasm
+
+TMPDIR := tmp
+SRCDIR := src
+BINDIR := bin
+#for dll or static
+#LIBDIR := lib
+#INCDIR := inc
+
+
+#LIBROOT := ./lib/wasi-sdk-25.0-x86_64-linux/share/wasi-sysroot
+#CC := ./lib/wasi-sdk-25.0-x86_64-linux/bin/clang
+#CC := clang
+#CC := emcc
+#CFLAGS :=
+#CFLAGS := -I$(LIBROOT)/include/wasm32-wasi
+# --sysroot /tmp/wasi-libc
+#CFLAGS := $(CFLAGS)
+#LFLAGS :=
+#LFLAGS := -L$(LIBROOT)/lib/wasm32-wasi/
+# consider moving and renaming these libraries to avoid conflicts, because
+# "-lc" and "-lm" is kind of confusing.
+# -nostdlib -nostartfiles -lc -lm -static --no-standard-libraries
+#LFLAGS := $(LFLAGS) -flto --no-standard-libraries
+#LFLAGS := $(LFLAGS) -Wl,--import-memory -Wl,--no-entry -Wl,--export-all 
+# --target=wasm32-unknown-wasi
+#BFLAGS := -Wall -Wextra -Wpedantic -Wconversion -Wundef --target=wasm32
+
+CC := emcc
+CFLAGS :=
+LFLAGS := -sOFFSCREEN_FRAMEBUFFER
+BFLAGS := -Wall -Wextra -Wpedantic -Wconversion -Wundef
+
+
+
+
+DEFAULT := fast
+
+
+GOAL := $(firstword $(MAKECMDGOALS))
+GOAL := $(if $(GOAL),$(GOAL),$(DEFAULT))
+# should grab all paths relative to makefile.
+SRCS := $(shell find $(SRCDIR) -name "*.c")
+ifneq ($(GOAL),clean)
+	OBJS := $(SRCS:%.c=$(TMPDIR)/$(GOAL)/%.o)
+	DEPS := $(SRCS:%.c=$(TMPDIR)/$(GOAL)/%.d)
+endif
+#LINK_CMD = $(CC) $(BFLAGS) $(LFLAGS) -o $@ $^
+BINTARG := $(BINDIR)/$(TARGET)
+#LIBTARG := $(LIBDIR)/$(TARGET)
+
+
+#CURRENTDIR := $(shell pwd)
+#MAKECMD = make -C $(CURRENTDIR) -f $(MAKEOSFILE)
+
+
+ifeq ($(OS),Windows_NT) 
+    $(error Incompatable operating system)
+else
+    OS := $(shell sh -c 'uname 2>/dev/null || echo Unknown')
+    ifeq ($(OS),Linux)
+    	LINUX := LINUX
+    	BLFLAGS += -target *-*-linux-gnu
+    	#MAKEOSFILE := make/linux.mk
+    else
+		$(error Incompatable operating system)
+    endif
+endif
+
+
+#%:
+#	MAKECMD $@
+
+
+
+
+
+
+
+
+###########################################
+#                                         #
+#      LINUX                              #
+#                                         #
+###########################################
+ifdef LINUX
+
+
+
+all: $(DEFAULT)
+fast: _fast $(BINTARG).$(TEXTEN)
+debug: _debug $(BINTARG).$(TEXTEN)
+release: _release $(BINTARG).$(TEXTEN)
+static: _static $(LIBTARG).a
+dynamic: _dynamic $(LIBTARG).so
+
+
+-include $(DEPS)
+
+
+_fast:
+	$(eval CFLAGS += -DDEBUG_MODE)
+	$(eval BFLAGS += -g -O0)
+
+_debug:
+	$(eval CFLAGS += -DDEBUG_MODE)
+	$(eval BFLAGS += -g -Og)
+
+_release: _optimize
+
+_optimize:
+	$(eval LFLAGS += -Wl,--gc-sections -s -flto)
+	$(eval BFLAGS += -Oz)
+
+
+$(BINTARG).$(TEXTEN): $(OBJS)
+	mkdir -p $(BINDIR)
+	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js $^
+
+$(TMPDIR)/$(GOAL)/%.o: %.c $(TMPDIR)/$(GOAL)/%.d
+	mkdir -p $(dir $@)
+	$(CC) $(BFLAGS) $(CFLAGS) -c $< -o $@
+
+$(TMPDIR)/$(GOAL)/%.d: %.c
+	mkdir -p $(dir $@)
+	$(CC) -MM -MT $(patsubst %.d,%.o,$@) -MF $@ -c $<
+
+
+
+clean:
+	rm -rf $(TMPDIR)
+	rm -rf $(BINDIR)
+
+
+endif
+
+
+
+
+
+.PHONY: all fast debug release static dynamic clean test
+.PHONY: _build _fast _debug _release _dynamic _static _optimize
