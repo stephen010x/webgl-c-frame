@@ -25,10 +25,11 @@
 *.hex
 
 # Other
-#*.old
-#*.tmp
-#*.temp
+*.old
+*.tmp
+*.temp
 
 # Directories
 bin/
 tmp/
+_old/
