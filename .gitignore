@@ -28,6 +28,8 @@
 *.old
 *.tmp
 *.temp
+*.backup
+*.back
 
 # Directories
 bin/
