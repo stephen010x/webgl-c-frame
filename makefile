@@ -8,10 +8,13 @@ BINDIR := bin
 
 CC := emcc
 CFLAGS := 
-LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT -sFETCH
+LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT 
+# --proxy-to-worker -pthread
+LFLAGS := $(LFLAGS) -sFETCH -pthread -sPTHREAD_POOL_SIZE=4
 BFLAGS := -Wall -Wextra -Wpedantic -Wconversion -Wundef
 BFLAGS := $(BFLAGS) -Wno-language-extension-token -Wno-gnu -std=gnu2x
 BFLAGS := -Wno-format-security
+#-sWASM=2
 
 
 
@@ -75,22 +78,23 @@ dynamic: _dynamic $(LIBTARG).so
 
 _fast:
 	$(eval CFLAGS += -DDEBUG_MODE)
-	$(eval BFLAGS += -g -O0)
+	$(eval BFLAGS += -g -O0 -gsource-map -sASSERTIONS=2 -sGL_DEBUG=1)
 
 _debug:
 	$(eval CFLAGS += -DDEBUG_MODE)
-	$(eval BFLAGS += -g -Og)
+	$(eval BFLAGS += -g -Og -gsource-map -sASSERTIONS=2 -sGL_DEBUG=1)
 
 _release: _optimize
 
+# -Oz  ## smaller than -Os, but also slower
 _optimize:
-	$(eval LFLAGS += -Wl,--gc-sections -s -flto)
-	$(eval BFLAGS += -Oz)
+	$(eval LFLAGS += -Wl,--gc-sections -s -flto --closure 1 -sMODULARIZE)
+	$(eval BFLAGS += -Os -g0)
 
 
 $(BINTARG).$(TEXTEN): $(OBJS)
 	mkdir -p $(BINDIR)
-	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js $^
+	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js -o $(basename $@).html $^
 
 $(TMPDIR)/$(GOAL)/%.o: %.c $(TMPDIR)/$(GOAL)/%.d
 	mkdir -p $(dir $@)
@@ -106,6 +110,9 @@ clean:
 	rm -rf $(TMPDIR)
 	rm -rf $(BINDIR)
 
+chrome:
+	./serve.sh & google-chrome --enable-features=SharedArrayBuffer 0.0.0.0:8000
+
 
 endif
 
@@ -113,5 +120,5 @@ endif
 
 
 
-.PHONY: all fast debug release static dynamic clean test
+.PHONY: all fast debug release static dynamic clean test chrome
 .PHONY: _build _fast _debug _release _dynamic _static _optimize

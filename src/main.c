@@ -56,7 +56,7 @@ enum {
 };
 
 
-typedef unsigned char bool;
+//typedef unsigned char bool;
 #define TRUE 1
 #define FALSE 0
 
@@ -98,10 +98,28 @@ volatile MESH_VERT _circle_mesh_verts[CIRC_RES*4];
 CIRCLE circles[NUM_CIRCLES];
 
 
-
+void* _main(void* args);
+int __main(void);
 
 int main() {
     printf("starting webgl\n");
+    int retval;
+    pthread_t thread;
+    pthread_create(&thread, NULL, _main, NULL);
+    //pthread_join(thread, (void**)&retval);
+    return retval;
+}
+
+
+void* _main(void* args) {
+    printf("detatching main\n");
+    int retval =__main();
+    printf("main exited with code (%d)\n", retval);
+    return (void*)retval;
+}
+
+
+int __main(void) {
 
     // set starting random seed
     srand((unsigned int)time(NULL));
@@ -110,6 +128,7 @@ int main() {
     // and returns shader programs
     // a bit counterintuitive, but you can fix this later
     GLuint program = init_webgl("canvas");
+    ASSERT(program, -1, "init_webgl failed\n");
 
     //get canvas width and height
     FRAME canvas;
@@ -232,13 +251,12 @@ GLuint init_webgl(const char* canvas_id) {
     ASSERT(emscripten_webgl_make_context_current(gl_context) == 
         EMSCRIPTEN_RESULT_SUCCESS, (GLuint)0,
         "ERROR: Failed to mamke webgl context current\n");
-        
 
     // compile shaders
-    GLuint vs = compile_shader(GL_VERTEX_SHADER, "./src/shaders/default.vert");
-    ASSERT(vs, (GLuint)0, "");
-    GLuint fs = compile_shader(GL_FRAGMENT_SHADER, "./src/shaders/default.frag");
-    ASSERT(fs, (GLuint)0, "");
+    GLuint vs = compile_shader(GL_VERTEX_SHADER, "/src/shaders/default.vert");
+    ASSERT(vs, (GLuint)0, "vertex shader failed to compile\n");
+    GLuint fs = compile_shader(GL_FRAGMENT_SHADER, "/src/shaders/default.frag");
+    ASSERT(fs, (GLuint)0, "fragment shader failed to compilen\n");
 
     // create program object
     GLuint program = glCreateProgram();
@@ -260,30 +278,69 @@ GLuint init_webgl(const char* canvas_id) {
 }
 
 
+
+typedef struct {
+    const char* url;
+    char* data;
+    uint64_t max;
+    uint64_t* bytes;
+} fetch_file_args;
+
+void* fetch_sync(void* _args);
+
+
 // this function is synchronous. It will block until it gets the data
 // the bytes parameter is both input and output. As input it represents
 // the max bytes, and as output it will be how many bytes were read.
 // nevermind, an explicit extra member will be added for max
 int fetch_file(const char* url, char* data, uint64_t max, uint64_t* bytes) {
+    fetch_file_args args = {
+        .url = url,
+        .data = data,
+        .max = max,
+        .bytes = bytes
+    };
+    int retval;
+    
+    pthread_t thread;
+    pthread_create(&thread, NULL, fetch_sync, &args);
+    pthread_join(thread, (void**)&retval);
+
+    return retval;
+}
+
+
+void* fetch_sync(void* _args) {
+    fetch_file_args* args = (fetch_file_args*)_args;
+    const char* url = args->url;
+    char* data = args->data;
+    uint64_t max = args->max;
+    uint64_t* bytes = args->bytes;
+
     // fetch attributes
     emscripten_fetch_attr_t fetch_attrib;
 
     // populate fetch attributes with default and custom values
     emscripten_fetch_attr_init(&fetch_attrib);
     fetch_attrib.attributes = EMSCRIPTEN_FETCH_LOAD_TO_MEMORY | 
-                              EMSCRIPTEN_FETCH_SYNCHRONOUS;
+                              EMSCRIPTEN_FETCH_SYNCHRONOUS; // |
+                              //EMSCRIPTEN_FETCH_REPLACE;
     strcpy(fetch_attrib.requestMethod, "GET");
 
     // fetch file (blocking)
     emscripten_fetch_t *fetch = emscripten_fetch(&fetch_attrib, url);
     // the documentation on this is, like, nonexistant. So I have no idea why 
     // the success fetch status is 200. Maybe it is an http code.
-    if (fetch->status == 200)
+    
+    if (fetch->status == 200) {
         printf("Fetched \"%s\" (%llu)\n", fetch->url, fetch->numBytes);
-    else {
+        //*test*/ printf("%s\n", (char*)fetch->data);
+    } else {
         printf("Fetch \"%s\" FAILED! (HTTP status code: %d)\n", 
             fetch->url, fetch->status);
-        return -1;
+        //*test*/ printf("%s\n", (char*)fetch->data);
+        emscripten_fetch_close(fetch);
+        return (void*)-1;
     }
 
     // copy data to data buffer
@@ -296,7 +353,7 @@ int fetch_file(const char* url, char* data, uint64_t max, uint64_t* bytes) {
     // free fetch object
     emscripten_fetch_close(fetch);
 
-    return 0;
+    return (void*)0;
 }
 
 
@@ -306,19 +363,24 @@ static GLuint compile_shader(GLenum shader_type, const char* url) {
     // string terminator is there by default
     char src[1024] = {0};
     uint64_t len = sizeof(src);
-    ASSERT(fetch_file(url, src, len-1, &len), 0, "");
+    ASSERT(fetch_file(url, src, len-1, &len) == 0, 0, "fetch_file failed\n");
     ASSERT(len < sizeof(src), 0, 
-        "ERROR: Loaded shader file exceeded buffer length \"%s\"", url);
+        "ERROR: Loaded shader file exceeded buffer length \"%s\"\n", url);
 
     // create shader object (only returns handle)
     GLuint shader = glCreateShader(shader_type);
 
+    char* src2 = src+1;
+
     // set the shader source to a single shader that is null terminated
     // I am not sure what is going on with the const typecast warning here
     // I assumed that the const param only affects the callee
-    glShaderSource(shader, 1, (const GLchar**)&src, NULL);
+    // this is confirmed working by using glShaderGetSource
+    glShaderSource(shader, 1, (const GLchar**)&(src2), NULL);
 
-    printf("Compiling shader \"%s\"", url);
+    printf("%s\n", src2);
+
+    printf("Compiling shader \"%s\"\n", url);
 
     // compile the shader
     glCompileShader(shader);
@@ -332,6 +394,8 @@ static GLuint compile_shader(GLenum shader_type, const char* url) {
         if (err == GL_FALSE) {
             char log[len];
             glGetShaderInfoLog(shader, len, NULL, log);
+            //printf("SHADER COMPILER ERROR\n--------------------\n");
+            printf("SHADER COMPILER ERROR:\n");
             printf(log);
             return 0;
         }
