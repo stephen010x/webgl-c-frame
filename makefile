@@ -7,10 +7,11 @@ BINDIR := bin
 
 
 CC := emcc
-CFLAGS := -sFETCH
-LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT
+CFLAGS := 
+LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT -sFETCH
 BFLAGS := -Wall -Wextra -Wpedantic -Wconversion -Wundef
-
+BFLAGS := $(BFLAGS) -Wno-language-extension-token -Wno-gnu -std=gnu2x
+BFLAGS := -Wno-format-security
 
 
 
