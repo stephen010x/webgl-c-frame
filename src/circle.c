@@ -28,7 +28,7 @@ CIRCLE* CIRCLE_default(CIRCLE* circle, int screen_width, int screen_height, GLui
     circle->screen_height = screen_height;
     circle->shader_program = shader_program;
     circle->x = (GLfloat)(rand()%screen_width);
-    circle->y = (GLfloat)(rand()%screen_width);
+    circle->y = (GLfloat)(rand()%screen_height);
     circle->radius = (GLfloat)(rand()%(screen_width/4));
     circle->color = (COLOR){
         .r = (GLfloat)FRAND(),

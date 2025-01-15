@@ -35,6 +35,7 @@
 bin/
 tmp/
 _old/
+gen/
 
 # Specific
 src/macro_extensions.h

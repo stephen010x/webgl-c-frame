@@ -12,6 +12,8 @@
 #include "circle.h"
 //#include <stdbool.h>
 
+#include "shaders/gen/shaders.h"
+
 
 #define NUM_CIRCLES 2
 #define CIRC_RES 32
@@ -114,7 +116,8 @@ int main() {
 void* _main(void* args) {
     printf("detatching main\n");
     int retval =__main();
-    printf("main exited with code (%d)\n", retval);
+    // TODO: this errors for some reason??? Fix this
+    //printf("main exited with code (%d)\n", retval);
     return (void*)retval;
 }
 
@@ -127,12 +130,17 @@ int __main(void) {
     // remember, you wrote this function. Pass in canvas name, 
     // and returns shader programs
     // a bit counterintuitive, but you can fix this later
-    GLuint program = init_webgl("canvas");
+    GLuint program = init_webgl(".canvas");
     ASSERT(program, -1, "init_webgl failed\n");
+
+    // TODO: good lord fix this
+    emscripten_set_canvas_element_size("#canvas", 800, 600);
 
     //get canvas width and height
     FRAME canvas;
-    emscripten_get_canvas_element_size("#canvas", &canvas.width, &canvas.height);
+    EMSCRIPTEN_RESULT result = emscripten_get_canvas_element_size("#canvas", &canvas.width, &canvas.height);
+
+    //*debug*/ printf("canvas %d %d %d %d\n", canvas.width, canvas.height, result, EMSCRIPTEN_RESULT_SUCCESS);
     
     // set the uniform u_proj_mat
     GLint u_proj_mat_loc = glGetUniformLocation(program, "u_proj_mat");
@@ -254,6 +262,7 @@ GLuint init_webgl(const char* canvas_id) {
 
     // compile shaders
     GLuint vs = compile_shader(GL_VERTEX_SHADER, "/src/shaders/default.vert");
+    // "https://raw.githubusercontent.com/stephen010x/webgl-c-frame/refs/heads/main/src/shaders/default.vert"
     ASSERT(vs, (GLuint)0, "vertex shader failed to compile\n");
     GLuint fs = compile_shader(GL_FRAGMENT_SHADER, "/src/shaders/default.frag");
     ASSERT(fs, (GLuint)0, "fragment shader failed to compilen\n");
@@ -370,15 +379,19 @@ static GLuint compile_shader(GLenum shader_type, const char* url) {
     // create shader object (only returns handle)
     GLuint shader = glCreateShader(shader_type);
 
-    char* src2 = src+1;
+    char* _src = src;
 
     // set the shader source to a single shader that is null terminated
     // I am not sure what is going on with the const typecast warning here
     // I assumed that the const param only affects the callee
     // this is confirmed working by using glShaderGetSource
-    glShaderSource(shader, 1, (const GLchar**)&(src2), NULL);
-
-    printf("%s\n", src2);
+    // what the heck???
+    // For some reason this function spectacularly fails when I try to 
+    // pass our src as the pointer to a static array casted to a a const GLchar**
+    // and yet using a pointer that points to our static array works.
+    // turns out static arrays when referencing will just decay into a pointer
+    // without referencing
+    glShaderSource(shader, 1, (const GLchar**)&_src, NULL);
 
     printf("Compiling shader \"%s\"\n", url);
 

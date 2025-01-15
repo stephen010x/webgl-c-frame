@@ -4,6 +4,7 @@ TEXTEN := wasm
 TMPDIR := tmp
 SRCDIR := src
 BINDIR := bin
+GENDIR := src/shaders/gen
 
 
 CC := emcc
@@ -69,32 +70,38 @@ all: $(DEFAULT)
 fast: _fast $(BINTARG).$(TEXTEN)
 debug: _debug $(BINTARG).$(TEXTEN)
 release: _release $(BINTARG).$(TEXTEN)
-static: _static $(LIBTARG).a
-dynamic: _dynamic $(LIBTARG).so
 
 
 -include $(DEPS)
+-include shaders
 
 
+shaders: $(GENDIR)/shaders.h
+
+
+# -sGL_DEBUG=1
 _fast:
 	$(eval CFLAGS += -DDEBUG_MODE)
-	$(eval BFLAGS += -g -O0 -gsource-map -sASSERTIONS=2 -sGL_DEBUG=1)
+	$(eval BFLAGS += -g -O0 -gsource-map -sASSERTIONS=2)
 
+# -sGL_DEBUG=1
 _debug:
 	$(eval CFLAGS += -DDEBUG_MODE)
-	$(eval BFLAGS += -g -Og -gsource-map -sASSERTIONS=2 -sGL_DEBUG=1)
+	$(eval BFLAGS += -g -Og -gsource-map -sASSERTIONS=2)
 
 _release: _optimize
 
 # -Oz  ## smaller than -Os, but also slower
+#  -sMODULARIZE
 _optimize:
-	$(eval LFLAGS += -Wl,--gc-sections -s -flto --closure 1 -sMODULARIZE)
+	$(eval LFLAGS += -Wl,--gc-sections -s -flto --closure 1)
 	$(eval BFLAGS += -Os -g0)
 
 
+# $(basename $@).html
 $(BINTARG).$(TEXTEN): $(OBJS)
 	mkdir -p $(BINDIR)
-	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js -o $(basename $@).html $^
+	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js -o $^
 
 $(TMPDIR)/$(GOAL)/%.o: %.c $(TMPDIR)/$(GOAL)/%.d
 	mkdir -p $(dir $@)
@@ -102,13 +109,17 @@ $(TMPDIR)/$(GOAL)/%.o: %.c $(TMPDIR)/$(GOAL)/%.d
 
 $(TMPDIR)/$(GOAL)/%.d: %.c
 	mkdir -p $(dir $@)
-	$(CC) -MM -MT $(patsubst %.d,%.o,$@) -MF $@ -c $<
+	$(CC) -MM -MT $(patsubst %.d,%.o,$@) -MF $@ $<
 
+
+$(GENDIR)/shaders.h:
+	python3 src/shaders/shader_to_c.py
 
 
 clean:
 	rm -rf $(TMPDIR)
 	rm -rf $(BINDIR)
+	rm -rf src/shaders/gen
 
 chrome:
 	./serve.sh & google-chrome --enable-features=SharedArrayBuffer 0.0.0.0:8000
@@ -120,5 +131,5 @@ endif
 
 
 
-.PHONY: all fast debug release static dynamic clean test chrome
+.PHONY: all fast debug release static dynamic clean test chrome shaders
 .PHONY: _build _fast _debug _release _dynamic _static _optimize
