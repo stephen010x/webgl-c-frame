@@ -8,7 +8,7 @@
 #include <GLES2/gl2.h>
 #include <emscripten.h>
 #include <emscripten/html5.h>
-#include <emscripten/fetch.h>
+//#include <emscripten/fetch.h>
 #include "circle.h"
 //#include <stdbool.h>
 
@@ -65,9 +65,10 @@ enum {
     
 
 
-int fetch_file(const char* url, char* data, uint64_t max, uint64_t* bytes);
+//int fetch_file(const char* url, char* data, uint64_t max, uint64_t* bytes);
 GLuint init_webgl(const char* canvas_id);
-static GLuint compile_shader(GLenum shader_type, const char* url);
+//static GLuint compile_shader(GLenum shader_type, const char* url);
+static GLuint compile_shader(GLenum shader_type, const char* name, const char* src);
 static int link_program(GLuint program, const char* name);
 void init_scene(CIRCLE* circles, MESH* circle_mesh, GLuint shader_program, int width, int height);
 EM_BOOL frame_loop(double t, void *user_data);
@@ -92,27 +93,52 @@ typedef struct {
 // some global variables
 
 // declare our sole mesh
-MESH circle_mesh = { .len = CIRC_RES*4 };
-// allocate some space for our mesh vertices
-volatile MESH_VERT _circle_mesh_verts[CIRC_RES*4];
+// placed in struct to ensure placement
+// without the struct you end up overwriting js objects that are
+// crucial to the printf function working
+struct {
+    MESH circle_mesh;
+    // allocate some space for our mesh vertices
+    volatile MESH_VERT _circle_mesh_verts[CIRC_RES*4];
+} circle_mesh_struct = {
+    .circle_mesh = { .len = CIRC_RES*4 }
+};
+#define _circle_mesh (circle_mesh_struct.circle_mesh)
+
 
 // declare our circle array
 CIRCLE circles[NUM_CIRCLES];
 
 
-void* _main(void* args);
+//void* _main(void* args);
 int __main(void);
 
 int main() {
     printf("starting webgl\n");
-    int retval;
+
+    //*debug*/ printf("%p %lu %p %lu\n", &_circle_mesh, sizeof(_circle_mesh), &circle_mesh_struct._circle_mesh_verts, sizeof(circle_mesh_struct._circle_mesh_verts));
+
+    /*int retval;
     pthread_t thread;
     pthread_create(&thread, NULL, _main, NULL);
     //pthread_join(thread, (void**)&retval);
+    return retval;*/
+    
+    int retval = __main();
+
+    // apparently printf fails after calling the animation frame loop
+    printf("main exited with code (%d)\n", retval);
+
+    // this is just a busyloop
+    //emscripten_sleep(1000);
+
+    // TODO: This function may work to replace emscripten FETCH
+    // int emscripten_wget(const char *url, const char *file)
+    
     return retval;
 }
 
-
+/*
 void* _main(void* args) {
     printf("detatching main\n");
     int retval =__main();
@@ -120,7 +146,7 @@ void* _main(void* args) {
     //printf("main exited with code (%d)\n", retval);
     return (void*)retval;
 }
-
+*/
 
 int __main(void) {
 
@@ -130,7 +156,7 @@ int __main(void) {
     // remember, you wrote this function. Pass in canvas name, 
     // and returns shader programs
     // a bit counterintuitive, but you can fix this later
-    GLuint program = init_webgl(".canvas");
+    GLuint program = init_webgl("#canvas");
     ASSERT(program, -1, "init_webgl failed\n");
 
     // TODO: good lord fix this
@@ -152,8 +178,7 @@ int __main(void) {
             0,                   0,                   -1, 0,
             0,                   0,                    0, 1
         };
-    glUniformMatrix4fv(u_proj_mat_loc, 16, GL_FALSE, u_proj_mat);
-
+    glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, u_proj_mat);
 
     /*
     Alright, I just wanted to demonstrate that there are three ways to
@@ -179,10 +204,11 @@ int __main(void) {
     */
 
     // init scene
-    init_scene(circles, &circle_mesh, program, canvas.width, canvas.height);
+    init_scene(circles, &_circle_mesh, program, canvas.width, canvas.height);
 
     // set frame callback
     // a while loop would stall the webpage, so this is neccissary
+    printf("starting animation frame loop\n");
     emscripten_request_animation_frame_loop(&frame_loop, NULL);
 
     return 0;
@@ -195,15 +221,42 @@ EM_BOOL frame_loop(double t, void *user_data) {
     double dt = t - t0;
     t0 = t;
 
+    //printf("yol\n");
+
+    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
     // clear the scene
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    {
+
+        GLuint program;
+        glGetIntegerv(GL_CURRENT_PROGRAM,
+        (GLint*)&program);
+        
+        // set the uniform u_proj_mat
+        GLint u_proj_mat_loc = glGetUniformLocation(program, "u_proj_mat");
+        //GLfloat aspect = (GLfloat)canvas.width / (GLfloat)canvas.height;
+        // TODO: improve this projection matrix
+        const GLfloat u_proj_mat[16] = {
+                0.07500000298023224f, 0,                    0, 0,
+                0,                   0.10000000149011612f,  0, 0,
+                0,                   0,                   -1.0f, 0,
+                0,                   0,                    0, 1.0f
+            };
+        glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, u_proj_mat);
+    }
+
     // update the scene
-    for (int i = 0; i < NUM_CIRCLES; i++)
-        CIRCLE_update(circles+i, (float)dt);
+    //for (int i = 0; i < NUM_CIRCLES; i++)
+    //    CIRCLE_update(circles+i, (float)dt);
 
     for (int i = 0; i < NUM_CIRCLES; i++)
         CIRCLE_draw(circles+i);
+
+    // requests frame buffer swap. Will actually render stuff to screen
+    // this is neccissary because explicitSwapControl was set to GL_TRUE
+    emscripten_webgl_commit_frame();
 
      // return true to keep looping
      // return false to kill loop
@@ -220,7 +273,7 @@ void init_scene(
         circle_mesh->verts[i+2] = (float)cos( (float)i * (2*MATH_PI/CIRC_RES) );
         circle_mesh->verts[i+3] = (float)sin( (float)i * (2*MATH_PI/CIRC_RES) );
     }
-
+    
     for (int i = 0; i < NUM_CIRCLES; i++) {
         CIRCLE_init( CIRCLE_default(
             &circles[i],
@@ -253,18 +306,24 @@ GLuint init_webgl(const char* canvas_id) {
     // create webgl context to canvas element using id
     EMSCRIPTEN_WEBGL_CONTEXT_HANDLE gl_context = emscripten_webgl_create_context(
         canvas_id, &gl_attrib);
-    ASSERT(gl_context, (GLuint)0, "ERROR: Failed to create webgl context\n");
+    ASSERT(gl_context, (GLuint)0, "Error: Failed to create webgl context\n");
 
     // activate webgl context
     ASSERT(emscripten_webgl_make_context_current(gl_context) == 
         EMSCRIPTEN_RESULT_SUCCESS, (GLuint)0,
-        "ERROR: Failed to mamke webgl context current\n");
+        "Error: Failed to mamke webgl context current\n");
 
-    // compile shaders
+    /*// compile shaders
     GLuint vs = compile_shader(GL_VERTEX_SHADER, "/src/shaders/default.vert");
     // "https://raw.githubusercontent.com/stephen010x/webgl-c-frame/refs/heads/main/src/shaders/default.vert"
     ASSERT(vs, (GLuint)0, "vertex shader failed to compile\n");
     GLuint fs = compile_shader(GL_FRAGMENT_SHADER, "/src/shaders/default.frag");
+    ASSERT(fs, (GLuint)0, "fragment shader failed to compilen\n");*/
+
+    // compile shaders
+    GLuint vs = compile_shader(GL_VERTEX_SHADER, "default.vert", default_vert);
+    ASSERT(vs, (GLuint)0, "vertex shader failed to compile\n");
+    GLuint fs = compile_shader(GL_FRAGMENT_SHADER, "default.frag", default_frag);
     ASSERT(fs, (GLuint)0, "fragment shader failed to compilen\n");
 
     // create program object
@@ -288,7 +347,7 @@ GLuint init_webgl(const char* canvas_id) {
 
 
 
-typedef struct {
+/*typedef struct {
     const char* url;
     char* data;
     uint64_t max;
@@ -296,8 +355,8 @@ typedef struct {
 } fetch_file_args;
 
 void* fetch_sync(void* _args);
-
-
+*/
+/*
 // this function is synchronous. It will block until it gets the data
 // the bytes parameter is both input and output. As input it represents
 // the max bytes, and as output it will be how many bytes were read.
@@ -343,11 +402,11 @@ void* fetch_sync(void* _args) {
     
     if (fetch->status == 200) {
         printf("Fetched \"%s\" (%llu)\n", fetch->url, fetch->numBytes);
-        //*test*/ printf("%s\n", (char*)fetch->data);
+        // *test* / printf("%s\n", (char*)fetch->data);
     } else {
         printf("Fetch \"%s\" FAILED! (HTTP status code: %d)\n", 
             fetch->url, fetch->status);
-        //*test*/ printf("%s\n", (char*)fetch->data);
+        // *test* / printf("%s\n", (char*)fetch->data);
         emscripten_fetch_close(fetch);
         return (void*)-1;
     }
@@ -363,23 +422,24 @@ void* fetch_sync(void* _args) {
     emscripten_fetch_close(fetch);
 
     return (void*)0;
-}
+}*/
 
 
-static GLuint compile_shader(GLenum shader_type, const char* url) {
+//static GLuint compile_shader(GLenum shader_type, const char* url) {
+static GLuint compile_shader(GLenum shader_type, const char* name, const char* src) {
     // load shader
     // make sure everything is zeroed out so that the
     // string terminator is there by default
-    char src[1024] = {0};
+    /*char src[1024] = {0};
     uint64_t len = sizeof(src);
     ASSERT(fetch_file(url, src, len-1, &len) == 0, 0, "fetch_file failed\n");
     ASSERT(len < sizeof(src), 0, 
-        "ERROR: Loaded shader file exceeded buffer length \"%s\"\n", url);
+        "ERROR: Loaded shader file exceeded buffer length \"%s\"\n", url);*/
 
     // create shader object (only returns handle)
     GLuint shader = glCreateShader(shader_type);
 
-    char* _src = src;
+    //const char* _src = src;
 
     // set the shader source to a single shader that is null terminated
     // I am not sure what is going on with the const typecast warning here
@@ -391,9 +451,9 @@ static GLuint compile_shader(GLenum shader_type, const char* url) {
     // and yet using a pointer that points to our static array works.
     // turns out static arrays when referencing will just decay into a pointer
     // without referencing
-    glShaderSource(shader, 1, (const GLchar**)&_src, NULL);
+    glShaderSource(shader, 1, (const GLchar**)&src, NULL);
 
-    printf("Compiling shader \"%s\"\n", url);
+    printf("Compiling shader \"%s\"\n", name);
 
     // compile the shader
     glCompileShader(shader);

@@ -8,10 +8,10 @@ GENDIR := src/shaders/gen
 
 
 CC := emcc
-CFLAGS := 
+CFLAGS := -Wno-gnu-variable-sized-type-not-at-end
 LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT 
-# --proxy-to-worker -pthread
-LFLAGS := $(LFLAGS) -sFETCH -pthread -sPTHREAD_POOL_SIZE=4
+# --proxy-to-worker  -sFETCH -pthread -sPTHREAD_POOL_SIZE=4
+LFLAGS := $(LFLAGS)
 BFLAGS := -Wall -Wextra -Wpedantic -Wconversion -Wundef
 BFLAGS := $(BFLAGS) -Wno-language-extension-token -Wno-gnu -std=gnu2x
 BFLAGS := -Wno-format-security
@@ -25,10 +25,11 @@ DEFAULT := fast
 GOAL := $(firstword $(MAKECMDGOALS))
 GOAL := $(if $(GOAL),$(GOAL),$(DEFAULT))
 # should grab all paths relative to makefile.
-SRCS := $(shell find $(SRCDIR) -name "*.c")
+# colon equal (:=) removed, so as to grab all generated c files as well
+SRCS = $(shell find $(SRCDIR) -name "*.c")
 ifneq ($(GOAL),clean)
-	OBJS := $(SRCS:%.c=$(TMPDIR)/$(GOAL)/%.o)
-	DEPS := $(SRCS:%.c=$(TMPDIR)/$(GOAL)/%.d)
+	OBJS = $(SRCS:%.c=$(TMPDIR)/$(GOAL)/%.o)
+	DEPS = $(SRCS:%.c=$(TMPDIR)/$(GOAL)/%.d)
 endif
 BINTARG := $(BINDIR)/$(TARGET)
 
@@ -82,12 +83,14 @@ shaders: $(GENDIR)/shaders.h
 # -sGL_DEBUG=1
 _fast:
 	$(eval CFLAGS += -DDEBUG_MODE)
-	$(eval BFLAGS += -g -O0 -gsource-map -sASSERTIONS=2)
+	$(eval LFLAGS += -sASSERTIONS=2)
+	$(eval BFLAGS += -g -O0 -gsource-map)
 
 # -sGL_DEBUG=1
 _debug:
 	$(eval CFLAGS += -DDEBUG_MODE)
-	$(eval BFLAGS += -g -Og -gsource-map -sASSERTIONS=2)
+	$(eval LFLAGS += -sASSERTIONS=2)
+	$(eval BFLAGS += -g -Og -gsource-map)
 
 _release: _optimize
 
@@ -101,7 +104,7 @@ _optimize:
 # $(basename $@).html
 $(BINTARG).$(TEXTEN): $(OBJS)
 	mkdir -p $(BINDIR)
-	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js -o $^
+	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js $^
 
 $(TMPDIR)/$(GOAL)/%.o: %.c $(TMPDIR)/$(GOAL)/%.d
 	mkdir -p $(dir $@)
@@ -121,8 +124,9 @@ clean:
 	rm -rf $(BINDIR)
 	rm -rf src/shaders/gen
 
-chrome:
-	./serve.sh & google-chrome --enable-features=SharedArrayBuffer 0.0.0.0:8000
+# ./serve.sh & google-chrome --enable-features=SharedArrayBuffer 0.0.0.0:8000
+#chrome:
+#	./serve.sh & google-chrome 0.0.0.0:8000
 
 
 endif

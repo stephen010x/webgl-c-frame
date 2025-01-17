@@ -1,4 +1,5 @@
 //#include <math.h>
+#include <stdio.h>
 #include "circle.h"
 
 
@@ -86,7 +87,7 @@ CIRCLE* CIRCLE_init(CIRCLE* circle) {
 
     // set uniform u_color
     GLint u_color_loc = glGetUniformLocation(circle->shader_program, "u_color");
-    glUniform4fv(u_color_loc, 3, circle->color.raw);
+    glUniform4fv(u_color_loc, 1, circle->color.raw);
 
     // store model view matrix location
     circle->u_mod_view_mat_loc =
@@ -125,6 +126,8 @@ void CIRCLE_update(CIRCLE* circle, float dt) {
     //.evaluate new position
     circle->x += circle->dx*dt;
     circle->y += circle->dx*dt;
+
+    printf("%p: (%f, %f)\n", circle, circle->x, circle->y);
 }
 
 
@@ -136,14 +139,22 @@ void CIRCLE_draw(CIRCLE* circle) {
     // hopefully this is the right matrix
     // all this should do is translate and scale
     GLfloat mat4[16] = {
+        1.8329142332077026f, 0, 0, 0,
+        0, 1.8329142332077026f, 0, 0,
+        0, 0, 1, 0,
+        -4.312682628631592f, -7.941835403442383f, 0, 1
+    };
+
+    /*{
         rad,   0,   0, 0,
         0,     rad, 0, 0,
         0,     0,   1, 0,
         x,     y,   0, 1,
-    };
-    glUniformMatrix4fv(circle->u_mod_view_mat_loc, 16, GL_FALSE, mat4);
+    };*/
+    glUniformMatrix4fv(circle->u_mod_view_mat_loc, 1, GL_FALSE, mat4);
 
     // finally draw the model to the screen/draw buffer
     // TODO: replace the 66 with a more dynamic value
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 66);
+    //glDrawArrays(GL_TRIANGLE_STRIP, 0, 66);
+    glDrawArrays(GL_LINES, 0, 66);
 }
