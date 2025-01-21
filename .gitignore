@@ -39,3 +39,4 @@ gen/
 
 # Specific
 src/macro_extensions.h
+src/macro_ext.h

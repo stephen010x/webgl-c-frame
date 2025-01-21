@@ -31,8 +31,9 @@ typedef union {
         GLfloat r;
         GLfloat g;
         GLfloat b;
+        GLfloat w;
     };
-    GLfloat raw[3];
+    GLfloat raw[4];
 } COLOR;
 
 

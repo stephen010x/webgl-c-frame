@@ -14,6 +14,8 @@
 
 #include "shaders/gen/shaders.h"
 
+#include "macros.h"
+
 
 #define NUM_CIRCLES 2
 #define CIRC_RES 32
@@ -23,16 +25,27 @@
 //#define ASSERT(__cond, __code, ...) _ASSERT(__cond, __code, __VA_ARGS__, "")
 
 #ifdef DEBUG_MODE
-    #define ASSERT(__cond, __code, ...) do {    \
-            if (!(__cond)) {                    \
-                printf(__VA_ARGS__);            \
-                return (__code);                \
-            }                                   \
-        } while(0);
+    #define ASSERT(__cond, __code, ...)     \
+        do {                                \
+            if (!(__cond)) {                \
+                printf(__VA_ARGS__);        \
+                IFTHENELSE(ISVOID(__code),  \
+                    return; ,               \
+                    return (__code);        \
+                )                           \
+            }                               \
+        } while(0)
 #else
-    #define ASSERT(__cond, __code, ...) \
-        do {if (!(__cond)) return (__code);} while(0)
+    #define ASSERT(__cond, __code, ...)     \
+        do {                                \
+            if (!(__cond))                  \
+                IFTHENELSE(ISVOID(__code),  \
+                    return; ,               \
+                    return (__code);        \
+                )                           \
+        } while(0)
 #endif
+
 
 #define MAX(__a, __b) ({        \
         typeof(__a) a = (__a);  \
@@ -45,6 +58,7 @@
         typeof(__b) b = (__b);  \
         a <= b ? a : b;         \
     })
+
 
 #define LENOF(__n) (sizeof(__n)/sizeof(*(__n)))
 #define MATH_PI 3.141592653589793238462643383
@@ -215,6 +229,9 @@ int __main(void) {
 }
 
 
+void testdraw(void);
+
+
 EM_BOOL frame_loop(double t, void *user_data) {
     (void)user_data;
     static double t0;
@@ -228,25 +245,6 @@ EM_BOOL frame_loop(double t, void *user_data) {
     // clear the scene
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    {
-
-        GLuint program;
-        glGetIntegerv(GL_CURRENT_PROGRAM,
-        (GLint*)&program);
-        
-        // set the uniform u_proj_mat
-        GLint u_proj_mat_loc = glGetUniformLocation(program, "u_proj_mat");
-        //GLfloat aspect = (GLfloat)canvas.width / (GLfloat)canvas.height;
-        // TODO: improve this projection matrix
-        const GLfloat u_proj_mat[16] = {
-                0.07500000298023224f, 0,                    0, 0,
-                0,                   0.10000000149011612f,  0, 0,
-                0,                   0,                   -1.0f, 0,
-                0,                   0,                    0, 1.0f
-            };
-        glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, u_proj_mat);
-    }
-
     // update the scene
     //for (int i = 0; i < NUM_CIRCLES; i++)
     //    CIRCLE_update(circles+i, (float)dt);
@@ -254,13 +252,49 @@ EM_BOOL frame_loop(double t, void *user_data) {
     for (int i = 0; i < NUM_CIRCLES; i++)
         CIRCLE_draw(circles+i);
 
+    //testdraw();
+
     // requests frame buffer swap. Will actually render stuff to screen
     // this is neccissary because explicitSwapControl was set to GL_TRUE
     emscripten_webgl_commit_frame();
 
-     // return true to keep looping
-     // return false to kill loop
+    // return true to keep looping
+    // return false to kill loop
     return EM_TRUE;
+}
+
+
+void testdraw(void) {
+    GLfloat tri_verts[] = {
+         0.0,  0.5,
+        -0.5, -0.5,
+         0.5, -0.5
+    };
+
+    GLuint program;
+	glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&program);
+	ASSERT(program != 0,, "youch!\n");
+
+    GLuint tri_buff;
+    glGenBuffers(1, &tri_buff);
+    glBindBuffer(GL_ARRAY_BUFFER, tri_buff);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(tri_verts), &tri_verts, GL_STATIC_DRAW);
+
+    GLuint vert_pos_loc = (GLuint)glGetAttribLocation(program, "vert_pos");
+    glVertexAttribPointer(
+        vert_pos_loc,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        0,
+        (void*)0
+    );
+    glEnableVertexAttribArray(vert_pos_loc);
+
+    GLint u_color_loc = glGetUniformLocation(program, "u_color");
+    glUniform4fv(u_color_loc, 1, (GLfloat[]){0.3f, 0.9f, 0.7f, 1.0f});
+
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 

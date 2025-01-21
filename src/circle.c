@@ -34,7 +34,8 @@ CIRCLE* CIRCLE_default(CIRCLE* circle, int screen_width, int screen_height, GLui
     circle->color = (COLOR){
         .r = (GLfloat)FRAND(),
         .g = (GLfloat)FRAND(),
-        .b = (GLfloat)FRAND()
+        .b = (GLfloat)FRAND(),
+        .w = 1.0f
     };
     circle->dx = FRAND()*10;
     circle->dy = FRAND()*10;
@@ -155,6 +156,6 @@ void CIRCLE_draw(CIRCLE* circle) {
 
     // finally draw the model to the screen/draw buffer
     // TODO: replace the 66 with a more dynamic value
-    //glDrawArrays(GL_TRIANGLE_STRIP, 0, 66);
-    glDrawArrays(GL_LINES, 0, 66);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 66);
+    //glDrawArrays(GL_LINES, 0, 66);
 }
