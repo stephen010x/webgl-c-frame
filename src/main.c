@@ -9,12 +9,12 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 //#include <emscripten/fetch.h>
-#include "circle.h"
 //#include <stdbool.h>
-
+#include "cglm/cglm.h"
+#include "gobjects.h"
 #include "shaders/gen/shaders.h"
 
-#include "macros.h"
+//#include "macros/macros.h"
 
 
 #define NUM_CIRCLES 2
@@ -24,6 +24,7 @@
 
 //#define ASSERT(__cond, __code, ...) _ASSERT(__cond, __code, __VA_ARGS__, "")
 
+#if 0
 #ifdef DEBUG_MODE
     #define ASSERT(__cond, __code, ...)     \
         do {                                \
@@ -44,6 +45,36 @@
                     return (__code);        \
                 )                           \
         } while(0)
+#endif
+#else
+// use this until the macro library works
+#ifdef DEBUG_MODE
+    #define ASSERT(__cond, __code, ...) \
+        do {                            \
+            if (!(__cond)) {            \
+                printf(__VA_ARGS__);    \
+                return (__code);        \
+            }                           \
+        } while(0)
+    #define ASSERTVOID(__cond, ...)     \
+        do {                            \
+            if (!(__cond)) {            \
+                printf(__VA_ARGS__);    \
+                return;                 \
+            }                           \
+        } while(0)
+#else
+    #define ASSERT(__cond, __code, ...) \
+        do {                            \
+            if (!(__cond))              \
+                return (__code);        \
+        } while(0)
+    #define ASSERTVOID(__cond, ...)     \
+        do {                            \
+            if (!(__cond))              \
+                return;                 \
+        } while(0)
+#endif
 #endif
 
 
@@ -123,6 +154,8 @@ struct {
 // declare our circle array
 CIRCLE circles[NUM_CIRCLES];
 
+SIMPLET simp;
+
 
 //void* _main(void* args);
 int __main(void);
@@ -139,8 +172,6 @@ int main() {
     return retval;*/
     
     int retval = __main();
-
-    // apparently printf fails after calling the animation frame loop
     printf("main exited with code (%d)\n", retval);
 
     // this is just a busyloop
@@ -174,11 +205,15 @@ int __main(void) {
     ASSERT(program, -1, "init_webgl failed\n");
 
     // TODO: good lord fix this
-    emscripten_set_canvas_element_size("#canvas", 800, 600);
+    emscripten_set_canvas_element_size("#canvas", 256, 256);
 
     //get canvas width and height
     FRAME canvas;
     EMSCRIPTEN_RESULT result = emscripten_get_canvas_element_size("#canvas", &canvas.width, &canvas.height);
+
+    // TODO I don't really know where to go with this
+    // I eventually want control over the screen buffer size/resolution
+    //glViewport(0, 0, 256, 256);
 
     //*debug*/ printf("canvas %d %d %d %d\n", canvas.width, canvas.height, result, EMSCRIPTEN_RESULT_SUCCESS);
     
@@ -186,13 +221,17 @@ int __main(void) {
     GLint u_proj_mat_loc = glGetUniformLocation(program, "u_proj_mat");
     //GLfloat aspect = (GLfloat)canvas.width / (GLfloat)canvas.height;
     // TODO: improve this projection matrix
-    const GLfloat u_proj_mat[16] = {
+    /*const GLfloat u_proj_mat[16] = {
             0.07500000298023224, 0,                    0, 0,
             0,                   0.10000000149011612,  0, 0,
             0,                   0,                   -1, 0,
             0,                   0,                    0, 1
-        };
-    glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, u_proj_mat);
+        };*/
+
+    mat4 u_proj_mat;
+    glm_ortho(-1, 1, -1, 1, 0, (1<<16)-1, u_proj_mat);
+
+    glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
 
     /*
     Alright, I just wanted to demonstrate that there are three ways to
@@ -218,7 +257,19 @@ int __main(void) {
     */
 
     // init scene
-    init_scene(circles, &_circle_mesh, program, canvas.width, canvas.height);
+    //init_scene(circles, &_circle_mesh, program, canvas.width, canvas.height);
+
+    SIMPLET_init(&simp, program);
+
+    /*glDisable(GL_DITHER);
+    glDisable(GL_POINT_SMOOTH);
+    glDisable(GL_LINE_SMOOTH);
+    glDisable(GL_POLYGON_SMOOTH);
+    glHint(GL_POINT_SMOOTH, GL_DONT_CARE);
+    glHint(GL_LINE_SMOOTH, GL_DONT_CARE);
+    glHint(GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
+    #define GL_MULTISAMPLE_ARB 0x809D
+    glDisable( GL_MULTISAMPLE_ARB);*/
 
     // set frame callback
     // a while loop would stall the webpage, so this is neccissary
@@ -240,7 +291,7 @@ EM_BOOL frame_loop(double t, void *user_data) {
 
     //printf("yol\n");
 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
     // clear the scene
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -249,8 +300,10 @@ EM_BOOL frame_loop(double t, void *user_data) {
     //for (int i = 0; i < NUM_CIRCLES; i++)
     //    CIRCLE_update(circles+i, (float)dt);
 
-    for (int i = 0; i < NUM_CIRCLES; i++)
-        CIRCLE_draw(circles+i);
+    //for (int i = 0; i < NUM_CIRCLES; i++)
+    //    CIRCLE_draw(circles+i);
+
+    SIMPLET_draw(&simp);
 
     //testdraw();
 
@@ -273,7 +326,7 @@ void testdraw(void) {
 
     GLuint program;
 	glGetIntegerv(GL_CURRENT_PROGRAM, (GLint*)&program);
-	ASSERT(program != 0,, "youch!\n");
+	ASSERTVOID(program != 0, "youch!\n");
 
     GLuint tri_buff;
     glGenBuffers(1, &tri_buff);
@@ -329,13 +382,13 @@ GLuint init_webgl(const char* canvas_id) {
 
     // populate webgl attributes with default and custom values
     emscripten_webgl_init_context_attributes(&gl_attrib);
-    gl_attrib.alpha = GL_FALSE;
-    gl_attrib.antialias = GL_FALSE;
+    gl_attrib.alpha = EM_FALSE;
+    gl_attrib.antialias = EM_FALSE;
     gl_attrib.powerPreference = EM_WEBGL_POWER_PREFERENCE_LOW_POWER;
     gl_attrib.majorVersion = 2; // might be less compatible with browsers
-    gl_attrib.enableExtensionsByDefault = GL_TRUE; // consider setting to false
-    gl_attrib.explicitSwapControl = GL_TRUE;
-    gl_attrib.renderViaOffscreenBackBuffer = GL_TRUE;
+    gl_attrib.enableExtensionsByDefault = EM_TRUE; // consider setting to false
+    gl_attrib.explicitSwapControl = EM_TRUE;
+    gl_attrib.renderViaOffscreenBackBuffer = EM_TRUE;
 
     // create webgl context to canvas element using id
     EMSCRIPTEN_WEBGL_CONTEXT_HANDLE gl_context = emscripten_webgl_create_context(
@@ -345,7 +398,7 @@ GLuint init_webgl(const char* canvas_id) {
     // activate webgl context
     ASSERT(emscripten_webgl_make_context_current(gl_context) == 
         EMSCRIPTEN_RESULT_SUCCESS, (GLuint)0,
-        "Error: Failed to mamke webgl context current\n");
+        "Error: Failed to make webgl context current\n");
 
     /*// compile shaders
     GLuint vs = compile_shader(GL_VERTEX_SHADER, "/src/shaders/default.vert");
@@ -355,9 +408,13 @@ GLuint init_webgl(const char* canvas_id) {
     ASSERT(fs, (GLuint)0, "fragment shader failed to compilen\n");*/
 
     // compile shaders
-    GLuint vs = compile_shader(GL_VERTEX_SHADER, "default.vert", default_vert);
+    /*GLuint vs = compile_shader(GL_VERTEX_SHADER, "default.vert", default_vert);
     ASSERT(vs, (GLuint)0, "vertex shader failed to compile\n");
     GLuint fs = compile_shader(GL_FRAGMENT_SHADER, "default.frag", default_frag);
+    ASSERT(fs, (GLuint)0, "fragment shader failed to compilen\n");*/
+    GLuint vs = compile_shader(GL_VERTEX_SHADER, "simple.vert", simple_vert);
+    ASSERT(vs, (GLuint)0, "vertex shader failed to compile\n");
+    GLuint fs = compile_shader(GL_FRAGMENT_SHADER, "simple.frag", simple_frag);
     ASSERT(fs, (GLuint)0, "fragment shader failed to compilen\n");
 
     // create program object
@@ -368,10 +425,13 @@ GLuint init_webgl(const char* canvas_id) {
     glAttachShader(program, fs);
 
     // set first index in a vertice to be called "pos"
-    glBindAttribLocation(program, 0, "pos");
+    // TODO: what the heck is this for, and why is it here?
+    // glBindAttribLocation(program, 0, "pos");
+
+    //TODO: Add glValidateProgram
 
     // link the program
-    ASSERT(!link_program(program, "default"), (GLuint)0, "");
+    ASSERT(!link_program(program, "simple"), (GLuint)0, "");
 
     // install program as part of current rendering state
     glUseProgram(program);

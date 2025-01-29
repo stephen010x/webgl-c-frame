@@ -25,17 +25,83 @@
  *  
  *  - Order goes: Substiute var
  *
+ *
+ *
+ *  WARNINGS
+ *  --------
+ *  Unpacked values will only register as a single param.
+ *  But __VA_ARGS__ likely expands to fill params.
+ *  So an extra layer is required for some of these macros.
+ *
+ *  You can't concat a keyword with a parenthesis.
+ *  So in order to combine a keyword with parenthesis to create
+ *  a function macro call, you must simply put them next to each-other.
+ *  The whitespace is ignored and the preprocessor still sees it as a 
+ *  function
  */
 
 
-//#define IFEQ_ZERO(__value, __block) _IFEQ_ZERO##__value(__block)
-//#define _IFEQ_ZERO_0(__block) block
+//  INSPIRATION FOR THIS LIBRARY:
+/*
+    Alright lets test an idea.
+    To force an undefined value to return nothing
+    by having all defined values be defined as multiple arguments, 
+    and always only ever returning the second argument
+*/
 
-//#define IFNEQ_ZERO(__value, __block) _IFNEQ_ZERO_##__value(__block)
-//#define _IFNEQ_ZERO_0(__block) block
+/*
+    YES IT WORKS!
+    I gave up on the possability months ago!
+*/
 
-// would this even be useful for anything?
-//#define EVAL(__n) __n
+
+
+/*
+  --------------
+    BRAINSTORM
+  --------------
+
+  So first I think the param function should only index arrays, not multiple
+  params. This just heavily simplifies things, reduces neccissary checking,
+  and improves consistancy with design, all by leaving that up to the programmer.
+  It was initially a feature designed for ease. But in the long run it would make
+  things harder, even for the user. So it is being abolished in favor of packed
+  arrays.
+
+  On that note, I should push for packed array values for most of my functions.
+  And this is for so many good reasons. So just do it.
+
+
+  I should probably enforce number sizes too so as to also greatly simplify
+  number arithmatic.
+  There isn't really any need to include different sizes anyhow
+
+*/
+
+
+
+
+
+    //////////////////////////////////////
+   ////                              ////
+  ////      ARRAY MACROS            ////
+ ////                              ////
+//////////////////////////////////////
+
+    /* Place common C inliner macros here */
+# 107 "macros.h"
+// I wonder if these would be better off with a forced inline function instead
+# 132 "macros.h"
+    //////////////////////////////////////
+   ////                              ////
+  ////      FUNDAMENTAL MACROS      ////
+ ////                              ////
+//////////////////////////////////////
+
+    /* Macros that have no dependancies go here
+       As well as fundamental macros that most other
+       Macros rely on 
+    */
 
 
 // NOTE:
@@ -49,275 +115,330 @@
 // Will only fully expand function arguments. 
 // Will prevent expansion of anything else
 // This level of concat cant be done with more than two at a time
-// Will discard any extra params.
-// TODO: consider enforcing only two params to help with finding errors
-# 52 "macros.h"
-// I don't remember what I was planning for this either
-//#define NONE none
 
 
 
+// Disabled in favor of making "packed arrays" more explicit
+// for the programmer, and making them more integral to this library
+//#define PACK(...) (__VA_ARGS__)
 
-// alright. I think the itterator gets one value, and returns two.
-
-
-// value, condition, itterator, block
-
-
-
-
-// loop itterator constructor
-
-// loop itterator
+/* !!! WARNING !!!
+ * ###############
+ *
+ * Unpacked values will still get treated as a single argument when passed
+ * to a function unless passed as VA_ARGS. Use FUNPACK instead.
+ */
 
 
 
+// The version of unpack to be used for unpacking a packed value
+// to be passed to a macro function.
+
+//#define FUNPACK(__macro, ...) _FUNPACK(__macro, UNPACK(MERGE(__VA_ARGS__)))
+// it is still only ever passed as a single argument, but the __VA_ARGS__ is what is 
+// important here, and how it basically fixes the whole unpack parameter issue
 
 
+// merge up to 4 packed values
+// TODO: test what happens to parameters when __VA_ARGS__ is empty
+//#define MERGE(...) _MERGE(__VA_ARGS__, (), (), (), ())
+//#define _MERGE(__0, __1, __2, __3) (UNPACK(__0),UNPACK(__1),UNPACK(__2),UNPACK(__3))
 
-// T/ODO: Yeah, just replace this with the updated system eventually
-/*#define IS_ZERO(__n) CONCAT(_IS_ZERO_, __n)
-#define _IS_ZERO_0 true
-#define _IS_ZERO_1 false
-#define _IS_ZERO_2 false
-#define _IS_ZERO_3 false
-#define _IS_ZERO_4 false
-#define _IS_ZERO_5 false
-#define _IS_ZERO_6 false
-#define _IS_ZERO_7 false
-#define _IS_ZERO_8 false
-#define _IS_ZERO_9 false
-#define _IS_ZERO_10 false
-#define _IS_ZERO_11 false
-#define _IS_ZERO_12 false
-#define _IS_ZERO_13 false
-#define _IS_ZERO_14 false
-#define _IS_ZERO_15 false
-#define _IS_ZERO_16 false
-#define _IS_ZERO_17 false
-#define _IS_ZERO_18 false
-#define _IS_ZERO_19 false
-#define _IS_ZERO_20 false
-#define _IS_ZERO_21 false
-#define _IS_ZERO_22 false
-#define _IS_ZERO_23 false
-#define _IS_ZERO_24 false
-#define _IS_ZERO_25 false
-#define _IS_ZERO_26 false
-#define _IS_ZERO_27 false
-#define _IS_ZERO_28 false
-#define _IS_ZERO_29 false
-#define _IS_ZERO_30 false
-#define _IS_ZERO_31 false
-#define _IS_ZERO_32 false
-#define _IS_ZERO_33 false
-#define _IS_ZERO_34 false
-#define _IS_ZERO_35 false
-#define _IS_ZERO_36 false
-#define _IS_ZERO_37 false
-#define _IS_ZERO_38 false
-#define _IS_ZERO_39 false
-#define _IS_ZERO_40 false
-#define _IS_ZERO_41 false
-#define _IS_ZERO_42 false
-#define _IS_ZERO_43 false
-#define _IS_ZERO_44 false
-#define _IS_ZERO_45 false
-#define _IS_ZERO_46 false
-#define _IS_ZERO_47 false
-#define _IS_ZERO_48 false
-#define _IS_ZERO_49 false
-#define _IS_ZERO_50 false
-#define _IS_ZERO_51 false
-#define _IS_ZERO_52 false
-#define _IS_ZERO_53 false
-#define _IS_ZERO_54 false
-#define _IS_ZERO_55 false
-#define _IS_ZERO_56 false
-#define _IS_ZERO_57 false
-#define _IS_ZERO_58 false
-#define _IS_ZERO_59 false
-#define _IS_ZERO_60 false
-#define _IS_ZERO_61 false
-#define _IS_ZERO_62 false
-#define _IS_ZERO_63 false
-#define _IS_ZERO_64 false*/
-# 170 "macros.h"
-// TODO: yeah, lets just stick with number loops for now
-// with maybe some behavior enums
-// or maybe we can just have an itterator where we pass a macro function
-//FOR(GTR(), "stuff")
+// merge two packed values
 
 
+// for when I need a NOP macro to be called
+// mostly for function conditionals
+
+
+// for when I want blanks to be explicit
 
 
 
 /*
-Alright lets test an idea.
-To force an undefined value to return nothing
-by having all defined values be defined as multiple arguments, 
-and always only ever returning the second argument
+    I should give users the option to use n and p with numbers
+    n527
+    p572
+    so as to not have to use NEG(527)
 */
 
-/*
-YES IT WORKS!
-I gave up on the possability months ago!
-*/
+// runs the same 2-argument macro in a recursive tree call up to 8 arguments
+// the __d parameter is default argument, as this function will pretend you always 
+// pass in 8 arguments
+// TODO: expand number of arguments
+// TODO: possible bug if __pack is empty, as it would leave an empty parameter where
+//       it gets unpacked, as the comma after stays
 
+//#define __MACRO_TREE_CALL(__m,__0,__1,__2,__3,__4,__5,__6,__7,...) __m(__m(__m(__0,__1), __m(__2,__3)), __m(__m(__4,__5), __m(__6,__7)))
+// I think this will always require the same number of m__m calls, so 
+// I decided to go with this one as it is simpler to write, and easier 
+// to add more. Albiet the behavior may differ slightly more depending 
+// on the macro call.
 
 
-// T/ODO: Have concat accept variable number of parameters
-//#define CONCAT(__a, __b) _CONCAT(__a, __b)
-//#define _CONCAT(__a, __b) __a ## __b
-//#define CONCAT(...) _CONCAT(__a, __b)
-//#define _CONCAT(...) __a ## __b
 
+//#define DECAST(__n) PARAM((_DECAST_ __n, __n), 1)
+// note an old alternative that also works:
+//#define DECAST(__n) PARAM((_DECAST_ __n, __n), 1)
+//#define _DECAST_(__n) BLANK, 
 
 
 
 
-/*#define RETURN_DEFINED(__n) ALLOW_SECOND(CONCAT(_RETURN_DEFINED_, __n))
-#define _RETURN_DEFINED_void BLANK, "void"
-#define _RETURN_DEFINED_bog BLANK, "bog"*/
-
-// usage PARAM(3, __VA_ARGS__)
-# 221 "macros.h"
-// TODO: Fix PARAM macro and replace ALLOW_SECOND with it
-
-//#define DECAST(__n) PARAM(1 , _DECAST_ __n, __n)
-
-
-//#define ISVOID(__n) _ISVOID_ADJUST(ALLOW_SECOND(CONCAT(_ISVOID_, __n)))
-
-
-// note that _CONCAT is neccissary instead of CONCAT
-
-
-
-
-
-
-// TODO: finish this function
-// this will return true if it is any of the known types of values or parameters
-// otherwise it will return false
-//#define ISEXIST(__n) OR(ISVOID(__n), ISNUM(__n), ISBOOL(__n))
-
-
-
-
-
-// Say, with my new trick, is it possible to check if a value is defined
-// by basically comparing the name of the value with the definition?
-// I suppose not, as that would require the hashtag, and can't be generated
-
-
-
-// !!!!!!!!!
-// TODO: I should consider encouraging myself to use _CONCAT instead of CONCAT
-// for internal usage of all of my macros. Because I believe it would still all
-// work while also avoiding certain issues. And just leave the CONCAT for use
-// outside of these macro definitions
-// !!!!!!!!!
-
-
-// TODO: create a macro test file, and run the c preprocessor on it to test
-// that everything is working
-
-
-
-
-
-
-
-// this only works for macros defined as blank. Undefined macros
-// will return false rather than true
-// TODO: replace ALLOW_SECOND with PARAM when you get that working
-
-
-
-// get number of parameters (up to 9 for now
-// TODO: replace with a while loop when you get that set up
-// TODO: Finish writing this macro
-// TODO: use this for determining size of number
-// to allow for different number sizes rather than static
-
-
-
-
-// will return true zero params if first param is blank
-// TODO: use PARAM to get first param when you get that working
-// TODO: figure out if _CONCAT can be used in place of CONCAT
-
-
-
-
-
-
-
-// basically, if true then true. If anything else, then false
-
-
-
-
-
-
-// number format:
-// p w 2 3 a 7
-
-
-// TODO: replace the BLANK, true system with something a little
-// more intuitive, such as a truthy adjust function so that I don't have to
-// worry about second parameters for everything
-
-
-
-
-
-
-
-// should always receive at least three parameters
-
-
-
-
-
-
-// used by PARAM to address both __VA_ARGS__ and a packed array
-# 336 "macros.h"
 // to prevent recursively expanding every call in a loop
 // this will only call a macro if the condition is true
 // the last value is the params
-# 350 "macros.h"
-// will discard the sign!!!
-
-//#define _UNBYTE(__sign, ...) CONCAT(0x, __VA_ARGS__)
-
-
-// accepts packed byte, returns packed byte
-// probably would benefit from the while loop
+// TODO: consider making the extra params be a single packed array rather than
+//       variable arguments
 
 
 
 
 
 
-//#define BYTE(__n) p b _B_##__n
+
+    //////////////////////////////////////
+   ////                              ////
+  ////      ARRAY MACROS            ////
+ ////                              ////
+//////////////////////////////////////
+
+
+// select a value from a packed array up to 16 elements
+// no longer accepts variable args
+// TODO: Consider extending to 256 or 2^16
+// TODO: explore (limited) binary indexing of array to reduce extensions
+// TODO: remove BLANK parameters, as it turns out ... can be passed nothing
+//#define PARAM(__a, __n) _CONCAT(_PARAM_, __n)(UNPACK(__a))
+# 269 "macros.h"
+// Counts up to 16 parameters
+// TODO: This can be binary indexed, so look into implementing that later
+// TODO: This can also probably be replaced with a loop macro
+//       Although it would probably require a secondary loop macro definition
+//       so as to avoid the recursion blocks
+//#define PLEN(__n) _PLEN_0(UNPACK(__n))
+// TODO: fix this
+/*real definition*///#define PLEN(__n) FUNPACK(_PLEN_0, __n)
+
+//#define _PLEN_0(__n) IFISBLANK(PARAM(0, __n), 0, _PLEN_0A(__n, 0))
+# 297 "macros.h"
+// sets element in packed array to value
+// TODO: Finish this macro
+//       there is a lot involved with this, included accounting for inserting
+//       items that are farther than the macro is currently sized
+//       either I need to automatically resize macros, or I need to make
+//       it explicit and controlled by the user.
+
+
+// aliases for LPUSH and LPOP
+
+
+
+// push onto left end of packed array
+// returns a single value of the modified array
+
+
+// pop from left end of packed array
+// returns a packed value of two elements
+// the first is the value, the second is the modified packed array
+
+
+
+// push onto right end of packed array
+// returns the modified packed array
+
+
+// pop from right end of packed array
+// returns a packed value of two elements
+// the first is the value, the second is the modified packed array
+// TODO: finish this macro. Will probably require PSET()
 
 
 
 
 
 
+
+    //////////////////////////////////////
+   ////                              ////
+  ////      BOOLEAN MACROS          ////
+ ////                              ////
+//////////////////////////////////////
+
+/*
+    I should consider replacing 'false' and 'true' with 'f' and 't'
+*/
+
+
+
+
+
+// this is a keystone macro to detecting defined behavior
+# 359 "macros.h"
+// this macro attempts to remove and ignore C casts
+
+
+
+// works only with bytes for now
+// TODO: get this to work with words
+//#define ISZERO(__n) _ISZERO(UNPACK(BYTE(__n)))
+
+
+
+
+
+
+// detect is value is blank
+//#define ISBLANK(__n) _AND(PARAM((_CONCAT(_ISBLANK, DECAST(__n)), false), 1), ISNCAST(__n))
+
+
+
+
+// rewrote without ISTRUE, as istrue ends up using this
+//#define ISPACKED(__n) ISTRUE(_ISPACKED __n)
+//#define _ISPACKED(...) true
+//#define ISPACKED(__n) PARAM((_ISPACKED __n, false), 1)
+//#define _ISPACKED(...) true
+# 394 "macros.h"
+// Not sure how to detect this yet
+// TODO: Finish this macro
+// if you call this, it will derail the preprocessor
+
+
+
+// TODO: Add this 
+
+
+
+// this is for cases (particularly casts) where substitution for truth
+// returns two items delimited with a space.
+// This is combatable so long as we know what the first items is suppose to be
+// which in this case is a true or false
+// basically this extracts a bool from a string with extra stuff added onto it
+// after a space
+// TODO: Remember this trick, it seems very useful for detecting space delimiters
+
+
+
+
+
+// some truth tables
+# 443 "macros.h"
+// public variable argument version of truth tables
+// handles up to 8 arguments. Will not accept packed values
+// TODO: Expand number of usable arguments
+
+
+// the XOR doesn't support multiple arguments yet
+// TODO: add multiple argument support for XOR
+//#define XOR(...) _MACRO_TREE_CALL()
+
+
+
+// various macro aliases to keep boolean checks concise
+# 471 "macros.h"
+    //////////////////////////////////////
+   ////                              ////
+  ////      CONDITIONAL MACROS      ////
+ ////                              ////
+//////////////////////////////////////
+
+    /* The philosphy of the conditionals is to not create aliases for the
+       conditional macros, but to create aliases for the boolean macros.
+       We never want to force more than one boolean macro in the conditional
+       parameter of a conditional macro.
+       There is no need to get rid of the conditional parameter of the IFTHEN(...)
+       For instance, we don't need IFZERO(...)
+       Actually, IFZERO sounds kind of nice, so I may consider some aliases
+    */
+
+
+// acts as an if/than with an optional third else block
+# 498 "macros.h"
+     //////////////////////////////////////
+    ////                              ////
+   ////     NUMBER AND               ////
+  ////   ARITHMATIC MACROS          ////
+ ////                              ////
+//////////////////////////////////////
+
+    /* I should have byte wraparound so as to not have to write
+       A whole other massive table of 256 entries for subtraction
+       And god help me with multiplication 
+
+       Alright, new consensus,
+       Signed numbers are now implicit.
+       The number type would determine where it is signed
+       Basically, I am going to have a signed multiply
+       and an unsigned multiply, etc.
+    */
+
+// bytes are expected to be fixed digits for now
+
+
+// TODO: figure out how to generate negative numbers
+//       perhaps with a cast.
+//       perhaps the user is expected to use a cast
+//       perhaps I can make a macro that helps them cast
+
+
+
+
+
+// will basically remove or add leading zeroes, like 0x00 to 0x0000
+//#define BYTE_TO_WORD(__n) _UNWORD(_BYTE_TO_WORD(UNPACK(BYTE(__n))))
+
+
+
+//#define WORD_TO_BYTE(__n) UNBYTE(_WORD_TO_BYTE(UNPACK(WORD(__n))))
+# 556 "macros.h"
+//#define INV(__n) UNBYTE(_CONCAT(_INV_, _NTYPE(__n))(UNPACK(__n)))
+//#define _INV_b(__t,__0,__1) (__t,_INV(__0),_INV(__1))
+//#define _INV_w(__t,__0,__1,__2,__3) (__t,_INV(__0),_INV(__1),_INV(__2),_INV(__3))
+//#define INV_B(__n) UNBYTE(_INV_B(UNPACK(BYTE(__n))))
+
+
+
+// TODO: Add extension conditional check
+// TODO: Add word based versions
+// #define INV_W(__n) UNBYTE(_INV_B(UNPACK(_WORD(__n))))
+
+//#define _INV_W(__t,__0,__1) (__t,_INV(__0),_INV(__1))
+
+
+//#define NEG(__n) __CONCAT(_NEG_, _NTYPE(__n))(__n)
+//#define _NEG_b(__n) INC(INV(__n))
+
+
+
+// add two hex digits together
+
+
+
+
+// TODO: at this point, are the number types even neccissary?
+//#define ADD_B(__0, __1) UNBYTE(_ADD_B(UNPACK(BYTE(__0)), UNPACK(BYTE(__1))))
+# 593 "macros.h"
+// some aliases for the default number size operators
+# 608 "macros.h"
+    //////////////////////////////////////
+   ////                              ////
+  ////      LOOP MACROS             ////
+ ////                              ////
+//////////////////////////////////////
+# 623 "macros.h"
+    //////////////////////////////////////
+   ////                              ////
+  ////      LARGE MACRO EXTENTIONS  ////
+ ////                              ////
+//////////////////////////////////////
+
+
+// First some macro shorteners to reduce character count,
+# 1183 "macros.h"
 // TODO to save space, replace _B_456 with _456, and have no leading zeroes
-# 1060 "macros.h"
-// http://jhnet.co.uk/articles/cpp_magic
-// https://www.iar.com/knowledge/learn/programming/advanced-preprocessor-tips-and-tricks/
-
-// still trying to find resource that describes macro order of operation
-// it is probably located in one of my earlier projects somewhere.
 # 10 "macros_test.h" 2
-# 1 "macros_ext.h" 1
-# 11 "macros_test.h" 2
+//#include "macros_ext.h"
 # 21 "macros_test.h"
  /*#############################################
    ####                                     ####
@@ -366,7 +487,30 @@ BCAB "B"
 
 // B##C##__a##__b #__b #B
 gold##12##__a##__b #__b #gold
-# 92 "macros_test.h"
+
+
+
+
+// #B (errors)
+//#B
+// # B (errors)
+//# B
+// #define B (just redefines B)
+//#define B
+
+
+
+
+
+
+    //////////////////////////////////////
+   ////                              ////
+  ////      FUNDAMENTAL MACROS      ////
+ ////                              ////
+//////////////////////////////////////
+
+
+
  /* Macro tests */
 /////////////////
 
@@ -403,69 +547,303 @@ MANFMANF
 
 
 
-// #B (errors)
-//#B
-// # B (errors)
-//# B
-// #define B (just redefines B)
-//#define B
-
-
-// BYTE(2)
-(p,0,2)
-// BYTE(20)
-(p,1,4)
-// BYTE(200)
-(p,c,8)
-// BYTE(2000)
-(p,0,7,d,0)
-// BYTE(20000)
-(p,4,e,2,0)
-
-
-// PARAM(0, A, B, C, D)
-"sand"
-// PARAM(2, A, B, C, D)
-12
-// PARAM(7, A, B, C, D)
-
-// PARAM(0, ALL_TESTS)
-"sand"
-// PARAM(2, ALL_TESTS)
-12
-// PARAM(7, ALL_TESTS)
-void
-// PARAM(0, PACK(A, B, C, D))
+// UNPACK((A, B, C, D))
+"sand", gold, 12, void
+// UNPACK((((A), B), C, D))
+(("sand"), gold), 12, void
+// UNPACK(((A, B, C, D)))
 ("sand", gold, 12, void)
-// PARAM(2, PACK(A, B, C, D))
-
-// PARAM(7, PACK(A, B, C, D))
 
 
-// #define PARAM_TEST_1(n, ...) PARAM(n, __VA_ARGS__)
-// #define PARAM_TEST_2(n, ...) PARAM(n, PACK(__VA_ARGS__)
-// #define PARAM_TEST_3(...) PARAM(__VA_ARGS__)
 
+
+// FUNPACK(TEST_FUNPACK, MERGE((0, 1), (2, 3)))
+0 +1 +2 +3
+
+
+
+// #define TEST_X(__a, __b, __c, __d) _TEST_X1((__a, __b, __c, __d))
+// #define _TEST_X1(__n) _TEST_X2(UNPACK(__n), xx, xx, xx, xx)// _TEST_X3(UNPACK(__n), xx, xx, xx, xx) // _TEST_X5(UNPACK(__n))
+
+
+// #define _TEST_X2(__a, __b, __c, __d, ...) [__a][__b][__c][__d](__VA_ARGS__)
+// #define _TEST_X3(...) _TEST_X4(__VA_ARGS__)
+// #define _TEST_X4(__a, __b, __c, __d, ...) [__a][__b][__c][__d](__VA_ARGS__)
+// #define _TEST_X5(...) __VA_ARGS__
+
+
+
+
+
+
+
+//errors #define _TEST_X5(__a, __b, __c, __d)
+
+
+
+// TEST_X(a, b, c, d)
+[a, b, c, d][xx][xx][xx](xx) \n [a][b][c][d](xx, xx, xx, xx) \n a, b, c, d
+
+
+
+
+// #define TEST_3A(...) UNPACK((__VA_ARGS__))
+// #define TEST_3B(__n) UNPACK(__n)
+// #define TEST_3C(__a, __b, __c, __d) _TEST_3C(UNPACK((__a, __b, __c, __d)))
+// #define _TEST_3C(__a, __b, __c, __d) __a/__b/__c/__d
+# 196 "macros_test.h"
+// TEST_3A(A, B, C, D)
+"sand", gold, 12, void
+// TEST_3B((A, B, C, D))
+"sand", gold, 12, void
+/* errors
+// TEST_3C(A, B, C, D)
+TEST_3C(A, B, C, D)*/
+// TEST_3D(A, B, C, D)
+"sand"/gold/12/void
+
+
+
+//DECAST((void)k)
+k
+//DECAST((yehee (yolo) holo)(beans)x)
+(beans)x
+//DECAST((boom))
+
+
+
+
+
+
+    //////////////////////////////////////
+   ////                              ////
+  ////      ARRAY MACROS            ////
+ ////                              ////
+//////////////////////////////////////
+
+
+
+// PARAM((A, B, C, D), 0)
+"sand"
+// PARAM((A, B, C, D), 2)
+12
+// PARAM((A, B, C, D), 7)
+
+// PARAM((ALL_TESTS), 0)
+"sand"
+// PARAM((ALL_TESTS), 2)
+12
+// PARAM((ALL_TESTS), 7)
+void
+
+// #define PARAM_TEST_1(n, ...) PARAM((__VA_ARGS__), n)
+// #define PARAM_TEST_2(...) PARAM(__VA_ARGS__)
 
 
 
 // PARAM_TEST_1(2, A, B, C, D)
 12
-// PARAM_TEST_1(2, ALL_TESTS)
+// PARAM_TEST_2((A, B, C, D), 2)
 12
-// PARAM_TEST_1(2, PACK(ALL_TESTS))
 
 
-// PARAM_TEST_2(2, A, B, C, D)
 
-// PARAM_TEST_2(2, ALL_TESTS)
-
-// PARAM_TEST_2(2, PACK(ALL_TESTS))
+//#define PARAM_TEST(a, ...) a __VA_ARGS__
 
 
-// PARAM_TEST_2(2, A, B, C, D)
-12
-// PARAM_TEST_2(2, ALL_TESTS)
-12
-// PARAM_TEST_2(2, PACK(ALL_TESTS))
+// trurns out variable args ... can accept zero parameters
+//PARAM_TEST("x")
+"x"
 
+
+
+/*
+// errors
+// PLEN((A, B, C, D, E))
+//PLEN((A, B, C, D, E))
+// PLEN((B, C, D, E))
+PLEN((B, C, D, E))
+// PLEN((,,,,,,))
+PLEN((,,,,,,))
+// PLEN(())
+PLEN(())
+*/
+
+
+//#define DECAST2(__n) PARAM((_DECAST2_ __n, __n), 1)
+//#define _DECAST2_(...) BLANK, BLANK
+
+
+
+// UNPACK((x)a)
+x a
+// UNPACK(a)
+_UNPACK a
+
+// DECAST((x)a)
+a
+// DECAST(a)
+a
+
+
+
+
+// IFTHEN(ISVOID(0),      // return; ,          // return (0);    // )
+
+
+
+// IFTHEN(ISVOID(0),      // return; ,          // return (0);    // )
+
+
+
+
+
+
+// ISVOID(0)
+//ISVOID(0)
+
+
+
+    //////////////////////////////////////
+   ////                              ////
+  ////      BOOLEAN MACROS          ////
+ ////                              ////
+//////////////////////////////////////
+
+
+
+
+// ISPACKED(x)
+(false, _NOT___AND_trueISNCAST(x))
+// ISPACKED((x))
+(true, _NOT___AND_trueISNCAST())
+// ISPACKED((x)a)
+(true a, _NOT___AND_trueISNCAST(a))
+
+
+
+// NOT(true)
+false
+// NOT(false)
+true
+// ISTRUE(true)
+/*ISTRUE(true)
+// ISTRUE(yope)
+ISTRUE(yope)
+// ISTRUE(habla dabla)
+ISTRUE(habla dabla)
+// ISTRUE((bindy, mooby))
+ISTRUE((bindy, mooby))
+// ISBOOL(true)
+ISBOOL(true)
+// ISBOOL(bon)
+ISBOOL(bon)
+// ISVOID(void)
+ISVOID(void)
+// ISVOID((cast)void)
+ISVOID((cast)void)
+// ISZERO(0)
+ISZERO(0)
+// ISZERO(tongues)
+ISZERO(tongues)
+// ISPACKED(pack)
+ISPACKED(pack)
+// ISPACKED((A, B, C))
+ISPACKED((A, B, C))*/
+// ISBYTE(BYTE(5))
+/* TODO: remember to re-enable
+ISBYTE(BYTE(5))
+// ISBYTE((w,0,1,2,3))
+ISBYTE((w,0,1,2,3))
+// AND(true, true, true)
+AND(true, true, true)
+// AND(false, true, true)
+AND(false, true, true)
+// OR(true, true, false, false)
+OR(true, true, false, false)
+// OR(false, false, false, false, false)
+OR(false, false, false, false, false)
+// XOR(true true)
+XOR(true true)
+// XOR(true, false)
+XOR(true, false)
+// IMPLY(true, false)
+IMPLY(true, false)
+// IMPLY(false, true)
+IMPLY(false, true)
+*/
+
+
+
+
+    //////////////////////////////////////
+   ////                              ////
+  ////      CONDITIONAL MACROS      ////
+ ////                              ////
+//////////////////////////////////////
+
+
+
+// IFTHEN(ISZERO(0), "is zero")
+//TODO: remember to re-enable
+//IFTHEN(ISZERO(0), "is zero")
+// IFTHEN(true, "istrue", "isfalse")
+"istrue"
+// IFTHEN(false, "istrue", "isfalse")
+"isfalse"
+
+
+
+
+
+
+     //////////////////////////////////////
+    ////                              ////
+   ////     NUMBER AND               ////
+  ////   ARITHMATIC MACROS          ////
+ ////                              ////
+//////////////////////////////////////
+/* TODO: remember to re-enable
+
+// BYTE(2)
+BYTE(2)
+// BYTE(20)
+BYTE(20)
+// BYTE(200)
+BYTE(200)
+// BYTE(2000)
+//BYTE(2000)
+// BYTE(20000)
+//BYTE(20000)
+
+
+// UNBYTE(BYTE(2))
+UNBYTE(BYTE(2))
+// UNBYTE(BYTE(111))
+UNBYTE(BYTE(111))
+
+// INV(73)
+INV(73)
+// INV(255)
+INV(255)
+// INV(NEG(5))
+INV(NEG(5))
+
+// NEG(100)
+NEG(100)
+// NEG(NEG(100))
+NEG(NEG(100))
+
+// ADD(100,5)
+ADD(100,5)
+// ADD(210, 189)
+ADD(210, 189)
+// SUB(10, 5)
+SUB(10, 5)
+// SUB(5, 10)
+SUB(5, 10)
+// INC(10)
+INC(10)
+// DEC(3)
+DEC(3)
+*/

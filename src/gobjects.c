@@ -1,6 +1,7 @@
 //#include <math.h>
 #include <stdio.h>
-#include "circle.h"
+#include <string.h>
+#include "gobjects.h"
 
 
 #define FRAND() ((float)rand()/(float)RAND_MAX)
@@ -158,4 +159,72 @@ void CIRCLE_draw(CIRCLE* circle) {
     // TODO: replace the 66 with a more dynamic value
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 66);
     //glDrawArrays(GL_LINES, 0, 66);
+}
+
+
+
+
+
+
+
+
+
+
+
+SIMPLET* SIMPLET_init(SIMPLET* simp, GLuint shader_program) {
+    simp->shader_program = shader_program;
+
+    static GLfloat triverts[] = {
+         0.0,  0.5,   1.0, 1.0, 0.0,
+        -0.5, -0.5,   0.7, 0.0, 1.0,
+         0.5, -0.5,   0.1, 1.0, 0.6,
+    };
+
+    simp->mesh = (MESH){
+        .len = sizeof(triverts),
+        .mode = GL_TRIANGLES,
+        .nverts = sizeof(triverts)/5,
+    };
+    memcpy(simp->mesh.verts, triverts, sizeof(triverts));
+
+    // create buffer
+    glGenBuffers(1, &simp->vert_buff);
+    glBindBuffer(GL_ARRAY_BUFFER, simp->vert_buff);
+    glBufferData(GL_ARRAY_BUFFER, 
+        (GLsizeiptr)((unsigned long)simp->mesh.len * sizeof(*simp->mesh.verts)), 
+        simp->mesh.verts,  GL_STATIC_DRAW);
+
+
+    // set vertex attributes
+    GLuint pos_vert_attrib_loc = 
+        (GLuint)glGetAttribLocation(simp->shader_program, "vertPosition");
+    glVertexAttribPointer(
+        pos_vert_attrib_loc,
+        2,
+        GL_FLOAT,
+        GL_FALSE,
+        5*sizeof(GLfloat),
+        (void*)0                // offset from vertex. The cast is confusing
+    );
+    glEnableVertexAttribArray(pos_vert_attrib_loc);
+
+    // set color attributes
+    GLuint col_vert_attrib_loc = 
+        (GLuint)glGetAttribLocation(simp->shader_program, "vertColor");
+    glVertexAttribPointer(
+        col_vert_attrib_loc,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        5*sizeof(GLfloat),
+        (void*)(2*sizeof(GLfloat))  // offset from vertex. The cast is confusing
+    );
+    glEnableVertexAttribArray(col_vert_attrib_loc);
+
+    return simp;
+}
+
+
+void SIMPLET_draw(SIMPLET* simp) {
+    glDrawArrays(GL_TRIANGLES, 0, 3);
 }

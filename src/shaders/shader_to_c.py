@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 	
@@ -5,7 +7,9 @@ direct = "gen/"
 
 infiles = [
     "default.vert",
-    "default.frag"
+    "default.frag",
+    "simple.vert",
+    "simple.frag",
 ]
 
 header = "shaders.h"

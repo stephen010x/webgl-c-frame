@@ -4,11 +4,13 @@ TEXTEN := wasm
 TMPDIR := tmp
 SRCDIR := src
 BINDIR := bin
+LIBDIR := lib
 GENDIR := src/shaders/gen
 
 
 CC := emcc
 CFLAGS := -Wno-gnu-variable-sized-type-not-at-end
+CFLAGS := $(CFLAGS)
 LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT 
 # --proxy-to-worker  -sFETCH -pthread -sPTHREAD_POOL_SIZE=4
 LFLAGS := $(LFLAGS)
@@ -17,6 +19,7 @@ BFLAGS := $(BFLAGS) -Wno-language-extension-token -Wno-gnu -std=gnu2x
 BFLAGS := -Wno-format-security
 #-sWASM=2
 
+INCLUDE := -I$(LIBDIR)/cglm/include
 
 
 DEFAULT := fast
@@ -108,11 +111,11 @@ $(BINTARG).$(TEXTEN): $(OBJS)
 
 $(TMPDIR)/$(GOAL)/%.o: %.c $(TMPDIR)/$(GOAL)/%.d
 	mkdir -p $(dir $@)
-	$(CC) $(BFLAGS) $(CFLAGS) -c $< -o $@
+	$(CC) $(INCLUDE) $(BFLAGS) $(CFLAGS) -c $< -o $@
 
 $(TMPDIR)/$(GOAL)/%.d: %.c
 	mkdir -p $(dir $@)
-	$(CC) -MM -MT $(patsubst %.d,%.o,$@) -MF $@ $<
+	$(CC) $(INCLUDE) -MM -MT $(patsubst %.d,%.o,$@) -MF $@ $<
 
 
 $(GENDIR)/shaders.h:

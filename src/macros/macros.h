@@ -12,20 +12,33 @@
  *  
  *  - Order goes: Substiute var
  *
+ *
+ *
+ *  WARNINGS
+ *  --------
+ *  Unpacked values will only register as a single param.
+ *  But __VA_ARGS__ likely expands to fill params.
+ *  So an extra layer is required for some of these macros.
+ *
+ *  You can't concat a keyword with a parenthesis.
+ *  So in order to combine a keyword with parenthesis to create
+ *  a function macro call, you must simply put them next to each-other.
+ *  The whitespace is ignored and the preprocessor still sees it as a 
+ *  function
  */
 
 
-// INSPIRATION FOR THIS LIBRARY:
+//  INSPIRATION FOR THIS LIBRARY:
 /*
-Alright lets test an idea.
-To force an undefined value to return nothing
-by having all defined values be defined as multiple arguments, 
-and always only ever returning the second argument
+    Alright lets test an idea.
+    To force an undefined value to return nothing
+    by having all defined values be defined as multiple arguments, 
+    and always only ever returning the second argument
 */
 
 /*
-YES IT WORKS!
-I gave up on the possability months ago!
+    YES IT WORKS!
+    I gave up on the possability months ago!
 */
 
 
@@ -64,8 +77,8 @@ I gave up on the possability months ago!
 
     /* Place common C inliner macros here */
 
+#if 0
 #define LENOF(__n) (sizeof(__n)/sizeof(*(__n)))
-
 
 
 #ifdef DEBUG_MODE
@@ -73,7 +86,7 @@ I gave up on the possability months ago!
         do {                                \
             if (!(__cond)) {                \
                 printf(__VA_ARGS__);        \
-                IFTHEN(ISVOID(__code),  \
+                IFTHEN(ISVOID(__code),      \
                     return; ,               \
                     return (__code);        \
                 )                           \
@@ -83,7 +96,7 @@ I gave up on the possability months ago!
     #define ASSERT(__cond, __code, ...)     \
         do {                                \
             if (!(__cond))                  \
-                IFTHEN(ISVOID(__code),  \
+                IFTHEN(ISVOID(__code),      \
                     return; ,               \
                     return (__code);        \
                 )                           \
@@ -108,6 +121,11 @@ I gave up on the possability months ago!
 #define SIGN(__n) ({typeof(__n) n = (__n); n == 0 ? 0 : (n > 0 ? 1 : -1);})
 
 #define MATH_PI 3.141592653589793238462643383
+#endif
+
+
+
+
 
 
 
@@ -138,11 +156,33 @@ I gave up on the possability months ago!
 
 
 // Disabled in favor of making "packed arrays" more explicit
-// for the programmer, and making them more integral to this library 
+// for the programmer, and making them more integral to this library
 //#define PACK(...) (__VA_ARGS__)
 
-#define UNPACK(__n) _CONCAT(_UNPACK, __n)
+/* !!! WARNING !!!
+ * ###############
+ *
+ * Unpacked values will still get treated as a single argument when passed
+ * to a function unless passed as VA_ARGS. Use FUNPACK instead.
+ */
+#define UNPACK(__n) _UNPACK __n
 #define _UNPACK(...) __VA_ARGS__
+
+// The version of unpack to be used for unpacking a packed value
+// to be passed to a macro function.
+#define FUNPACK(__macro, __n) _FUNPACK(__macro, UNPACK(__n))
+//#define FUNPACK(__macro, ...) _FUNPACK(__macro, UNPACK(MERGE(__VA_ARGS__)))
+// it is still only ever passed as a single argument, but the __VA_ARGS__ is what is 
+// important here, and how it basically fixes the whole unpack parameter issue
+#define _FUNPACK(__macro, ...) __macro(__VA_ARGS__)
+
+// merge up to 4 packed values
+// TODO: test what happens to parameters when __VA_ARGS__ is empty
+//#define MERGE(...) _MERGE(__VA_ARGS__, (), (), (), ())
+//#define _MERGE(__0, __1, __2, __3) (UNPACK(__0),UNPACK(__1),UNPACK(__2),UNPACK(__3))
+
+// merge two packed values
+#define MERGE(__0, __1) (UNPACK(__0), UNPACK(__1))
 
 // for when I need a NOP macro to be called
 // mostly for function conditionals
@@ -171,13 +211,15 @@ I gave up on the possability months ago!
 // I decided to go with this one as it is simpler to write, and easier 
 // to add more. Albiet the behavior may differ slightly more depending 
 // on the macro call.
-#define __MACRO_TREE_CALL(__m,__0,__1,__2,__3,__4,__5,__6,__7, ...) __m(__m(__m(__m(__m(__m(__m(__0,__1)__2)__3)__4)__5)__6)__7)
+#define __MACRO_TREE_CALL(__m,__0,__1,__2,__3,__4,__5,__6,__7, ...) __m(__m(__m(__m(__m(__m(__m(__0,__1),__2),__3),__4),__5),__6),__7)
 
 
-#define DECAST(__n) PARAM((_CONCAT(_DECAST_, __n), __n), 1)
+//#define DECAST(__n) PARAM((_DECAST_ __n, __n), 1)
 // note an old alternative that also works:
 //#define DECAST(__n) PARAM((_DECAST_ __n, __n), 1)
-#define _DECAST_(__n) BLANK, __n
+//#define _DECAST_(__n) BLANK, 
+#define DECAST(__n) PARAM((_DECAST __n, __n), 1)
+#define _DECAST(...) BLANK, BLANK
 
 
 // to prevent recursively expanding every call in a loop
@@ -186,6 +228,8 @@ I gave up on the possability months ago!
 // TODO: consider making the extra params be a single packed array rather than
 //       variable arguments
 #define CCALL(__cond, __macro, ...) IFTHEN(__cond, __macro, NOP)(__VA_ARGS__)
+
+
 
 
 
@@ -202,7 +246,8 @@ I gave up on the possability months ago!
 // TODO: Consider extending to 256 or 2^16
 // TODO: explore (limited) binary indexing of array to reduce extensions
 // TODO: remove BLANK parameters, as it turns out ... can be passed nothing
-#define PARAM(__a, __n) _CONCAT(_PARAM_, __n)(UNPACK(__a))
+//#define PARAM(__a, __n) _CONCAT(_PARAM_, __n)(UNPACK(__a))
+#define PARAM(__a, __n) FUNPACK(_CONCAT(_PARAM_, __n), __a)
 #define _PARAM_0(__n, ...) __n
 #define _PARAM_1(__n, ...) _PARAM_0(__VA_ARGS__, BLANK)
 #define _PARAM_2(__n, ...) _PARAM_1(__VA_ARGS__, BLANK)
@@ -226,7 +271,10 @@ I gave up on the possability months ago!
 // TODO: This can also probably be replaced with a loop macro
 //       Although it would probably require a secondary loop macro definition
 //       so as to avoid the recursion blocks
-#define PLEN(__n) _PLEN_0(UNPACK(__n))
+//#define PLEN(__n) _PLEN_0(UNPACK(__n))
+// TODO: fix this
+/*real definition*///#define PLEN(__n) FUNPACK(_PLEN_0, __n)
+#define PLEN(__n) 0
 //#define _PLEN_0(__n) IFISBLANK(PARAM(0, __n), 0, _PLEN_0A(__n, 0))
 #define _PLEN_0(__0, ...) IFTHEN(ISBLANK(__0), 0, _PLEN_1(__VA_ARGS__))
 #define _PLEN_1(__0, ...) IFTHEN(ISBLANK(__0), 1, _PLEN_2(__VA_ARGS__))
@@ -293,11 +341,14 @@ I gave up on the possability months ago!
     I should consider replacing 'false' and 'true' with 'f' and 't'
 */
 
-#define NOT(__b) _CONCAT(_NOT_, __b))
+#define NOT(__b) _CONCAT(_NOT_, __b)
 #define _NOT_true false
 #define _NOT_false true
 
-#define ISTRUE(__b) PARAM((_CONCAT(_ISTRUE_, __b), false), 1)
+// this is a keystone macro to detecting defined behavior
+#define ISTRUE(__b) IFTHEN(ISPACKED(__b), _ISTRUE_packed(__b), _ISTRUE_unpacked(__b))
+#define _ISTRUE_packed(__b) false
+#define _ISTRUE_unpacked(__b) PARAM((_CONCAT(_ISTRUE_, __b), false), 1)
 #define _ISTRUE_true BLANK, true
 
 #define ISFALSE(__b) PARAM((_CONCAT(_ISFALSE_, __b), false), 1)
@@ -309,8 +360,28 @@ I gave up on the possability months ago!
 #define ISVOID(__n) ISTRUE(_CONCAT(_ISVOID_, DECAST(__n)))
 #define _ISVOID_void true
 
-#define ISPACKED(__n) ISTRUE(_CONCAT(_ISPACKED, __n))
-#define _ISPACKED(...) true
+// works only with bytes for now
+// TODO: get this to work with words
+//#define ISZERO(__n) _ISZERO(UNPACK(BYTE(__n)))
+#define ISZERO(__n) FUNPACK(_ISZERO, BYTE(__n))
+#define _ISZERO(__t, __0, __1) AND(__ISZERO(__0), __ISZERO(__1))
+#define __ISZERO(__d) ISTRUE(_CONCAT(__ISZERO_, __d))
+#define __ISZERO_0 true
+
+
+// detect is value is blank
+//#define ISBLANK(__n) _AND(PARAM((_CONCAT(_ISBLANK, DECAST(__n)), false), 1), ISNCAST(__n))
+#define ISBLANK(__n) _AND(PARAM((_ISBLANK, DECAST(__n), false), 1), ISNCAST(__n))
+#define _ISBLANK BLANK, true
+
+
+// rewrote without ISTRUE, as istrue ends up using this
+//#define ISPACKED(__n) ISTRUE(_ISPACKED __n)
+//#define _ISPACKED(...) true
+//#define ISPACKED(__n) PARAM((_ISPACKED __n, false), 1)
+//#define _ISPACKED(...) true
+#define ISPACKED(__n) (PARAM((_ISPACKED __n, false), 1), ISNBLANK(DECAST(__n)))
+#define _ISPACKED(...) BLANK, true
 
 #define ISBYTE(__n) ISTRUE(_CONCAT(_ISBYTE_, PARAM(__n, 0)))
 #define _ISBYTE_b true
@@ -326,27 +397,43 @@ I gave up on the possability months ago!
 #define ISRAWNUM(__n) ((((((
 
 
+// TODO: Add this 
+#define ISCAST(__n) 
+
+
+// this is for cases (particularly casts) where substitution for truth
+// returns two items delimited with a space.
+// This is combatable so long as we know what the first items is suppose to be
+// which in this case is a true or false
+// basically this extracts a bool from a string with extra stuff added onto it
+// after a space
+// TODO: Remember this trick, it seems very useful for detecting space delimiters
+#define _EXTRACT_BOOL(__n) PARAM((CONCAT(__EXTRACT_BOOL_, __n, test)), 1)
+#define __EXTRACT_BOOL_truetest BLANK, true
+#define __EXTRACT_BOOL_falsetest BLANK, true
+
+
 // some truth tables
 
-#define _AND(__0, __1) _CONCAT(__AND_, __0, __1)
+#define _AND(__0, __1) CONCAT(__AND_, __0, __1)
 #define __AND_falsefalse false
 #define __AND_truefalse  false
 #define __AND_falsetrue  false
 #define __AND_truetrue   true
 
-#define _OR(__0, __1) _CONCAT(__OR_, __0, __1)
+#define _OR(__0, __1) CONCAT(__OR_, __0, __1)
 #define __OR_falsefalse false
 #define __OR_truefalse  true
 #define __OR_falsetrue  true
 #define __OR_truetrue   true
 
-#define _XOR(__0, __1) _CONCAT(__XOR_, __0, __1)
+#define _XOR(__0, __1) CONCAT(__XOR_, __0, __1)
 #define __XOR_falsefalse false
 #define __XOR_truefalse  true
 #define __XOR_falsetrue  true
 #define __XOR_truetrue   false
 
-#define IMPLY(__0, __1) _CONCAT(__IMPLY_, __0, __1)
+#define IMPLY(__0, __1) CONCAT(_IMPLY_, __0, __1)
 #define _IMPLY_falsefalse true
 #define _IMPLY_truefalse  false
 #define _IMPLY_falsetrue  true
@@ -368,6 +455,7 @@ I gave up on the possability months ago!
 #define ISNVOID(...) NOT(ISVOID(__VA_ARGS__))
 #define ISNZERO(...) NOT(ISZERO(__VA_ARGS__))
 #define ISNPACKED(...) NOT(ISPACKED(__VA_ARGS__))
+#define ISNBLANK(...) NOT(ISBLANK(__VA_ARGS__))
 
 #define NAND(...) NOT(AND(__VA_ARGS__))
 #define NOR(...) NOT(OR(__VA_ARGS__))
@@ -397,7 +485,7 @@ I gave up on the possability months ago!
 
 
 // acts as an if/than with an optional third else block
-#define IFTHEN(__cond, __block, ...) CONCAT(_IFTHEN_, __cond)(__block, __VA_ARGS__)
+#define IFTHEN(__cond, __block, ...) _CONCAT(_IFTHEN_, __cond)(__block, __VA_ARGS__)
 #define _IFTHEN_true(__then, __else) __then
 #define _IFTHEN_false(__then, __else) __else
 
@@ -426,22 +514,24 @@ I gave up on the possability months ago!
     */
 
 // bytes are expected to be fixed digits for now
-#define _BYTE(__n) (b,CONCAT(_B_, __n))
+#define BYTE(__n) (b,CONCAT(_B_, __n))
 
 // TODO: figure out how to generate negative numbers
 //       perhaps with a cast.
 //       perhaps the user is expected to use a cast
 //       perhaps I can make a macro that helps them cast
-#define _UNBYTE(__n) CONCAT(0x, UNPACK(__n))
-#define _UNWORD(__n) CONCAT(0x, UNPACK(__n))
+#define UNBYTE(__n) CONCAT(0x, UNPACK(__n))
+#define UNWORD(__n) CONCAT(0x, UNPACK(__n))
 
 #define _NTYPE(__n) PARAM(__n, 0)
 
 // will basically remove or add leading zeroes, like 0x00 to 0x0000
-#define BYTE_TO_WORD(__n) _UNWORD(_BYTE_TO_WORD(UNPACK(BYTE(__n))))
+//#define BYTE_TO_WORD(__n) _UNWORD(_BYTE_TO_WORD(UNPACK(BYTE(__n))))
+#define BYTE_TO_WORD(__n) _UNWORD(FUNPACK(, _BYTE_TO_WORDBYTE(__n)))
 #define _BYTE_TO_WORD(__t, __0,__1) (w,0,0,__0,__1)
 
-#define WORD_TO_BYTE(__n) _UNBYTE(_WORD_TO_BYTE(UNPACK(WORD(__n))))
+//#define WORD_TO_BYTE(__n) UNBYTE(_WORD_TO_BYTE(UNPACK(WORD(__n))))
+#define WORD_TO_BYTE(__n) UNBYTE(FUNPACK(_WORD_TO_BYTE, WORD(__n)))
 #define _WORD_TO_BYTE(__t, __0,__1,__2,__3) (b,__1,__2)
 
 
@@ -463,15 +553,17 @@ I gave up on the possability months ago!
 #define __INV_e 1
 #define __INV_f 0
 
-//#define INV(__n) _UNBYTE(_CONCAT(_INV_, _NTYPE(__n))(UNPACK(__n)))
+//#define INV(__n) UNBYTE(_CONCAT(_INV_, _NTYPE(__n))(UNPACK(__n)))
 //#define _INV_b(__t,__0,__1) (__t,_INV(__0),_INV(__1))
 //#define _INV_w(__t,__0,__1,__2,__3) (__t,_INV(__0),_INV(__1),_INV(__2),_INV(__3))
-#define INV_B(__n) _UNBYTE(_INV_B(UNPACK(_BYTE(__n))))
+//#define INV_B(__n) UNBYTE(_INV_B(UNPACK(BYTE(__n))))
+#define INV_B(__n) UNBYTE(FUNPACK(_INV_B, BYTE(__n)))
 #define _INV_B(__t,__0,__1) (__t,_INV(__0),_INV(__1))
 
 // TODO: Add extension conditional check
 // TODO: Add word based versions
-#define INV_W(__n) _UNBYTE(_INV_B(UNPACK(_WORD(__n))))
+// #define INV_W(__n) UNBYTE(_INV_B(UNPACK(_WORD(__n))))
+#define INV_W(__n) UNBYTE(FUNPACK(_INV_B, _WORD(__n)))
 //#define _INV_W(__t,__0,__1) (__t,_INV(__0),_INV(__1))
 
 
@@ -486,7 +578,8 @@ I gave up on the possability months ago!
 #define _DISCARD_CARRY(__c, ...) __VA_ARGS__
 
 // TODO: at this point, are the number types even neccissary?
-#define ADD_B(__0, __1) _UNBYTE(_ADD_B(UNPACK(_BYTE(__0)), UNPACK(_BYTE(__1))))
+//#define ADD_B(__0, __1) UNBYTE(_ADD_B(UNPACK(BYTE(__0)), UNPACK(BYTE(__1))))
+#define ADD_B(__0, __1) UNBYTE(FUNPACK(_ADD_B, MERGE(BYTE(__0), BYTE(__1))))
 #define _ADD_B0(__t1,__0,__1,__t2,__2,__3) (b,_ADD_B1(__0,__2, _ADD(__1,__3,0)))
 #define _ADD_B1(__0,__2,__c,__d) _DISCARD_CARRY(_ADD(__0, __2)),__d
 

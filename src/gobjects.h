@@ -15,6 +15,8 @@
 
 typedef struct {
     int len;
+    int nverts;
+    GLenum mode;
     GLfloat verts[];
 } MESH;
 
@@ -67,6 +69,21 @@ CIRCLE* CIRCLE_init(CIRCLE* circle);
 void CIRCLE_destroy(CIRCLE* circle);
 void CIRCLE_update(CIRCLE* circle, float dt);
 void CIRCLE_draw(CIRCLE* circle);
+
+
+
+
+typedef struct {
+    GLuint vert_buff;
+    GLuint shader_program;
+    MESH mesh;
+    volatile MESH_VERT _[3];
+} SIMPLET;
+
+
+SIMPLET* SIMPLET_init(SIMPLET* simp, GLuint shader_program);
+void SIMPLET_draw(SIMPLET* simplet);
+
 
 
 #endif
