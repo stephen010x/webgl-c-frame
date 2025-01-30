@@ -17,7 +17,7 @@
 //#include "macros/macros.h"
 
 
-#define NUM_MODELS 2
+#define NUM_MODELS 10
 #define CIRC_RES 32
 
 
@@ -212,66 +212,29 @@ void init_scene(GLuint program) {
             .view_mat = GLM_MAT4_IDENTITY_INIT,
         };
 
+        behave[i] = (BEHAVE_DATA){
+            .vel = {
+                (FRAND()*2-1)/200,
+                (FRAND()*2-1)/200,
+                0,
+            },
+            .scale = (FRAND()*0.9 + 0.1)/4,
+        };
+
         vec3 init_pos = {
-            FRAND()*2-1,
-            FRAND()*2-1,
+            (FRAND()*2-1) / behave[i].scale,
+            (FRAND()*2-1) / behave[i].scale,
             0,
         };
 
-        behave[i] = (BEHAVE_DATA){
-            .vel = {
-                (FRAND()*2-1)/40,
-                (FRAND()*2-1)/40,
-                0,
-            },
-            .scale = (FRAND()*0.9 + 0.1)/2,
-        };
+        // stupid scaling vs position stuff with matrix
+        //glm_vec3_scale(behave[i].vel, 1/behave[i].scale, behave[i].vel);
 
         glm_scale_uni(models[i].view_mat, behave[i].scale);
         glm_translate(models[i].view_mat, init_pos);
 
         MODEL_init(models+i);
     }
-    
-
-    // create model
-    /*for (int i = 0; i < NUM_MODELS; i++) {
-        models[i] = (MODEL){
-            .color = {
-                .r = FRAND(),
-                .g = FRAND(),
-                .b = FRAND(),
-                .w = 1.0
-            },
-            .id = i,
-            .mesh = (MESH*)&triangle_mesh,
-            .visable = true,
-            .drawtype = 0,
-            .update_call = (UPDATE_CALLBACK)tri_update,
-            .shader_prog = program,
-            .view_mat = GLM_MAT4_IDENTITY_INIT,
-        };
-
-        vec3 init_pos = {
-            FRAND()*2-1,
-            FRAND()*2-1,
-            0,
-        };
-
-        behave[i] = (BEHAVE_DATA){
-            .vel = {
-                (FRAND()*2-1)/40,
-                (FRAND()*2-1)/40,
-                0,
-            },
-            .scale = FRAND()*0.9 + 0.1,
-        };
-
-        glm_scale_uni(models[i].view_mat, behave[i].scale);
-        glm_translate(models[i].view_mat, init_pos);
-
-        MODEL_init(models+i);
-    }*/
 }
 
 
@@ -318,7 +281,9 @@ void tri_update(MODEL* model, float dt) {
     behave[id].vel[1] = dy;
     behave[id].vel[2] = 0;
 
-    //printf("%f, %f\n", dx, dy);
-
-    glm_translate(model->view_mat, behave[id].vel);
+    // adjust velocity with scaling (stupid, I know)
+    vec3 vel;
+    glm_vec3_copy(behave[id].vel, vel);
+    glm_vec3_scale(vel, 1/rad, vel);
+    glm_translate(model->view_mat, vel);
 }
