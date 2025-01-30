@@ -32,7 +32,7 @@
 *.back
 
 # Directories
-bin/
+#bin/
 tmp/
 _old/
 gen/
