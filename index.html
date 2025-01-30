@@ -16,6 +16,7 @@
                 image-rendering: pixelated;                 /*Awesome future-browsers*/
                 -ms-interpolation-mode: nearest-neighbor;   /*IE*/
             }
+            html, body {margin: 0; height: 100%; overflow: hidden}
 	    </style>
         
         <script src="script.js"></script>
@@ -24,11 +25,13 @@
     <body style="background-color:lightgrey;">
         <canvas id="canvas" style="background-color:white"></canvas>
             <!--width="800" height="600"-->
-        <!--script>
+        <script>
+            // weird. Scaling in css doesn't change the resolution
+            // while scaling in js does
             var canvas = document.querySelector('canvas');
-            canvas.width = 800;
-            canvas.height = 600;
-        </script-->
+            canvas.width = 256;
+            canvas.height = 256;
+        </script>
         <script src="bin/bin.js"></script>
     </body>
 </html>

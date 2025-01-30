@@ -80,6 +80,7 @@ release: _release $(BINTARG).$(TEXTEN)
 -include shaders
 
 
+# TODO: FIX THIX!!!
 shaders: $(GENDIR)/shaders.h
 
 
