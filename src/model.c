@@ -2,7 +2,6 @@
 #include <stdio.h>
 
 
-
 MODEL* MODEL_init(MODEL* model) {
     // create buffer
     glGenBuffers(1, &model->vert_buff);

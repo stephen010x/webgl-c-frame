@@ -106,7 +106,6 @@ typedef struct {
 MODEL* MODEL_init(MODEL* model);
 int MODEL_draw(MODEL* model);
 
-
 __FORCE_INLINE__ void MODEL_update(MODEL* model, float dt) {
     if (model->update_call != NULL)
         return model->update_call(model, dt);
