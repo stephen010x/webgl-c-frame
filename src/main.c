@@ -478,14 +478,14 @@ bool sphere_collide_test(MODEL* model1, MODEL* model2) {
 
 
     // absolute position collision adjustment
-    vec3 off1, off2;
+    /*vec3 off1, off2;
     float overlap = glm_vec3_distance(pos1, pos2) - rad1 - rad2;
     collision_adjust(anorm, mass1, mass2, overlap, off1, off2);
     // stupid scaling neccissary for translation
     glm_vec3_scale(off1, 1/rad1, off1);
     glm_vec3_scale(off2, 1/rad2, off2);
     glm_translate(model1->view_mat, off1);
-    glm_translate(model2->view_mat, off2);
+    glm_translate(model2->view_mat, off2);*/
 
     return true;
 }
