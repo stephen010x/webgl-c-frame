@@ -37,7 +37,7 @@ void init_scene(GLuint shader_program);
 EM_BOOL frame_loop(double t, void *user_data);
 int __main(void);
 bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params);
-
+bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params);
 
 
 // TODO:
@@ -121,6 +121,10 @@ int __main(void) {
 
     emscripten_set_keydown_callback(
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &keydown_event_handler);
+
+    // for the mobiley gifted
+    emscripten_set_touchstart_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &touch_event_handler);
 
     // init scene
     init_scene(program);
@@ -474,14 +478,14 @@ bool sphere_collide_test(MODEL* model1, MODEL* model2) {
 
 
     // absolute position collision adjustment
-    /*vec3 off1, off2;
+    vec3 off1, off2;
     float overlap = glm_vec3_distance(pos1, pos2) - rad1 - rad2;
     collision_adjust(anorm, mass1, mass2, overlap, off1, off2);
     // stupid scaling neccissary for translation
     glm_vec3_scale(off1, 1/rad1, off1);
     glm_vec3_scale(off2, 1/rad2, off2);
     glm_translate(model1->view_mat, off1);
-    glm_translate(model2->view_mat, off2);*/
+    glm_translate(model2->view_mat, off2);
 
     return true;
 }
@@ -649,4 +653,10 @@ bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void
         printf("/// Norm lerp: %f, %f\n", norm[0], norm[1]);
     }//*/
     return false;
+}
+
+
+bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params) {
+    behave_flag = !behave_flag;
+    return true;
 }
