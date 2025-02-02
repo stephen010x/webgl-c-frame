@@ -10,8 +10,12 @@
 
         <style>
 	        #canvas {
-	            width: 768px;
-	            height: 768px;
+	            /*width: 768px;
+	            height: 768px;*/
+	            /*width: 100vw;
+	            height: 100vh;*/
+	            /*width: 256px;
+	            height: 256px;*/
 	        }
 	        canvas {
                 image-rendering: optimizeSpeed;             /*Older versions of FF*/
@@ -33,10 +37,26 @@
         <script>
             // weird. Scaling in css doesn't change the resolution
             // while scaling in js does
-            var canvas = document.querySelector('canvas');
-            canvas.width = 256;
+            //var canvas = document.querySelector('canvas');
+            // document.getElementById("myH1").style.color = "red"; 
+            let canvas = document.getElementById("canvas");
+
+            let swidth = window.innerWidth;
+            let sheight = window.innerHeight;
+            let sratio = swidth/sheight;
+
             canvas.height = 256;
+            canvas.width = Math.round(canvas.height * sratio);
+            //window.getComputedStyle(canvas).width
+
+            //console.log(window.getComputedStyle(canvas).width);
+
+            //canvas.style.setProperty("width", "3000px");
+            
+            canvas.style.width = swidth+"px";
+            canvas.style.height = sheight+"px";
+            //console.log(window.innerWidth+"px");
         </script>
-        <script src="bin/bin.js"></script>
+        <script src="bin/bin.js" defer></script>
     </body>
 </html>

@@ -12,12 +12,13 @@
 #include "main.h"
 #include "model.h"
 #include "webgl.h"
+#include "physics.h"
 //#include "gobjects.h"
 #include "shaders/gen/shaders.h"
 //#include "macros/macros.h"
 
 
-#define NUM_MODELS 10
+#define NUM_MODELS 30
 #define CIRC_RES 32
 
 
@@ -78,12 +79,24 @@ int main() {
 
 
 
-const vec3 gravity0 = {0, -0.001, 0};
-vec3 gravity = {0, -0.001, 0};
-//vec3 gravity = {0, 0, 0};
+
+void get_elementid_size(char* id, int* width, int* height) {
+    *width = EM_ASM_INT({
+        let idstr = UTF8ToString($0);
+        let element = document.getElementById(idstr);
+        console.log(element);
+        return element.width;
+    }, id);
+    *height = EM_ASM_INT({
+        let idstr = UTF8ToString($0);
+        let element = document.getElementById(idstr);
+        return element.height;
+    }, id);
+}
 
 
 
+int swidth, sheight;
 
 int __main(void) {
 
@@ -103,8 +116,13 @@ int __main(void) {
     //emscripten_set_canvas_element_size("#canvas", 256, 256);
 
     //get canvas width and height
-    //FRAME canvas;
-    //EMSCRIPTEN_RESULT result = emscripten_get_canvas_element_size("#canvas", &canvas.width, &canvas.height);
+    // well for some reason this errors now.
+    //int width, height;
+    //EMSCRIPTEN_RESULT result = emscripten_get_canvas_element_size("#canvas", &width, &height);
+
+    get_elementid_size("canvas", &swidth, &sheight);
+
+    float ratio = (float)swidth/sheight;
 
     // TODO I don't really know where to go with this
     // I eventually want control over the screen buffer size/resolution
@@ -115,7 +133,7 @@ int __main(void) {
 
     mat4 u_proj_mat;
     // TODO: Make this cooler. (ie. 0 to 256 rather than -1 to 1)
-    glm_ortho(-1, 1, -1, 1, 0, (1<<16)-1, u_proj_mat);
+    glm_ortho(-1*ratio, 1*ratio, -1, 1, 0, (1<<16)-1, u_proj_mat);
 
     glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
 
@@ -140,6 +158,11 @@ int __main(void) {
 
 
 
+BEHAVE behave[NUM_MODELS];
+
+void model_transform(MODEL* model);
+void model_update_pipeline(double t, float dt);
+
 
 #define UPDATE_DIVISOR 1
 
@@ -154,11 +177,13 @@ int __main(void) {
 bool behave_flag = false;
 
 
-EM_BOOL frame_loop(double t, void *user_data) {
+EM_BOOL frame_loop(double _t, void *user_data) {
     (void)user_data;
     static double t0;
-    double dt = t - t0;
-    t0 = t;
+    double _dt = _t - t0;
+    t0 = _t;
+    float dt = _dt/DT_DIVISOR;
+    double t = _t/DT_DIVISOR;
 
     static unsigned long long count = 0;
     // update count for physics update slowing
@@ -169,18 +194,19 @@ EM_BOOL frame_loop(double t, void *user_data) {
     // clear the scene
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // update models
     if (count%UPDATE_DIVISOR == 0 && behave_flag)
-        for (int i = 0; i < NUM_MODELS; i++)
-            MODEL_update(models+i, dt);
-        
+        model_update_pipeline(t, dt);
+
+    // draw models
     for (int i = 0; i < NUM_MODELS; i++)
         MODEL_draw(models+i);
 
     // rotate gravity
     // mainly for debugging purposes
     // but it also looks cool
-    glm_vec3_copy(*(vec3*)&gravity0, gravity);
-    glm_vec3_rotate(gravity, t/3000, (vec3){0,0,1});
+    glm_vec3_copy((vec3)GRAVITY, gravity);
+    glm_vec3_rotate(gravity, t/300, (vec3){0,0,1});
 
     // requests frame buffer swap. Will actually render stuff to screen
     // this is neccissary because explicitSwapControl was set to GL_TRUE
@@ -193,22 +219,53 @@ EM_BOOL frame_loop(double t, void *user_data) {
 
 
 
+void model_update_pipeline(double t, float dt) {
+    // Alright. It looks like the multi-pass model is still
+    // the most stable. 
+    // Also, the jitteryness seems to be a product of 
+    // perfectly elastic collisions in an approximate
+    // enviroment with a ball pushing another ball into
+    // a wall and demanding 
+    #if 1
+    // This is the multi-pass model in order to 
+    // remove bias from order of execution
+    for (int i = 0; i < NUM_MODELS; i++)
+        MODEL_update(models+i, t, dt);
+    for (int i = 0; i < NUM_MODELS; i++) {
+        // TODO: actually add this to a model callback or something
+        // perhaps implement a multi-pass physics system (layers)
+        behave_apply(behave+i, t, dt);
+        model_transform(models+i);
+    }
+    #else
+    // this is the single-pass model. Behavior is less equal,
+    // but it should avoid some of the jank created by the previous model
+    for (int i = 0; i < NUM_MODELS; i++) {
+        MODEL_update(models+i, t, dt);
+        behave_apply(behave+i, t, dt);
+        //model_transform(models+i);
+    }
+    for (int i = 0; i < NUM_MODELS; i++) {
+        behave_apply(behave+i, t, dt);
+        model_transform(models+i);
+    }
+    #endif
+}
 
 
-void tri_update(MODEL* model, float dt);
+
+
+
+//void behave_update(MODEL* model, float t, float dt);
+//void behave_apply(MODEL* model, float t, float dt);
+
+
+void circle_update(MODEL* model, double t, float dt);
 
 
 
 #define FRAND() ((float)rand()/(float)RAND_MAX)
 
-
-typedef struct {
-    vec3 vel;
-    float scale;
-} BEHAVE_DATA;
-
-
-BEHAVE_DATA behave[NUM_MODELS];
 
 
 
@@ -239,32 +296,26 @@ void init_scene(GLuint program) {
             .mesh = (MESH*)&circle_mesh,
             .visable = true,
             .drawtype = 0, // not implemented yet
-            .update_call = (UPDATE_CALLBACK)tri_update,
+            .update_call = (UPDATE_CALLBACK)circle_update,
             .shader_prog = program,
             .view_mat = GLM_MAT4_IDENTITY_INIT,
         };
 
-        behave[i] = (BEHAVE_DATA){
+        behave[i] = (BEHAVE){
             .vel = {
-                (FRAND()*2-1)/10,
-                (FRAND()*2-1)/10,
+                (FRAND()*2-1)/10/10,
+                (FRAND()*2-1)/10/10,
+                0,
+            },
+            .pos = {
+                (FRAND()-0.5),
+                (FRAND()-0.5),
                 0,
             },
             .scale = (FRAND()*0.9 + 0.1)/4,
         };
 
-        vec3 init_pos = {
-            (FRAND()-0.5),
-            (FRAND()-0.5),
-            0,
-        };
-
-        // stupid scaling vs position stuff with matrix
-        //glm_vec3_scale(behave[i].vel, 1/behave[i].scale, behave[i].vel);
-
-        glm_vec3_scale(init_pos, 1/behave[i].scale, init_pos);
-        glm_scale_uni(models[i].view_mat, behave[i].scale);
-        glm_translate(models[i].view_mat, init_pos);
+        model_transform(models+i);
 
         MODEL_init(models+i);
     }
@@ -273,23 +324,107 @@ void init_scene(GLuint program) {
 
 
 
-// TODO: I think air drag might be messing up perfectly inelastic collisions
-#define DRAG_COEFF 0.2
-//#define DRAG_COEFF 0
-#define DENSITY 1
-#define ELASTICITY 0.5
-//#define ELASTICITY 0
-//#define ELASTICITY 1
-#define BOUNCE_THRESH 0.01
+
+
+
+void model_transform(MODEL* model) {
+    BEHAVE* b = behave + model->id;
+
+    // apply transformations to matrix
+    vec3 pos;
+    glm_vec3_scale(b->pos, 1/b->scale, pos);
+    //glm_vec3_scale(b->pos, 1, pos);
+    mat4 viewmat = GLM_MAT4_IDENTITY_INIT;
+    glm_scale_uni(viewmat, b->scale);
+    glm_translate_to(viewmat, pos, model->view_mat);
+}
+
+
+
+
+
+void circle_update(MODEL* model, double t, float dt) {
+    BEHAVE* b = behave + model->id;
+
+    float sratio = (float)swidth/sheight;
+
+    wall_collide_eval(b, (vec3){-1*sratio,-1,-1}, (vec3){1*sratio,1,1}, dt);
+
+    for (int i = model->id + 1; i < NUM_MODELS; i++)
+        sphere_collide_eval(b, behave+i, dt);
+}
+
+
+
+
+
+
+bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params) {
+    printf("pressed key %d\n", event->keyCode);
+    switch (event->keyCode) {
+        case 32:
+            behave_flag = !behave_flag;
+            return true;
+        case 78:
+        case 68:
+            model_update_pipeline(0, 10);
+            return true;
+    }
+    return false;
+}
+
+
+bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params) {
+    behave_flag = !behave_flag;
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+////////////////
+///////////////
+//
+//      GARBAGE CODE that I plan to get rid of once I get the new stuff working
+//
+///////////
+//////////
+
+
 
 // TODO: get rid of bool debug parameter
-void collision(float coeff, vec3 v1, vec3 v2, float m1, float m2, vec3 n1x, vec3 n2x, vec3 v1o, vec3 v2o, bool debug);
-void collision_adjust(vec3 norm, float m1, float m2, float overlap, vec3 p1o, vec3 p2o);
-void wall_collide(MODEL* model, vec3 norm, float overlap);
-bool sphere_collide_test(MODEL* model1, MODEL* model2);
+void __collision(float coeff, vec3 v1, vec3 v2, float m1, float m2, vec3 n1x, vec3 n2x, vec3 v1o, vec3 v2o, bool debug);
+void __collision_adjust(vec3 norm, float m1, float m2, float overlap, vec3 p1o, vec3 p2o);
+void __wall_collide(MODEL* model, vec3 norm, float overlap);
+bool __sphere_collide_test(MODEL* model1, MODEL* model2);
 
 
-void tri_update(MODEL* model, float dt) {
+
+void __behave_update(MODEL* model, float t, float dt) {
     // adjusting dt so as to not have speeds be haywire
     dt = dt / 8;
 
@@ -332,15 +467,15 @@ void tri_update(MODEL* model, float dt) {
 
 
     // test wall collisions
-    if (x + rad >  1) wall_collide(model, (vec3){-1, 0, 0},  x+rad-1);
-    if (x - rad < -1) wall_collide(model, (vec3){ 1, 0, 0}, -x+rad-1);
-    if (y + rad >  1) wall_collide(model, (vec3){ 0,-1, 0},  y+rad-1);
-    if (y - rad < -1) wall_collide(model, (vec3){ 0, 1, 0}, -y+rad-1);
+    if (x + rad >  1) __wall_collide(model, (vec3){-1, 0, 0},  x+rad-1);
+    if (x - rad < -1) __wall_collide(model, (vec3){ 1, 0, 0}, -x+rad-1);
+    if (y + rad >  1) __wall_collide(model, (vec3){ 0,-1, 0},  y+rad-1);
+    if (y - rad < -1) __wall_collide(model, (vec3){ 0, 1, 0}, -y+rad-1);
 
     // test circle collisions for every other circle with a greater id
     for (int i = id+1; i < NUM_MODELS; i++)
         //if (i != id)
-            sphere_collide_test(model, models+i);
+            __sphere_collide_test(model, models+i);
     
 
     // TODO: consider reference to vel rather than copy
@@ -374,7 +509,7 @@ void tri_update(MODEL* model, float dt) {
 
 
 
-void wall_collide(MODEL* model, vec3 norm, float overlap) {
+void __wall_collide(MODEL* model, vec3 norm, float overlap) {
 
     // garbage collecting vector
     vec3 garbage;
@@ -395,7 +530,7 @@ void wall_collide(MODEL* model, vec3 norm, float overlap) {
 
     // calculate collision
     // old mass was 1e25
-    collision(ELASTICITY, vel, (vec3){0,0,0}, mass, INFINITY, norm, norm, vel, garbage, false);
+    __collision(ELASTICITY, vel, (vec3){0,0,0}, mass, INFINITY, norm, norm, vel, garbage, false);
 
     //*debug*/ printf("before: (%f, %f)\n", behave[id].vel[0], behave[id].vel[1]);
     //*debug*/ printf("new: (%f, %f)\n", vel[0], vel[1]);
@@ -407,14 +542,16 @@ void wall_collide(MODEL* model, vec3 norm, float overlap) {
 
     // absolute position collision adjustment
     vec3 off;
-    collision_adjust(norm, mass, INFINITY, overlap, off, garbage);
+    __collision_adjust(norm, mass, INFINITY, overlap, off, garbage);
     // stupid scaling neccissary for translation
     glm_vec3_scale(off, 1/rad, off);
     glm_translate(model->view_mat, off);
 }
 
 
-bool sphere_collide_test(MODEL* model1, MODEL* model2) {
+
+
+bool __sphere_collide_test(MODEL* model1, MODEL* model2) {
     // get id
     int id1 = model1->id;
     int id2 = model2->id;
@@ -470,22 +607,25 @@ bool sphere_collide_test(MODEL* model1, MODEL* model2) {
 
     // calculate collision
     vec3 vel1o, vel2o;
-    collision(ELASTICITY, vel1, vel2, mass1, mass2, anorm, norm, vel1o, vel2o, true);
+    __collision(ELASTICITY, vel1, vel2, mass1, mass2, anorm, norm, vel1o, vel2o, true);
 
     // update velocities
-    glm_vec3_copy(vel1o, behave[id1].vel);
-    glm_vec3_copy(vel2o, behave[id2].vel);
+    /*DEBUG*/ // Disabled to test collision adjustment
+    //glm_vec3_copy(vel1o, behave[id1].vel);
+    //glm_vec3_copy(vel2o, behave[id2].vel);
 
 
     // absolute position collision adjustment
-    /*vec3 off1, off2;
-    float overlap = glm_vec3_distance(pos1, pos2) - rad1 - rad2;
-    collision_adjust(anorm, mass1, mass2, overlap, off1, off2);
+    vec3 off1, off2;
+    //float overlap = rad1 + rad2 - glm_vec3_distance(pos1, pos2) /*-0.03*/;
+    // WFT??? Why is my distance function behaving different than glm's?
+    float overlap = rad1 + rad2 - getdist(pos1, pos2);
+    __collision_adjust(norm, mass1, mass2, overlap, off1, off2);
     // stupid scaling neccissary for translation
-    glm_vec3_scale(off1, 1/rad1, off1);
-    glm_vec3_scale(off2, 1/rad2, off2);
+    //glm_vec3_scale(off1, 1/rad1, off1);
+    //glm_vec3_scale(off2, 1/rad2, off2);
     glm_translate(model1->view_mat, off1);
-    glm_translate(model2->view_mat, off2);*/
+    glm_translate(model2->view_mat, off2);
 
     return true;
 }
@@ -498,7 +638,7 @@ bool sphere_collide_test(MODEL* model1, MODEL* model2) {
 // Notice that this is designed for 3D collisions. This is me thinking ahead.
 // It will also work for 2D collisions too. The vector math is the exact same.
 // also, yes, it is safe to pass in the same vector for the input and output velocity
-void collision(float coeff, vec3 v1, vec3 v2, float m1, float m2, vec3 n1x, vec3 n2x, vec3 v1o, vec3 v2o, bool debug) {
+void __collision(float coeff, vec3 v1, vec3 v2, float m1, float m2, vec3 n1x, vec3 n2x, vec3 v1o, vec3 v2o, bool debug) {
     /*
      *  Alright, so this is 2 collisions, so this is how this needs to work:
      *  First, we need to extract the velicity relative to each normal.
@@ -596,6 +736,9 @@ void collision(float coeff, vec3 v1, vec3 v2, float m1, float m2, vec3 n1x, vec3
 
 
 
+
+
+
 // sort of a different version of collisions that enforces objective
 // reality on the spheres by adjusting their positions while maintaining 
 // center of mass between two objects
@@ -603,60 +746,38 @@ void collision(float coeff, vec3 v1, vec3 v2, float m1, float m2, vec3 n1x, vec3
 // the previous collision function too, as the force will always be in equal
 // and opposite directions
 // TODO: consider putting the collision functions in a separate file
-void collision_adjust(vec3 norm, float m1, float m2, float overlap, vec3 p1o, vec3 p2o) {
+// TODO: This is probably still needed to prevent inelastic collisions
+// from sticking to each-other.
+// This is basically a position/collision reality check.
+void __collision_adjust(vec3 norm, float m1, float m2, float overlap, vec3 p1o, vec3 p2o) {
     // calculate anti-normal
     // just use negative for final scale
     //vec3 anorm;
     //glm_vec3_negate_to(norm, anorm);
+
+    // TODO
+    // For some reason if m2 is greater than m1, then the normal needs to be 
+    // reversed. Find out why this is and try to repair it.
+    // Until then just stick with this ducktape solution
+
+    // ducktape here
+    float sign = (m1 >= m2) ? -1 : 1;
 
     float r1, r2;
 
     if (m2 == INFINITY) {
         r1 = overlap;
         r2 = 0;
+    } else if (m1 == m2) { // TODO: test this
+        r1 = overlap / 2;
+        r2 = overlap / 2;
     } else {
-        r1 = m2*overlap/(m2-m1);
-        r2 = m1*overlap/(m1-m2);
+        r1 = m2*overlap/(m2-m1) * sign;
+        r2 = m1*overlap/(m1-m2) * sign;
     }
 
     // scale_as converts it to normal vector for me
     // TODO apply scale_as to other collision function
     glm_vec3_scale_as(norm, r1, p1o);
-    glm_vec3_scale_as(norm, -r2, p2o);
-}
-
-
-
-
-
-
-bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params) {
-    printf("pressed key %d\n", event->keyCode);
-    switch (event->keyCode) {
-        case 32:
-            behave_flag = !behave_flag;
-            return true;
-        case 78:
-        case 68:
-            for (int i = 0; i < NUM_MODELS; i++)
-                MODEL_update(models+i, 10);
-            return true;
-    }
-    /*DEBUG*\/ { // norm test
-        vec3 norm;
-        vec3 pos1 = {0, 1, 0};
-        vec3 pos2 = {2, 8, 0};
-        glm_vec3_lerp(pos1, pos2, 1.0, norm);
-        printf("//////////////////\n");
-        printf("/// Norm pos1: %f, %f\n", pos1[0], pos1[1]);
-        printf("/// Norm pos2: %f, %f\n", pos2[0], pos2[1]);
-        printf("/// Norm lerp: %f, %f\n", norm[0], norm[1]);
-    }//*/
-    return false;
-}
-
-
-bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params) {
-    behave_flag = !behave_flag;
-    return true;
+    glm_vec3_scale_as(norm, r2, p2o);
 }

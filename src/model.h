@@ -59,7 +59,7 @@ __FORCE_INLINE__ size_t MESH_sizeof(void* m) {
 
 
 //typedef (int (*DRAW_CALLBACK)(int));
-typedef void (*UPDATE_CALLBACK)(void*, float);
+typedef void (*UPDATE_CALLBACK)(void*, double, float);
 
 
 
@@ -106,9 +106,9 @@ typedef struct {
 MODEL* MODEL_init(MODEL* model);
 int MODEL_draw(MODEL* model);
 
-__FORCE_INLINE__ void MODEL_update(MODEL* model, float dt) {
+__FORCE_INLINE__ void MODEL_update(MODEL* model, double t, float dt) {
     if (model->update_call != NULL)
-        return model->update_call(model, dt);
+        return model->update_call(model, t, dt);
 }
 
 
