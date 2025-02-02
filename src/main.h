@@ -94,7 +94,14 @@ typedef struct {
 #define ABS(__n) ({typeof(__n) n = (__n); n >= 0 ? n : -n;})
 #define SIGN(__n) ({typeof(__n) n = (__n); n == 0 ? 0 : (n > 0 ? 1 : -1);})
 
-
+#define MAP(__n, __i1, __i2, __o1, __o2) ({ \
+        typeof(__n)  n  = (__n );   \
+        typeof(__i1) i1 = (__i1);   \
+        typeof(__i2) i2 = (__i2);   \
+        typeof(__o1) o1 = (__o1);   \
+        typeof(__o2) o2 = (__o2);   \
+        (n-i1)*(o2-o1)/(i2-i1)+o1;  \
+    })
 
 
 #endif

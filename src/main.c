@@ -97,6 +97,7 @@ void get_elementid_size(char* id, int* width, int* height) {
 
 
 int swidth, sheight;
+vec3 wmin, wmax;
 
 int __main(void) {
 
@@ -123,6 +124,10 @@ int __main(void) {
     get_elementid_size("canvas", &swidth, &sheight);
 
     float ratio = (float)swidth/sheight;
+    wmin[0] = -1*ratio;
+    wmin[1] = -1;
+    wmax[0] =  1*ratio;
+    wmax[1] =  1;
 
     // TODO I don't really know where to go with this
     // I eventually want control over the screen buffer size/resolution
@@ -133,7 +138,7 @@ int __main(void) {
 
     mat4 u_proj_mat;
     // TODO: Make this cooler. (ie. 0 to 256 rather than -1 to 1)
-    glm_ortho(-1*ratio, 1*ratio, -1, 1, 0, (1<<16)-1, u_proj_mat);
+    glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], 0, (1<<16)-1, u_proj_mat);
 
     glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
 
@@ -266,6 +271,7 @@ void circle_update(MODEL* model, double t, float dt);
 
 #define FRAND() ((float)rand()/(float)RAND_MAX)
 
+#define FRANDRANGE(__min, __max) MAP(FRAND(), 0, 1, __min, __max)
 
 
 
@@ -301,6 +307,8 @@ void init_scene(GLuint program) {
             .view_mat = GLM_MAT4_IDENTITY_INIT,
         };
 
+        float scale = (FRAND()*0.9 + 0.1)/4;
+        
         behave[i] = (BEHAVE){
             .vel = {
                 (FRAND()*2-1)/10/10,
@@ -308,11 +316,11 @@ void init_scene(GLuint program) {
                 0,
             },
             .pos = {
-                (FRAND()-0.5),
-                (FRAND()-0.5),
+                FRANDRANGE(wmin[0]+scale, wmax[0]-scale),
+                FRANDRANGE(wmin[1]+scale, wmax[1]-scale),
                 0,
             },
-            .scale = (FRAND()*0.9 + 0.1)/4,
+            .scale = scale,
         };
 
         model_transform(models+i);
@@ -348,7 +356,7 @@ void circle_update(MODEL* model, double t, float dt) {
 
     float sratio = (float)swidth/sheight;
 
-    wall_collide_eval(b, (vec3){-1*sratio,-1,-1}, (vec3){1*sratio,1,1}, dt);
+    wall_collide_eval(b, (vec3){wmin[0],wmin[1],-1}, (vec3){wmax[0],wmax[1],1}, dt);
 
     for (int i = model->id + 1; i < NUM_MODELS; i++)
         sphere_collide_eval(b, behave+i, dt);
