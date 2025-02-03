@@ -18,7 +18,7 @@
 //#include "macros/macros.h"
 
 
-#define NUM_MODELS 20
+#define NUM_MODELS 15
 //#define NUM_MODELS 1
 #define CIRC_RES 32
 
@@ -240,7 +240,8 @@ void model_update_pipeline(double t, float dt) {
     // enviroment with a ball pushing another ball into
     // a wall and demanding 
 
-    dt /= BEHAVE_PASSES;
+    //dt /= BEHAVE_PASSES;
+    dt = 0.3;
     
     for (int i = 0; i < BEHAVE_PASSES; i++) {
         #if 1
