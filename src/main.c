@@ -18,8 +18,14 @@
 //#include "macros/macros.h"
 
 
-#define NUM_MODELS 30
+#define NUM_MODELS 20
+//#define NUM_MODELS 1
 #define CIRC_RES 32
+
+// how many times to run physics between each frame
+// the higher the number the more accurate, but the more
+// processing intensive.
+#define BEHAVE_PASSES 10
 
 
 enum {
@@ -84,7 +90,6 @@ void get_elementid_size(char* id, int* width, int* height) {
     *width = EM_ASM_INT({
         let idstr = UTF8ToString($0);
         let element = document.getElementById(idstr);
-        console.log(element);
         return element.width;
     }, id);
     *height = EM_ASM_INT({
@@ -179,7 +184,7 @@ void model_update_pipeline(double t, float dt);
 // FIS THIX!!!!!
 // AHAH! I FOUND IT!
 // The circle mesh generator in init_scene overflows
-bool behave_flag = false;
+bool behave_flag = true;
 
 
 EM_BOOL frame_loop(double _t, void *user_data) {
@@ -211,6 +216,9 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     // mainly for debugging purposes
     // but it also looks cool
     glm_vec3_copy((vec3)GRAVITY, gravity);
+    // TODO: because delta-v isn't hooked up to dt yet,
+    // We have to scale gravity manually    glm_vec3_copy((vec3)GRAVITY, gravity);
+    glm_vec3_scale(gravity, (float)1/BEHAVE_PASSES, gravity);
     glm_vec3_rotate(gravity, t/300, (vec3){0,0,1});
 
     // requests frame buffer swap. Will actually render stuff to screen
@@ -231,30 +239,35 @@ void model_update_pipeline(double t, float dt) {
     // perfectly elastic collisions in an approximate
     // enviroment with a ball pushing another ball into
     // a wall and demanding 
-    #if 1
-    // This is the multi-pass model in order to 
-    // remove bias from order of execution
-    for (int i = 0; i < NUM_MODELS; i++)
-        MODEL_update(models+i, t, dt);
-    for (int i = 0; i < NUM_MODELS; i++) {
-        // TODO: actually add this to a model callback or something
-        // perhaps implement a multi-pass physics system (layers)
-        behave_apply(behave+i, t, dt);
-        model_transform(models+i);
+
+    dt /= BEHAVE_PASSES;
+    
+    for (int i = 0; i < BEHAVE_PASSES; i++) {
+        #if 1
+        // This is the multi-pass model in order to 
+        // remove bias from order of execution
+        for (int i = 0; i < NUM_MODELS; i++)
+            MODEL_update(models+i, t, dt);
+        for (int i = 0; i < NUM_MODELS; i++) {
+            // TODO: actually add this to a model callback or something
+            // perhaps implement a multi-pass physics system (layers)
+            behave_apply(behave+i, t, dt);
+            model_transform(models+i);
+        }
+        #else
+        // this is the single-pass model. Behavior is less equal,
+        // but it should avoid some of the jank created by the previous model
+        for (int i = 0; i < NUM_MODELS; i++) {
+            MODEL_update(models+i, t, dt);
+            behave_apply(behave+i, t, dt);
+            model_transform(models+i);
+        }
+        /*for (int i = 0; i < NUM_MODELS; i++) {
+            behave_apply(behave+i, t, dt);
+            model_transform(models+i);
+        }*/
+        #endif
     }
-    #else
-    // this is the single-pass model. Behavior is less equal,
-    // but it should avoid some of the jank created by the previous model
-    for (int i = 0; i < NUM_MODELS; i++) {
-        MODEL_update(models+i, t, dt);
-        behave_apply(behave+i, t, dt);
-        //model_transform(models+i);
-    }
-    for (int i = 0; i < NUM_MODELS; i++) {
-        behave_apply(behave+i, t, dt);
-        model_transform(models+i);
-    }
-    #endif
 }
 
 
@@ -307,7 +320,7 @@ void init_scene(GLuint program) {
             .view_mat = GLM_MAT4_IDENTITY_INIT,
         };
 
-        float scale = (FRAND()*0.9 + 0.1)/4;
+        float scale = (FRAND()*0.9 + 0.2)/4;
         
         behave[i] = (BEHAVE){
             .vel = {
@@ -321,6 +334,7 @@ void init_scene(GLuint program) {
                 0,
             },
             .scale = scale,
+            .mass = (4/3)*MATH_PI*scale*scale*scale*DENSITY,
         };
 
         model_transform(models+i);
@@ -375,7 +389,7 @@ bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void
             return true;
         case 78:
         case 68:
-            model_update_pipeline(0, 10);
+            model_update_pipeline(0, 0.5*10);
             return true;
     }
     return false;

@@ -7,6 +7,17 @@
 vec3 gravity = GRAVITY;
 
 
+extern bool behave_flag;
+
+
+void printvec(const char* name, vec3 v) {
+    printf("%s (%f, %f)\n", name, v[0], v[1]);
+}
+
+#define PRINTVAR(__t, __n) do {         \
+        printf(#__n " " __t "\n", __n); \
+    } while(0)
+
 
 
 
@@ -17,8 +28,10 @@ void setprojected(BEHAVE* b, float dt, vec3 vel, vec3 pos) {
     vec3 deltap, deltav;
     
     // scale delta-v by dt and add it to velocity
-    glm_vec3_scale(b->deltav, dt, deltav);
-    glm_vec3_add(b->vel, deltav, vel);
+    // actually nevermind, scaling it might be messingit up
+    //glm_vec3_scale(b->deltav, dt, deltav);
+    //glm_vec3_add(b->vel, deltav, vel);
+    glm_vec3_add(b->vel, b->deltav, vel);
 
     // add impulse to velocity
     glm_vec3_add(vel, b->impulse, vel);
@@ -47,6 +60,10 @@ float getdist(vec3 p1, vec3 p2) {
 
 void behave_apply(BEHAVE* b, double t, float dt) {
 
+    /*printf("---------setprojected---------\n");
+    printvec("pvel", b->vel);
+    printvec("ppos", b->pos);*/
+
     // apply vectors to states
     /*glm_vec3_add(b->vel, b->deltav,  b->vel);
     glm_vec3_add(b->vel, b->impulse, b->vel);
@@ -56,6 +73,11 @@ void behave_apply(BEHAVE* b, double t, float dt) {
     glm_vec3_add(b->pos, vel, b->pos);*/
     // apply vectors to states
     setprojected(b, dt, b->vel, b->pos);
+
+    /*printvec("deltav", b->deltav);
+    printvec("impulse", b->impulse);
+    printvec("nvel", b->vel);
+    printvec("npos", b->pos);*/
     
     // reset vectors
     glm_vec3_zero(b->impulse);
@@ -72,20 +94,26 @@ void behave_apply(BEHAVE* b, double t, float dt) {
 
 
 
-
-void collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
+// TODO:
+// maybe assume that there will only ever be one collision
+// for each object. And decide which collision that would be
+// by aslecting the largest offset.
+// TODO: try to figure out why this one isn't working as well as old one.
+// you will notice I just repurposed the old one until I get this one working
+// It is basically suppose to do the exact same thing as the old one, only 
+// with less steps
+void __collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
     // get masses
     register float m1 = b1->mass;
     register float m2 = b2->mass;
     
     // enforce normal to be unit vector
-    vec3 norm, anorm;
+    vec3 norm;
     glm_vec3_normalize_to(normin, norm);
-    glm_vec3_negate_to(norm, anorm);
 
     // perform dot product between velocities and normal
-    float dot1 = glm_vec3_dot(b1->vel, norm);
-    float dot2 = glm_vec3_dot(b2->vel, anorm);
+    float dot1 =  glm_vec3_dot(b1->vel, norm);
+    float dot2 = -glm_vec3_dot(b2->vel, norm);
 
     // calculate magnitudes of new velocity
     // https://en.wikipedia.org/wiki/Inelastic_collision
@@ -94,6 +122,7 @@ void collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
         v1x = -(ELASTICITY*(dot2-dot1) + dot2);
         v2x = -dot2;
     } else {
+        dot2 = -dot2;
         v1x = -(ELASTICITY*m2*(dot2-dot1) + m1*dot1 + m2*dot2) / (m1+m2);
         v2x = -(ELASTICITY*m1*(dot1-dot2) + m2*dot2 + m1*dot1) / (m1+m2);
     }
@@ -101,12 +130,74 @@ void collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
     // create output sum vector using new velocity minus old normal
     // this cancels out the old normal velocity for the new one via impulse
     vec3 v1add, v2add;
-    glm_vec3_scale(norm, -v1x - dot1, v1add);
-    glm_vec3_scale(norm, -v2x - dot2, v2add);
+    glm_vec3_scale(norm, -ABS(v1x) - dot1, v1add);
+    glm_vec3_scale(norm, -ABS(v2x) - dot2, v2add);
 
     // add our adjusted velocity normals back into the output impulse
     glm_vec3_add(b1->impulse, v1add, b1->impulse);
     glm_vec3_add(b2->impulse, v2add, b2->impulse);
+}
+
+
+
+void collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
+
+    float coeff = ELASTICITY;
+
+    // get masses
+    register float m1 = b1->mass;
+    register float m2 = b2->mass;
+    
+    // enforce normal to be unit vectors
+    vec3 n1, n2;
+    glm_vec3_normalize_to(normin, n2);
+    glm_vec3_negate_to(n2, n1);
+
+    // perform dot product between velocities and normal
+    float dot1 = glm_vec3_dot(b1->vel, n1);
+    float dot2 = glm_vec3_dot(b2->vel, n2);
+
+    // gah! Why is bounce threshold still needed???
+    // T/ODO: find a way to get rid fo this!
+    // Good news! The bounce threshold does absolutely
+    // nothing to fix the jitter. So it is not needed!
+    //printf("dot sum %f+%f=%f\n", dot1, dot2, dot1+dot2);
+    //if (BOUNCE_THRESH != 0 && ABS(dot1+dot2) < BOUNCE_THRESH)
+    //    coeff = 0;
+    //    return;
+    
+    // calculate velocities parallel to normal 
+    vec3 v1n, v2n;
+    glm_vec3_scale(n1, dot1, v1n);
+    glm_vec3_scale(n2, dot2, v2n);
+    
+    // subtract normal velocity from original velocity
+    // we add in the *adjusted* normal velocity back in later
+    glm_vec3_sub(b1->impulse, v1n, b1->impulse);
+    glm_vec3_sub(b2->impulse, v2n, b2->impulse);
+
+    // get magnitudes of NORMAL velocities for collision formula
+    float v1s = glm_vec3_norm(v1n);
+    float v2s = glm_vec3_norm(v2n);
+
+    // calculate magnitudes of new velocity
+    // https://en.wikipedia.org/wiki/Inelastic_collision
+    float v1x, v2x;
+    if (m2 == INFINITY) {
+        v1x = -(coeff*(v2s-v1s) + v2s);
+        v2x = -v2s; // probably adjust back to positive due to how I handle normals
+    } else {
+        v1x = -(coeff*m2*(v2s-v1s) + m1*v1s + m2*v2s) / (m1+m2);
+        v2x = -(coeff*m1*(v1s-v2s) + m2*v2s + m1*v1s) / (m1+m2);
+    }
+
+    // create normal velocity vector with new scalar values
+    glm_vec3_scale(n1, v1x, v1n);
+    glm_vec3_scale(n2, v2x, v2n);
+
+    // add our adjusted velocity normals back into the output velocity
+    glm_vec3_add(b1->impulse, v1n, b1->impulse);
+    glm_vec3_add(b2->impulse, v2n, b2->impulse);
 }
 
 
@@ -127,6 +218,11 @@ void collision_deltav(BEHAVE* b1, BEHAVE* b2, vec3 norm) {
     glm_vec3_scale_as(norm, dot1, nd1);
     glm_vec3_scale_as(norm, dot2, nd2);
 
+    /*printf("---------collision_deltav---------\n");
+    printvec("b1->deltav", b1->deltav);
+    PRINTVAR("%f", dot1);
+    printvec("nd1", nd1);*/
+
     // subtract inverted normal delta-v from original delta-v
     glm_vec3_sub(b1->deltav, nd1, b1->deltav);
     glm_vec3_sub(b2->deltav, nd2, b2->deltav);
@@ -140,30 +236,20 @@ void collision_deltav(BEHAVE* b1, BEHAVE* b2, vec3 norm) {
 // as a result, this needs to be called first.
 void collision_shift(BEHAVE* b1, BEHAVE* b2, vec3 norm, float overlap) {
 
-    // TODO
-    // For some reason if m2 is greater than m1, then the normal needs to be 
-    // reversed. Find out why this is and try to repair it.
-    // Until then just stick with this ducktape solution
-    // SOLUTION: I think I just needed to take the absolute value
-    // of the difference of masses
-
     register float m1 = b1->mass;
     register float m2 = b2->mass;
-
-    // ducktape here
-    float sign = (m1 >= m2) ? -1 : 1;
 
     float r1, r2;
 
     if (m2 == INFINITY) {
         r1 = overlap;
         r2 = 0;
-    } else if (m1 == m2) { // TODO: test this
-        r1 = overlap / 2;
-        r2 = overlap / 2;
+    } else if (m1 == m2) {
+        r2 = r1 = overlap / 2;
     } else {
-        r1 =  m2*overlap/ABS(m2-m1);
-        r2 = -m1*overlap/ABS(m1-m2);
+        float k = overlap/ABS(m2+m1);
+        r1 = m2*k;
+        r2 = m1*k;
     }
 
     // scale norm by magnintude of r's
@@ -198,11 +284,13 @@ bool sphere_collision_detect
     // calculate overlap
     *overlap = rad1 + rad2 - dist;
 
-    if (*overlap < 0)
+    if (*overlap < 0 || isnan(*overlap))
         return false;
 
+    //*DEBUG*/ behave_flag = false;
+
     // calculate normal of collision
-    glm_vec3_sub(pos2, pos1, normout);
+    glm_vec3_sub(pos1, pos2, normout);
 
     return true;
 }
@@ -211,12 +299,19 @@ bool sphere_collision_detect
 
 void sphere_collide_eval(BEHAVE* b1, BEHAVE* b2, float dt) {
     float overlap;
-    vec3 norm;
+    // TODO: get rid of anorm. It is just ducktape
+    vec3 norm, anorm;
     // if sphere collision is detected, then apply collision transformations
     if (sphere_collision_detect(b1, b2, dt, &overlap, norm)) {
-        collision_shift(b1, b2, norm, overlap);
-        //collision_impulse(b1, b2, norm);
-        //collision_deltav(b1, b2, norm);
+        // TODO Not really sure why we need to invert the norm here
+        // please figure this out
+        glm_vec3_negate_to(norm, anorm);
+        collision_shift(b1, b2, anorm, overlap);
+        collision_impulse(b1, b2, norm);
+        // TODO: collision doesn't seem to fix jitter.
+        // it behaves very similarly without it.
+        // FIX THIS!
+        collision_deltav(b1, b2, norm);
     }
 }
 
@@ -263,8 +358,15 @@ void _wall_collide(BEHAVE* b, vec3 norm, float overlap) {
         .mass = INFINITY,
     };
 
+    // ducktape. remove later
+    vec3 anorm;
+    glm_vec3_negate_to(norm, anorm);
+
     // apply collision transformations
     collision_shift(b, &wall, norm, overlap);
     collision_impulse(b, &wall, norm);
-    //collision_deltav(b, &wall, norm);
+    // TODO: collision doesn't seem to fix jitter.
+    // it behaves very similarly without it.
+    // FIX THIS!
+    collision_deltav(b, &wall, norm);
 }

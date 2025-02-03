@@ -10,17 +10,18 @@
 //#define DRAG_COEFF 0.2
 #define DRAG_COEFF 0
 #define DENSITY 1
-//#define ELASTICITY 0.5
+#define ELASTICITY 0.5
+//#define ELASTICITY 0.3
 //#define ELASTICITY 0
-#define ELASTICITY 1
+//#define ELASTICITY 1
 //#define BOUNCE_THRESH 0.01
 #define BOUNCE_THRESH 0
 
 #define DT_DIVISOR 8
 
 
-//#define GRAVITY {0, -0.001, 0}
-#define GRAVITY {0, 0, 0}
+#define GRAVITY {0, -0.001, 0}
+//#define GRAVITY {0, 0, 0}
 
 
 typedef struct {
