@@ -244,7 +244,7 @@ void model_update_pipeline(double t, float dt) {
     dt = 0.3;
     
     for (int i = 0; i < BEHAVE_PASSES; i++) {
-        #if 1
+        #if 0
         // This is the multi-pass model in order to 
         // remove bias from order of execution
         for (int i = 0; i < NUM_MODELS; i++)
