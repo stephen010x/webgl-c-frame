@@ -51,7 +51,7 @@ int __main(void);
 bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params);
 bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params);
 bool motion_event_handler(int etype, const EmscriptenDeviceMotionEvent* event, void* params);
-bool orient_event_handler(int etype, const EmscriptenOrientationChangeEvent* event, void* params);
+bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* event, void* params);
 
 
 // TODO:
@@ -171,12 +171,8 @@ int __main(void) {
 
 
     emscripten_set_devicemotion_callback(NULL, EM_FALSE, &motion_event_handler);
-    EMSCRIPTEN_RESULT test = emscripten_set_orientationchange_callback(NULL, EM_FALSE, &orient_event_handler);
+    emscripten_set_deviceorientation_callback(NULL, EM_FALSE, &orient_event_handler);
     //emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY);
-
-    EM_ASM_({
-        alert("yolo " + $0 + " " + $1 + " " + $2 + " " + $3);
-    }, test, EMSCRIPTEN_RESULT_SUCCESS, EMSCRIPTEN_RESULT_NOT_SUPPORTED, EMSCRIPTEN_RESULT_FAILED);
 
     // init scene
     init_scene(program);
@@ -453,25 +449,24 @@ bool motion_event_handler(int etype, const EmscriptenDeviceMotionEvent* event, v
 }
 
 
-bool orient_event_handler(int etype, const EmscriptenOrientationChangeEvent* event, void* params) {
+bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* event, void* params) {
 
-    float angle = (float)event->orientationAngle;
+    float zrot = event->alpha;
+    float xrot = event->beta;
+    float yrot = event->gamma;
 
-    if (angle)
+    if (zrot && xrot && yrot)
         disable_rotgrav = true;
 
     glm_vec3_copy((vec3)GRAVITY, gravity);
     glm_vec3_scale(gravity, (float)GRAV_MUL, gravity);
-    glm_vec3_rotate(gravity, angle*((float)MATH_PI/180), (vec3){0,0,1});
+    glm_vec3_rotate(gravity, xrot*((float)MATH_PI/180), (vec3){1,0,0});
+    glm_vec3_rotate(gravity, yrot*((float)MATH_PI/180), (vec3){0,1,0});
+    glm_vec3_rotate(gravity, zrot*((float)MATH_PI/180), (vec3){0,0,1});
 
     EM_ASM_({
-        alert("yolo");
-        console.log("fuck");
-    }, etype);
-
-    EM_ASM_({
-	        alert("Orientation : " + $0);
-	}, angle);
+	        alert("Orien: " + $0 + " " + $1+ " " + $2);
+	}, xrot, yrot, zrot);
     
     return true;
 }
