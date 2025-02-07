@@ -30,6 +30,9 @@
 #define GRAV_MUL ((float)1/100)
 
 
+//vec3 dev_rot = {(float)MATH_PI/2, 0, 0};
+
+
 enum {
     ERROR_NONE = 0,
     ERROR_CREATE_CONTEXT,
@@ -240,6 +243,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
         // TODO: because delta-v isn't hooked up to dt yet,
         // We have to scale gravity manually    glm_vec3_copy((vec3)GRAVITY, gravity);
         glm_vec3_scale(gravity, (float)1/sqrt(BEHAVE_PASSES)*3*GRAV_MUL, gravity);
+        glm_vec3_rotate(gravity, (float)MATH_PI/2, (vec3){1,0,0});
         glm_vec3_rotate(gravity, t/300, (vec3){0,0,1});
     }
 

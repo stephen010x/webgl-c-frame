@@ -20,7 +20,8 @@
 #define DT_DIVISOR 8
 
 
-#define GRAVITY {0, -0.001, 0}
+// device is assumed to be at rest
+#define GRAVITY {0, 0, -0.001}
 //#define GRAVITY {0, 0, 0}
 
 
