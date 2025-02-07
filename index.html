@@ -46,7 +46,7 @@
         
         <script defer>
 
-            alert("test 4");
+            alert("test 5");
 
             const isMobile = window.innerWidth < window.innerHeight;
 
@@ -83,7 +83,7 @@
             }
 
 
-            if (isMobile && window.DeviceOrientationEvent) {
+            try {if (isMobile && window.DeviceOrientationEvent) {
                 //alert("oh?");
                 console.log("device orientation event found");
                 const button = document.createElement("button");
@@ -114,16 +114,16 @@
                         button.style.display = "none";
                     }
                     canvas.style.display = "inline";
-                    console.log("pop");
                     setup_canvas();
                     enter_main();
                 });
             } else {
                 //alert("heck");
                 console.log("no device orientation event");
-                console.log("poop");
                 setup_canvas();
                 enter_main();
+            }} catch (error) {
+                alert(error);
             }
 
 
