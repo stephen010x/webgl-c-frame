@@ -466,7 +466,7 @@ bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* eve
         disable_rotgrav = true;
 
     glm_vec3_copy((vec3)GRAVITY, gravity);
-    glm_vec3_scale(gravity, (float)GRAV_MUL/10, gravity);
+    glm_vec3_scale(gravity, (float)GRAV_MUL, gravity);
     // after testing on a temo site, I have confirmed they are in this order
     glm_vec3_rotate(gravity, -zrot, (vec3){0,0,1});
     glm_vec3_rotate(gravity, -xrot, (vec3){1,0,0});
