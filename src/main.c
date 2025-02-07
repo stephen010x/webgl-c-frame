@@ -445,13 +445,18 @@ bool motion_event_handler(int etype, const EmscriptenDeviceMotionEvent* event, v
 
 
 bool orient_event_handler(int etype, const EmscriptenOrientationChangeEvent* event, void* params) {
+
     float angle = (float)event->orientationAngle;
+
+    if (angle)
+        disable_rotgrav = true;
+
     glm_vec3_copy((vec3)GRAVITY, gravity);
     glm_vec3_scale(gravity, (float)GRAV_MUL, gravity);
     glm_vec3_rotate(gravity, angle*((float)MATH_PI/180), (vec3){0,0,1});
 
     EM_ASM_({
-	        console.log("Orientation : " + $0);
+	        alert("Orientation : " + $0);
 	}, angle);
     
     return true;
