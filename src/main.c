@@ -18,14 +18,16 @@
 //#include "macros/macros.h"
 
 
-#define NUM_MODELS 15
+#define NUM_MODELS 1
 //#define NUM_MODELS 1
 #define CIRC_RES 32
 
 // how many times to run physics between each frame
 // the higher the number the more accurate, but the more
 // processing intensive.
-#define BEHAVE_PASSES 10
+#define BEHAVE_PASSES 100
+// TODO: ducktape. Get rid of
+#define GRAV_MUL ((float)1/100)
 
 
 enum {
@@ -39,12 +41,17 @@ enum {
 #define FALSE 0
 
 
+bool disable_rotgrav = false;
+
+
 
 void init_scene(GLuint shader_program);
 EM_BOOL frame_loop(double t, void *user_data);
 int __main(void);
 bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params);
 bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params);
+bool motion_event_handler(int etype, const EmscriptenDeviceMotionEvent* event, void* params);
+bool orient_event_handler(int etype, const EmscriptenOrientationChangeEvent* event, void* params);
 
 
 // TODO:
@@ -129,10 +136,18 @@ int __main(void) {
     get_elementid_size("canvas", &swidth, &sheight);
 
     float ratio = (float)swidth/sheight;
-    wmin[0] = -1*ratio;
-    wmin[1] = -1;
-    wmax[0] =  1*ratio;
-    wmax[1] =  1;
+
+    if (ratio > 1) {
+        wmin[0] = -1*ratio;
+        wmin[1] = -1;
+        wmax[0] =  1*ratio;
+        wmax[1] =  1;
+    } else {
+        wmin[0] = -1;
+        wmin[1] = -1/ratio;
+        wmax[0] =  1;
+        wmax[1] =  1/ratio;
+    }
 
     // TODO I don't really know where to go with this
     // I eventually want control over the screen buffer size/resolution
@@ -153,6 +168,11 @@ int __main(void) {
     // for the mobiley gifted
     emscripten_set_touchstart_callback(
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &touch_event_handler);
+
+
+    emscripten_set_devicemotion_callback(NULL, EM_FALSE, &motion_event_handler);
+    emscripten_set_orientationchange_callback(NULL, EM_FALSE, &orient_event_handler);
+    emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY);
 
     // init scene
     init_scene(program);
@@ -184,7 +204,7 @@ void model_update_pipeline(double t, float dt);
 // FIS THIX!!!!!
 // AHAH! I FOUND IT!
 // The circle mesh generator in init_scene overflows
-bool behave_flag = true;
+bool behave_flag = false;
 
 
 EM_BOOL frame_loop(double _t, void *user_data) {
@@ -212,14 +232,16 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     for (int i = 0; i < NUM_MODELS; i++)
         MODEL_draw(models+i);
 
-    // rotate gravity
-    // mainly for debugging purposes
-    // but it also looks cool
-    glm_vec3_copy((vec3)GRAVITY, gravity);
-    // TODO: because delta-v isn't hooked up to dt yet,
-    // We have to scale gravity manually    glm_vec3_copy((vec3)GRAVITY, gravity);
-    glm_vec3_scale(gravity, (float)1/BEHAVE_PASSES, gravity);
-    glm_vec3_rotate(gravity, t/300, (vec3){0,0,1});
+    if (!disable_rotgrav) {
+        // rotate gravity
+        // mainly for debugging purposes
+        // but it also looks cool
+        glm_vec3_copy((vec3)GRAVITY, gravity);
+        // TODO: because delta-v isn't hooked up to dt yet,
+        // We have to scale gravity manually    glm_vec3_copy((vec3)GRAVITY, gravity);
+        glm_vec3_scale(gravity, (float)1/sqrt(BEHAVE_PASSES)*3*GRAV_MUL, gravity);
+        glm_vec3_rotate(gravity, t/300, (vec3){0,0,1});
+    }
 
     // requests frame buffer swap. Will actually render stuff to screen
     // this is neccissary because explicitSwapControl was set to GL_TRUE
@@ -403,7 +425,37 @@ bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* par
 }
 
 
+#define MOTION_DIV 10
 
+
+bool motion_event_handler(int etype, const EmscriptenDeviceMotionEvent* event, void* params) {
+    return false;
+    float x = event->accelerationIncludingGravityX / MOTION_DIV;
+    float y = event->accelerationIncludingGravityY / MOTION_DIV;
+    //float z = event->accelerationIncludingGravityZ / MOTION_DIV;
+
+    if (x && y)
+        disable_rotgrav = true;
+
+    printf("motion %f. %f\n", x, y);
+
+    glm_vec3_copy((vec3){x,y}, gravity);
+    return false;
+}
+
+
+bool orient_event_handler(int etype, const EmscriptenOrientationChangeEvent* event, void* params) {
+    float angle = (float)event->orientationAngle;
+    glm_vec3_copy((vec3)GRAVITY, gravity);
+    glm_vec3_scale(gravity, (float)GRAV_MUL, gravity);
+    glm_vec3_rotate(gravity, angle*((float)MATH_PI/180), (vec3){0,0,1});
+
+    EM_ASM_({
+	        console.log("Orientation : " + $0);
+	}, angle);
+    
+    return true;
+}
 
 
 

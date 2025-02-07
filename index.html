@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
+        <meta name="viewport" content="width=device-width"> 
         <!-- disable the damn caching! -->
         <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
         <meta http-equiv="Pragma" content="no-cache"/>
@@ -9,15 +10,20 @@
         <title>webgl-c-frame</title>
 
         <style>
-	        #canvas {
-	            /*width: 768px;
-	            height: 768px;*/
-	            /*width: 100vw;
-	            height: 100vh;*/
-	            /*width: 256px;
-	            height: 256px;*/
-	        }
-	        canvas {
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+            #canvas {
+                /*width: 768px;
+                height: 768px;*/
+                /*width: 100vw;
+                height: 100vh;*/
+                /*width: 256px;
+                height: 256px;*/
+            }
+            canvas {
                 image-rendering: optimizeSpeed;             /*Older versions of FF*/
                 image-rendering: -moz-crisp-edges;          /*FF 6.0+*/
                 image-rendering: -webkit-optimize-contrast; /*Safari*/
@@ -26,7 +32,7 @@
                 -ms-interpolation-mode: nearest-neighbor;   /*IE*/
             }
             html, body {margin: 0; height: 100%; overflow: hidden}
-	    </style>
+        </style>
         
         <script src="script.js"></script>
     </head>
@@ -35,6 +41,7 @@
         <canvas id="canvas" style="background-color:white"></canvas>
             <!--width="800" height="600"-->
         <script>
+        
             // weird. Scaling in css doesn't change the resolution
             // while scaling in js does
             //var canvas = document.querySelector('canvas');
@@ -43,10 +50,18 @@
 
             let swidth = window.innerWidth;
             let sheight = window.innerHeight;
+
             let sratio = swidth/sheight;
 
-            canvas.height = 256;
-            canvas.width = Math.round(canvas.height * sratio);
+            if (sratio>1) {
+                canvas.height = 256;
+                canvas.width = Math.round(canvas.height * sratio);
+                console.log(canvas.width, canvas.height);
+            } else {
+                canvas.width = 256;
+                canvas.height = Math.round(canvas.width / sratio);
+                console.log(canvas.width, canvas.height);
+            }
             //window.getComputedStyle(canvas).width
 
             //console.log(window.getComputedStyle(canvas).width);
@@ -56,6 +71,84 @@
             canvas.style.width = swidth+"px";
             canvas.style.height = sheight+"px";
             //console.log(window.innerWidth+"px");
+
+            //alert("hello!");
+
+            // get accelerometer permission if neccissary
+            /*if (DeviceMotionEvent && DeviceMotionEvent.requestPermission) {
+                DeviceMotionEvent.requestPermission()
+                    .then((permissionState) => {
+                        if (permissionState === "granted") {
+                            alert("permission granted");
+                        } else {
+                            alert("permission not granted");
+                        }
+                    });
+            } else {
+                alert("permissions don't exist");
+            }*/
+
+            //function onClick(event) {
+                // feature detect
+         /*       if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                    DeviceMotionEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            console.log("permission granted");
+                            //window.addEventListener('devicemotion', () => {});
+                        } else {
+                            console.log("permission not granted");
+                        }
+                    })
+                    .catch(console.error);
+                } else {
+                    // handle regular non iOS 13+ devices
+                    console.log("wtf happens here?");
+                }*/
+            //}
+
+            alert("test3");
+
+            //canvas.style.display = "none";
+            
+            try{
+            if (
+                window.DeviceOrientationEvent &&
+                typeof window.DeviceOrientationEvent.requestPermission === 'function'
+            ) {
+                alert("oh?");
+                const button = document.createElement("button");
+                canvas.style.display = "none";
+                button.innerText = "Enable Device Orientation";
+                document.body.appendChild(button);
+
+                button.addEventListener("click", function () {
+                    window.DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            button.style.display = "none";
+                            alert("nani?");
+                        } else {
+                            alert("Device orientation permission not granted");
+                            
+                        }
+                        alert("wtf?");
+                        canvas.style.display = "inline";
+                    })
+                    .catch(console.error);
+                });
+            } else {
+                alert("heck");
+                console.log("no device orientation event");
+            }} catch(error) {
+                alert(error.message);
+            }
+
+
+            //addEventListener("click", onClick);
+            //addEventListener("touchstart", onClick);
+        
+            
         </script>
         <script src="bin/bin.js" defer></script>
     </body>

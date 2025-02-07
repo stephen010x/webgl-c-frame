@@ -115,6 +115,11 @@ void __collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
     float dot1 =  glm_vec3_dot(b1->vel, norm);
     float dot2 = -glm_vec3_dot(b2->vel, norm);
 
+    // If difference of velocity is same direction as normal, then
+    // ignore collision impulse
+    //if (dot1 + dot2 >= 0)
+    //    return;
+
     // calculate magnitudes of new velocity
     // https://en.wikipedia.org/wiki/Inelastic_collision
     float v1x, v2x;
@@ -147,6 +152,8 @@ void collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
     // get masses
     register float m1 = b1->mass;
     register float m2 = b2->mass;
+
+    //printf("mass %f, %f\n", m1, m2);
     
     // enforce normal to be unit vectors
     vec3 n1, n2;
@@ -205,10 +212,23 @@ void collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
 
 // this uses previous deltav vector and adjusts it
 // so make sure to call this after other changes to deltav
+// TODO: I realize that I need to cancel out unshared delta-v
+// rather than all delta-v
 void collision_deltav(BEHAVE* b1, BEHAVE* b2, vec3 norm) {
     // I mean, this is pretty straightforward. It just cancels out the 
     // delta-v on the normal.
 
+    // get relative delta-v
+    vec3 rdv;
+    glm_vec3_sub(b2->deltav, b1->deltav, rdv);
+
+    // get magnitude of delta-v normal
+    float dot = glm_vec3_dot(b1->deltav, norm);
+
+
+    /////////
+    // old
+    
     // get magnitude of delta-v normal
     float dot1 = glm_vec3_dot(b1->deltav, norm);
     float dot2 = glm_vec3_dot(b2->deltav, norm);
@@ -311,7 +331,7 @@ void sphere_collide_eval(BEHAVE* b1, BEHAVE* b2, float dt) {
         // TODO: collision doesn't seem to fix jitter.
         // it behaves very similarly without it.
         // FIX THIS!
-        collision_deltav(b1, b2, norm);
+        //collision_deltav(b1, b2, norm);
     }
 }
 
