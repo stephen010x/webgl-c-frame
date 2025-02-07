@@ -77,17 +77,20 @@
 
 
             function enter_main() {
-                if (Module['calledRun'] && Module['calledMain']) {
+                alert("main");
+                if (Module['calledRun'] || Module['calledMain']) {
+                    alert("MAIN");
                     Module.ccall('main', 'number', [], []);
                 } else {
                     Module['onRuntimeInitialized'] = function () {
+                        alert("MAIN");
                         Module.ccall('main', 'number', [], []);
                     }
                 }
             }
 
 
-            try {if (isMobile && window.DeviceOrientationEvent) {
+            try {if (!isMobile && window.DeviceOrientationEvent) {
                 //alert("oh?");
                 console.log("device orientation event found");
                 const button = document.createElement("button");
