@@ -1055,6 +1055,28 @@ var ASM_CONSTS = {
 
   var _emscripten_date_now = () => Date.now();
 
+  var _emscripten_lock_orientation = (allowedOrientations) => {
+      var orientations = [];
+      if (allowedOrientations & 1) orientations.push("portrait-primary");
+      if (allowedOrientations & 2) orientations.push("portrait-secondary");
+      if (allowedOrientations & 4) orientations.push("landscape-primary");
+      if (allowedOrientations & 8) orientations.push("landscape-secondary");
+      var succeeded;
+      if (screen.lockOrientation) {
+        succeeded = screen.lockOrientation(orientations);
+      } else if (screen.mozLockOrientation) {
+        succeeded = screen.mozLockOrientation(orientations);
+      } else if (screen.webkitLockOrientation) {
+        succeeded = screen.webkitLockOrientation(orientations);
+      } else {
+        return -1;
+      }
+      if (succeeded) {
+        return 0;
+      }
+      return -6;
+    };
+
   var wasmTableMirror = [];
   
   /** @type {WebAssembly.Table} */
@@ -2654,6 +2676,8 @@ var wasmImports = {
   emscripten_asm_const_int: _emscripten_asm_const_int,
   /** @export */
   emscripten_date_now: _emscripten_date_now,
+  /** @export */
+  emscripten_lock_orientation: _emscripten_lock_orientation,
   /** @export */
   emscripten_request_animation_frame_loop: _emscripten_request_animation_frame_loop,
   /** @export */

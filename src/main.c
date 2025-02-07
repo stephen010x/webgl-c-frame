@@ -172,7 +172,7 @@ int __main(void) {
 
     emscripten_set_devicemotion_callback(NULL, EM_FALSE, &motion_event_handler);
     emscripten_set_deviceorientation_callback(NULL, EM_FALSE, &orient_event_handler);
-    //emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY);
+    emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY);
 
     // init scene
     init_scene(program);
