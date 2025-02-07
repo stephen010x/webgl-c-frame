@@ -452,7 +452,6 @@ bool motion_event_handler(int etype, const EmscriptenDeviceMotionEvent* event, v
     return false;
 }
 
-
 bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* event, void* params) {
 
     float zrot = event->alpha;
@@ -468,9 +467,9 @@ bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* eve
     glm_vec3_rotate(gravity, yrot*((float)MATH_PI/180), (vec3){0,1,0});
     glm_vec3_rotate(gravity, zrot*((float)MATH_PI/180), (vec3){0,0,1});
 
-    EM_ASM_({
+    /*EM_ASM_({
 	        alert("Orien: " + $0 + " " + $1+ " " + $2);
-	}, (int)xrot, (int)yrot, (int)zrot);
+	}, (int)xrot, (int)yrot, (int)zrot);*/
     
     return true;
 }
