@@ -207,7 +207,7 @@ void model_update_pipeline(double t, float dt);
 // FIS THIX!!!!!
 // AHAH! I FOUND IT!
 // The circle mesh generator in init_scene overflows
-bool behave_flag = false;
+bool behave_flag = true;
 
 
 EM_BOOL frame_loop(double _t, void *user_data) {
