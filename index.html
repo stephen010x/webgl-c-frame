@@ -45,38 +45,35 @@
             let canvas = document.getElementById("canvas");
 
 
-            try{
-                if (window.DeviceOrientationEvent) {
-                    //alert("oh?");
-                    const button = document.createElement("button");
-                    canvas.style.display = "none";
-                    button.innerText = "Enter Fullscreen";
-                    document.body.appendChild(button);
+            if (window.DeviceOrientationEvent) {
+                alert("oh?");
+                const button = document.createElement("button");
+                canvas.style.display = "none";
+                button.innerText = "Enter Fullscreen";
+                document.body.appendChild(button);
 
-                    button.addEventListener("click", function () {
-                        requestFullscreen();
-                        if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
-                            window.DeviceOrientationEvent.requestPermission()
-                            .then(permissionState => {
-                                if (permissionState === 'granted') {
-                                    button.style.display = "none";
-                                    //alert("nani?");
-                                } else {
-                                    alert("Device orientation permission not granted");
-                                    
-                                }
-                                //alert("wtf?");
-                            })
-                            .catch(console.error);
-                        }
-                    });
-                    canvas.style.display = "inline";
-                } else {
-                    //alert("heck");
-                    console.log("no device orientation event");
-            }} catch(error) {
-                alert(error.message);
-            }
+                button.addEventListener("click", function () {
+                    requestFullscreen();
+                    if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+                        window.DeviceOrientationEvent.requestPermission()
+                        .then(permissionState => {
+                            if (permissionState === 'granted') {
+                                button.style.display = "none";
+                                //alert("nani?");
+                            } else {
+                                alert("Device orientation permission not granted");
+                                
+                            }
+                            //alert("wtf?");
+                        })
+                        .catch(console.error);
+                    }
+                });
+                canvas.style.display = "inline";
+            } else {
+                //alert("heck");
+                console.log("no device orientation event");
+        }
 
 
 
