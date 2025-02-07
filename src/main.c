@@ -454,9 +454,9 @@ bool motion_event_handler(int etype, const EmscriptenDeviceMotionEvent* event, v
 
 bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* event, void* params) {
 
-    float zrot = event->alpha;
-    float xrot = event->beta;
-    float yrot = event->gamma;
+    float zrot = (event->alpha - 180) * ((float)MATH_PI/180);
+    float xrot = (event->beta  - 0  ) * ((float)MATH_PI/180);
+    float yrot = (event->gamma - 0  ) * ((float)MATH_PI/180);
 
     if (zrot && xrot && yrot)
         disable_rotgrav = true;
@@ -464,9 +464,9 @@ bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* eve
     glm_vec3_copy((vec3)GRAVITY, gravity);
     glm_vec3_scale(gravity, (float)GRAV_MUL, gravity);
     // after testing on a temo site, I have confirmed they are in this order
-    glm_vec3_rotate(gravity, zrot*((float)MATH_PI/180), (vec3){0,0,1});
-    glm_vec3_rotate(gravity, xrot*((float)MATH_PI/180), (vec3){1,0,0});
-    glm_vec3_rotate(gravity, yrot*((float)MATH_PI/180), (vec3){0,1,0});
+    glm_vec3_rotate(gravity, -zrot, (vec3){0,0,1});
+    glm_vec3_rotate(gravity, -xrot, (vec3){1,0,0});
+    glm_vec3_rotate(gravity, -yrot, (vec3){0,1,0});
 
     /*EM_ASM_({
 	        alert("Orien: " + $0 + " " + $1+ " " + $2);
