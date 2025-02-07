@@ -13,7 +13,7 @@ CFLAGS := -Wno-gnu-variable-sized-type-not-at-end
 CFLAGS := $(CFLAGS)
 LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT 
 # --proxy-to-worker  -sFETCH -pthread -sPTHREAD_POOL_SIZE=4
-LFLAGS := $(LFLAGS)
+LFLAGS := $(LFLAGS) -sINVOKE_RUN=0 -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
 BFLAGS := -Wall -Wextra -Wpedantic -Wconversion -Wundef
 BFLAGS := $(BFLAGS) -Wno-language-extension-token -Wno-gnu -std=gnu2x
 BFLAGS := -Wno-format-security

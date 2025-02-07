@@ -84,7 +84,7 @@ MODEL models[NUM_MODELS];
 
 
 
-int main() {
+EMSCRIPTEN_KEEPALIVE int main() {
     printf("starting webgl\n");
 
     int retval = __main();

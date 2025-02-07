@@ -40,11 +40,15 @@
     <body style="background-color:lightgrey;">
         <canvas id="canvas" style="background-color:white"></canvas>
             <!--width="800" height="600"-->
-        <script>
-
-            alert("test 3");
 
 
+        <script src="bin/bin.js"></script>
+        
+        <script defer>
+
+            alert("test 4");
+
+            const isMobile = window.innerWidth < window.innerHeight;
 
             let canvas = document.getElementById("canvas");
 
@@ -54,6 +58,8 @@
                 let sheight = window.innerHeight;
 
                 let sratio = swidth/sheight;
+
+                console.log(swidth, sheight);
 
                 if (sratio>1) {
                     canvas.height = 256;
@@ -70,16 +76,27 @@
             }
 
 
-            if (window.DeviceOrientationEvent) {
+            function enter_main() {
+                Module['onRuntimeInitialized'] = function () {
+                    Module.ccall('main', 'number', [], []);
+                }
+            }
+
+
+            if (isMobile && window.DeviceOrientationEvent) {
                 //alert("oh?");
+                console.log("device orientation event found");
                 const button = document.createElement("button");
                 canvas.style.display = "none";
-                button.innerText = "Enter Fullscreen";
+                //button.innerText = "Enter Fullscreen";
+                button.innerText = "Enable device orientation";
                 document.body.appendChild(button);
 
                 button.addEventListener("click", function () {
                     //alert("wtf??");
-                    requestFullscreen();
+                    // TODO: setup_canvas is somehow pulling the old values
+                    //       even after this call. Fix this!!!
+                    //requestFullscreen();
                     if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
                         window.DeviceOrientationEvent.requestPermission()
                         .then(permissionState => {
@@ -97,36 +114,39 @@
                         button.style.display = "none";
                     }
                     canvas.style.display = "inline";
+                    console.log("pop");
                     setup_canvas();
+                    enter_main();
                 });
             } else {
                 //alert("heck");
                 console.log("no device orientation event");
+                console.log("poop");
                 setup_canvas();
-        }
+                enter_main();
+            }
 
 
 
 
-        function requestFullscreen() {
-    	    var elem = document.documentElement;
-    	
-    	    if (elem.requestFullscreen) {
-    	        elem.requestFullscreen();
-    	    } else if (elem.mozRequestFullScreen) { /* Firefox */
-    	        elem.mozRequestFullScreen();
-    	    } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
-    	        elem.webkitRequestFullscreen();
-    	    } else if (elem.msRequestFullscreen) { /* IE/Edge */
-    	        elem.msRequestFullscreen();
-    	    }
-    	}
+            function requestFullscreen() {
+                var elem = document.documentElement;
+            
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.mozRequestFullScreen) { /* Firefox */
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                    elem.msRequestFullscreen();
+                }
+            }
             
         
             // weird. Scaling in css doesn't change the resolution
             // while scaling in js does
             
         </script>
-        <script src="bin/bin.js" defer></script>
     </body>
 </html>
