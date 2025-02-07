@@ -77,8 +77,12 @@
 
 
             function enter_main() {
-                Module['onRuntimeInitialized'] = function () {
+                if (Module['calledRun'] && Module['calledMain']) {
                     Module.ccall('main', 'number', [], []);
+                } else {
+                    Module['onRuntimeInitialized'] = function () {
+                        Module.ccall('main', 'number', [], []);
+                    }
                 }
             }
 
