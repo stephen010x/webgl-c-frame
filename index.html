@@ -55,6 +55,7 @@
                 document.body.appendChild(button);
 
                 button.addEventListener("click", function () {
+                    alert("wtf??");
                     requestFullscreen();
                     if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
                         window.DeviceOrientationEvent.requestPermission()
