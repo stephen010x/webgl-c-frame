@@ -172,7 +172,7 @@ int __main(void) {
 
     emscripten_set_devicemotion_callback(NULL, EM_FALSE, &motion_event_handler);
     emscripten_set_orientationchange_callback(NULL, EM_FALSE, &orient_event_handler);
-    emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY);
+    //emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY);
 
     // init scene
     init_scene(program);
@@ -364,12 +364,6 @@ void init_scene(GLuint program) {
 
         MODEL_init(models+i);
     }
-
-
-    EM_ASM_({
-	        alert("yolo");
-	});
-
 }
 
 
@@ -410,6 +404,7 @@ void circle_update(MODEL* model, double t, float dt) {
 
 
 bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params) {
+    //emscripten_run_script("alert('hi'); throw 'all done';");
     printf("pressed key %d\n", event->keyCode);
     switch (event->keyCode) {
         case 32:
@@ -420,12 +415,17 @@ bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void
             model_update_pipeline(0, 0.5*10);
             return true;
     }
+    EM_ASM_({
+        alert("yolo");
+        console.log("fuck");
+    }, etype);
     return false;
 }
 
 
 bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params) {
     behave_flag = !behave_flag;
+    
     return true;
 }
 
@@ -459,6 +459,11 @@ bool orient_event_handler(int etype, const EmscriptenOrientationChangeEvent* eve
     glm_vec3_copy((vec3)GRAVITY, gravity);
     glm_vec3_scale(gravity, (float)GRAV_MUL, gravity);
     glm_vec3_rotate(gravity, angle*((float)MATH_PI/180), (vec3){0,0,1});
+
+    EM_ASM_({
+        alert("yolo");
+        console.log("fuck");
+    }, etype);
 
     EM_ASM_({
 	        alert("Orientation : " + $0);
