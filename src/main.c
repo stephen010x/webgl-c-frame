@@ -470,7 +470,7 @@ bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* eve
 
     EM_ASM_({
 	        alert("Orien: " + $0 + " " + $1+ " " + $2);
-	}, xrot, yrot, zrot);
+	}, (int)xrot, (int)yrot, (int)zrot);
     
     return true;
 }
