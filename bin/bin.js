@@ -908,10 +908,8 @@ async function createWasm() {
 var ASM_CONSTS = {
   72556: ($0) => { let idstr = UTF8ToString($0); let element = document.getElementById(idstr); return element.width; },  
  72658: ($0) => { let idstr = UTF8ToString($0); let element = document.getElementById(idstr); return element.height; },  
- 72761: ($0, $1, $2, $3) => { alert("yolo " + $0 + " " + $1 + " " + $2 + " " + $3); },  
- 72819: () => { alert("yolo"); console.log("fuck"); },  
- 72859: () => { alert("yolo"); console.log("fuck"); },  
- 72899: ($0) => { alert("Orientation : " + $0); }
+ 72761: ($0, $1, $2) => { alert("pp: " + $0 + " " + $1+ " " + $2); },  
+ 72806: ($0, $1, $2) => { alert("Orien: " + $0 + " " + $1+ " " + $2); }
 };
 
 // end include: preamble.js
@@ -1360,6 +1358,37 @@ var ASM_CONSTS = {
       registerDeviceMotionEventCallback(2, userData, useCapture, callbackfunc, 17, "devicemotion", targetThread);
 
   
+  var fillDeviceOrientationEventData = (eventStruct, e, target) => {
+      HEAPF64[((eventStruct)>>3)] = e.alpha;
+      HEAPF64[(((eventStruct)+(8))>>3)] = e.beta;
+      HEAPF64[(((eventStruct)+(16))>>3)] = e.gamma;
+      HEAP8[(eventStruct)+(24)] = e.absolute;checkInt8(e.absolute);
+    };
+  
+  
+  var registerDeviceOrientationEventCallback = (target, userData, useCapture, callbackfunc, eventTypeId, eventTypeString, targetThread) => {
+      JSEvents.deviceOrientationEvent ||= _malloc(32);
+  
+      var deviceOrientationEventHandlerFunc = (e = event) => {
+        fillDeviceOrientationEventData(JSEvents.deviceOrientationEvent, e, target); // TODO: Thread-safety with respect to emscripten_get_deviceorientation_status()
+  
+        if (getWasmTableEntry(callbackfunc)(eventTypeId, JSEvents.deviceOrientationEvent, userData)) e.preventDefault();
+      };
+  
+      var eventHandler = {
+        target: findEventTarget(target),
+        eventTypeString,
+        callbackfunc,
+        handlerFunc: deviceOrientationEventHandlerFunc,
+        useCapture
+      };
+      return JSEvents.registerOrRemoveHandler(eventHandler);
+    };
+  var _emscripten_set_deviceorientation_callback_on_thread = (userData, useCapture, callbackfunc, targetThread) => {
+      return registerDeviceOrientationEventCallback(2, userData, useCapture, callbackfunc, 16, "deviceorientation", targetThread);
+    };
+
+  
   
   var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       assert(typeof str === 'string', `stringToUTF8Array expects a string (got ${typeof str})`);
@@ -1453,66 +1482,6 @@ var ASM_CONSTS = {
     };
   var _emscripten_set_keydown_callback_on_thread = (target, userData, useCapture, callbackfunc, targetThread) =>
       registerKeyEventCallback(target, userData, useCapture, callbackfunc, 2, "keydown", targetThread);
-
-  
-  var screenOrientation = () => {
-      if (!window.screen) return undefined;
-      return screen.orientation || screen['mozOrientation'] || screen['webkitOrientation'];
-    };
-  var fillOrientationChangeEventData = (eventStruct) => {
-      // OrientationType enum
-      var orientationsType1 = ['portrait-primary', 'portrait-secondary', 'landscape-primary', 'landscape-secondary'];
-      // alternative selection from OrientationLockType enum
-      var orientationsType2 = ['portrait',         'portrait',           'landscape',         'landscape'];
-  
-      var orientationIndex = 0;
-      var orientationAngle = 0;
-      var screenOrientObj  = screenOrientation();
-      if (typeof screenOrientObj === 'object') {
-        orientationIndex = orientationsType1.indexOf(screenOrientObj.type);
-        if (orientationIndex < 0) {
-          orientationIndex = orientationsType2.indexOf(screenOrientObj.type);
-        }
-        if (orientationIndex >= 0) {
-          orientationIndex = 1 << orientationIndex;
-        }
-        orientationAngle = screenOrientObj.angle;
-      }
-      else {
-        // fallback for Safari earlier than 16.4 (March 2023)
-        orientationAngle = window.orientation;
-      }
-  
-      HEAP32[((eventStruct)>>2)] = orientationIndex;checkInt32(orientationIndex);
-      HEAP32[(((eventStruct)+(4))>>2)] = orientationAngle;checkInt32(orientationAngle);
-    };
-  
-  
-  
-  var registerOrientationChangeEventCallback = (target, userData, useCapture, callbackfunc, eventTypeId, eventTypeString, targetThread) => {
-      JSEvents.orientationChangeEvent ||= _malloc(8);
-  
-      var orientationChangeEventHandlerFunc = (e = event) => {
-        var orientationChangeEvent = JSEvents.orientationChangeEvent;
-  
-        fillOrientationChangeEventData(orientationChangeEvent);
-  
-        if (getWasmTableEntry(callbackfunc)(eventTypeId, orientationChangeEvent, userData)) e.preventDefault();
-      };
-  
-      var eventHandler = {
-        target,
-        eventTypeString,
-        callbackfunc,
-        handlerFunc: orientationChangeEventHandlerFunc,
-        useCapture
-      };
-      return JSEvents.registerOrRemoveHandler(eventHandler);
-    };
-  var _emscripten_set_orientationchange_callback_on_thread = (userData, useCapture, callbackfunc, targetThread) => {
-      if (!window.screen || !screen.orientation) return -1;
-      return registerOrientationChangeEventCallback(screen.orientation, userData, useCapture, callbackfunc, 18, 'change', targetThread);
-    };
 
   
   
@@ -2693,9 +2662,9 @@ var wasmImports = {
   /** @export */
   emscripten_set_devicemotion_callback_on_thread: _emscripten_set_devicemotion_callback_on_thread,
   /** @export */
-  emscripten_set_keydown_callback_on_thread: _emscripten_set_keydown_callback_on_thread,
+  emscripten_set_deviceorientation_callback_on_thread: _emscripten_set_deviceorientation_callback_on_thread,
   /** @export */
-  emscripten_set_orientationchange_callback_on_thread: _emscripten_set_orientationchange_callback_on_thread,
+  emscripten_set_keydown_callback_on_thread: _emscripten_set_keydown_callback_on_thread,
   /** @export */
   emscripten_set_touchstart_callback_on_thread: _emscripten_set_touchstart_callback_on_thread,
   /** @export */
@@ -2856,8 +2825,9 @@ var missingLibrarySymbols = [
   'registerWheelEventCallback',
   'registerUiEventCallback',
   'registerFocusEventCallback',
-  'fillDeviceOrientationEventData',
-  'registerDeviceOrientationEventCallback',
+  'screenOrientation',
+  'fillOrientationChangeEventData',
+  'registerOrientationChangeEventCallback',
   'fillFullscreenChangeEventData',
   'registerFullscreenChangeEventCallback',
   'JSEvents_requestFullscreen',
@@ -3003,11 +2973,10 @@ var unexportedSymbols = [
   'findEventTarget',
   'findCanvasEventTarget',
   'getBoundingClientRect',
+  'fillDeviceOrientationEventData',
+  'registerDeviceOrientationEventCallback',
   'fillDeviceMotionEventData',
   'registerDeviceMotionEventCallback',
-  'screenOrientation',
-  'fillOrientationChangeEventData',
-  'registerOrientationChangeEventCallback',
   'currentFullscreenStrategy',
   'restoreOldWindowedStyle',
   'registerTouchEventCallback',

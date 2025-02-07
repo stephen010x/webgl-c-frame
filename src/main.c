@@ -415,16 +415,20 @@ bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void
             model_update_pipeline(0, 0.5*10);
             return true;
     }
-    EM_ASM_({
+    /*EM_ASM_({
         alert("yolo");
         console.log("fuck");
-    }, etype);
+    }, etype);*/
     return false;
 }
 
 
 bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params) {
     behave_flag = !behave_flag;
+
+    EM_ASM_({
+	        alert("pp: " + $0 + " " + $1+ " " + $2);
+	}, 1, 1, 1);
     
     return true;
 }
