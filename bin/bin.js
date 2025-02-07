@@ -908,7 +908,8 @@ async function createWasm() {
 var ASM_CONSTS = {
   72556: ($0) => { let idstr = UTF8ToString($0); let element = document.getElementById(idstr); return element.width; },  
  72658: ($0) => { let idstr = UTF8ToString($0); let element = document.getElementById(idstr); return element.height; },  
- 72761: ($0) => { alert("Orientation : " + $0); }
+ 72761: () => { alert("yolo"); },  
+ 72780: ($0) => { alert("Orientation : " + $0); }
 };
 
 // end include: preamble.js

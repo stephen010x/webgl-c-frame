@@ -365,6 +365,11 @@ void init_scene(GLuint program) {
         MODEL_init(models+i);
     }
 
+
+    EM_ASM_({
+	        alert("yolo");
+	});
+
 }
 
 
