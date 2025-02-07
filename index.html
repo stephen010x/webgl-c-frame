@@ -107,7 +107,7 @@
                 }*/
             //}
 
-            alert("test12");
+            //alert("test12");
 
             //canvas.style.display = "none";
             
@@ -116,7 +116,7 @@
                 window.DeviceOrientationEvent &&
                 typeof window.DeviceOrientationEvent.requestPermission === 'function'
             ) {
-                alert("oh?");
+                //alert("oh?");
                 const button = document.createElement("button");
                 canvas.style.display = "none";
                 button.innerText = "Enable Device Orientation";
@@ -127,18 +127,18 @@
                     .then(permissionState => {
                         if (permissionState === 'granted') {
                             button.style.display = "none";
-                            alert("nani?");
+                            //alert("nani?");
                         } else {
                             alert("Device orientation permission not granted");
                             
                         }
-                        alert("wtf?");
+                        //alert("wtf?");
                         canvas.style.display = "inline";
                     })
                     .catch(console.error);
                 });
             } else {
-                alert("heck");
+                //alert("heck");
                 console.log("no device orientation event");
             }} catch(error) {
                 alert(error.message);

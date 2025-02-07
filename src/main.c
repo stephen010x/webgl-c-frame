@@ -18,7 +18,7 @@
 //#include "macros/macros.h"
 
 
-#define NUM_MODELS 1
+#define NUM_MODELS 20
 //#define NUM_MODELS 1
 #define CIRC_RES 32
 
