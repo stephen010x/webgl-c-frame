@@ -42,20 +42,44 @@
             <!--width="800" height="600"-->
         <script>
 
-            alert("test 1");
+            alert("test 2");
+
+
+
+            function setup_canvas() {
+                let swidth = window.innerWidth;
+                let sheight = window.innerHeight;
+
+                let sratio = swidth/sheight;
+
+                if (sratio>1) {
+                    canvas.height = 256;
+                    canvas.width = Math.round(canvas.height * sratio);
+                    console.log(canvas.width, canvas.height);
+                } else {
+                    canvas.width = 256;
+                    canvas.height = Math.round(canvas.width / sratio);
+                    console.log(canvas.width, canvas.height);
+                }
+                
+                canvas.style.width = swidth+"px";
+                canvas.style.height = sheight+"px";
+            }
+
+            
 
             let canvas = document.getElementById("canvas");
 
 
             if (window.DeviceOrientationEvent) {
-                alert("oh?");
+                //alert("oh?");
                 const button = document.createElement("button");
                 canvas.style.display = "none";
                 button.innerText = "Enter Fullscreen";
                 document.body.appendChild(button);
 
                 button.addEventListener("click", function () {
-                    alert("wtf??");
+                    //alert("wtf??");
                     requestFullscreen();
                     if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
                         window.DeviceOrientationEvent.requestPermission()
@@ -72,10 +96,12 @@
                         .catch(console.error);
                     }
                     canvas.style.display = "inline";
+                    setup_canvas();
                 });
             } else {
                 //alert("heck");
                 console.log("no device orientation event");
+                setup_canvas();
         }
 
 
@@ -98,80 +124,6 @@
         
             // weird. Scaling in css doesn't change the resolution
             // while scaling in js does
-            //var canvas = document.querySelector('canvas');
-            // document.getElementById("myH1").style.color = "red"; 
-            
-
-            let swidth = window.innerWidth;
-            let sheight = window.innerHeight;
-
-            let sratio = swidth/sheight;
-
-            if (sratio>1) {
-                canvas.height = 256;
-                canvas.width = Math.round(canvas.height * sratio);
-                console.log(canvas.width, canvas.height);
-            } else {
-                canvas.width = 256;
-                canvas.height = Math.round(canvas.width / sratio);
-                console.log(canvas.width, canvas.height);
-            }
-            //window.getComputedStyle(canvas).width
-
-            //console.log(window.getComputedStyle(canvas).width);
-
-            //canvas.style.setProperty("width", "3000px");
-            
-            canvas.style.width = swidth+"px";
-            canvas.style.height = sheight+"px";
-            //console.log(window.innerWidth+"px");
-
-            //alert("hello!");
-
-            // get accelerometer permission if neccissary
-            /*if (DeviceMotionEvent && DeviceMotionEvent.requestPermission) {
-                DeviceMotionEvent.requestPermission()
-                    .then((permissionState) => {
-                        if (permissionState === "granted") {
-                            alert("permission granted");
-                        } else {
-                            alert("permission not granted");
-                        }
-                    });
-            } else {
-                alert("permissions don't exist");
-            }*/
-
-            //function onClick(event) {
-                // feature detect
-         /*       if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                    DeviceMotionEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            console.log("permission granted");
-                            //window.addEventListener('devicemotion', () => {});
-                        } else {
-                            console.log("permission not granted");
-                        }
-                    })
-                    .catch(console.error);
-                } else {
-                    // handle regular non iOS 13+ devices
-                    console.log("wtf happens here?");
-                }*/
-            //}
-
-            //alert("test12");
-
-            //canvas.style.display = "none";
-            
-
-    	
-
-
-            //addEventListener("click", onClick);
-            //addEventListener("touchstart", onClick);
-        
             
         </script>
         <script src="bin/bin.js" defer></script>
