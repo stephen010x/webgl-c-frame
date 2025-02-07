@@ -171,8 +171,12 @@ int __main(void) {
 
 
     emscripten_set_devicemotion_callback(NULL, EM_FALSE, &motion_event_handler);
-    emscripten_set_orientationchange_callback(NULL, EM_FALSE, &orient_event_handler);
+    EMSCRIPTEN_RESULT test = emscripten_set_orientationchange_callback(NULL, EM_FALSE, &orient_event_handler);
     //emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY);
+
+    EM_ASM_({
+        alert("yolo " + $0 + " " + $1 + " " + $2 + " " + $3);
+    }, test, EMSCRIPTEN_RESULT_SUCCESS, EMSCRIPTEN_RESULT_NOT_SUPPORTED, EMSCRIPTEN_RESULT_FAILED);
 
     // init scene
     init_scene(program);
