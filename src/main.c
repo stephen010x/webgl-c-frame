@@ -25,9 +25,9 @@
 // how many times to run physics between each frame
 // the higher the number the more accurate, but the more
 // processing intensive.
-#define BEHAVE_PASSES 100
+#define BEHAVE_PASSES 10
 // TODO: ducktape. Get rid of
-#define GRAV_MUL ((float)1/100)
+#define GRAV_MUL ((float)1/10)
 
 
 //vec3 dev_rot = {(float)MATH_PI/2, 0, 0};

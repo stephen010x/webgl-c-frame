@@ -102,7 +102,7 @@ void behave_apply(BEHAVE* b, double t, float dt) {
 // you will notice I just repurposed the old one until I get this one working
 // It is basically suppose to do the exact same thing as the old one, only 
 // with less steps
-void __collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
+void collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
     // get masses
     register float m1 = b1->mass;
     register float m2 = b2->mass;
@@ -145,7 +145,7 @@ void __collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
 
 
 
-void collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
+void __collision_impulse(BEHAVE* b1, BEHAVE* b2, vec3 normin) {
 
     float coeff = ELASTICITY;
 
@@ -388,5 +388,5 @@ void _wall_collide(BEHAVE* b, vec3 norm, float overlap) {
     // TODO: collision doesn't seem to fix jitter.
     // it behaves very similarly without it.
     // FIX THIS!
-    collision_deltav(b, &wall, norm);
+    //collision_deltav(b, &wall, norm);
 }
