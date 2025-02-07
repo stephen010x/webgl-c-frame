@@ -426,9 +426,9 @@ bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void
 bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params) {
     behave_flag = !behave_flag;
 
-    EM_ASM_({
+    /*EM_ASM_({
 	        alert("pp: " + $0 + " " + $1+ " " + $2);
-	}, 1, 1, 1);
+	}, 1, 1, 1);*/
     
     return true;
 }

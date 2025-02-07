@@ -907,8 +907,7 @@ async function createWasm() {
 
 var ASM_CONSTS = {
   72556: ($0) => { let idstr = UTF8ToString($0); let element = document.getElementById(idstr); return element.width; },  
- 72658: ($0) => { let idstr = UTF8ToString($0); let element = document.getElementById(idstr); return element.height; },  
- 72761: ($0, $1, $2) => { alert("pp: " + $0 + " " + $1+ " " + $2); }
+ 72658: ($0) => { let idstr = UTF8ToString($0); let element = document.getElementById(idstr); return element.height; }
 };
 
 // end include: preamble.js
