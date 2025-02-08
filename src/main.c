@@ -53,7 +53,7 @@ WORLD world = {
     .light = {
         .type = LIGHTSOURCE_TYPE_DIR,
         .dir = {
-            .norm = {0.8, 1, 0.8},
+            .norm = {0.8, 1, -0.8},
             .range = {0.05, 1.5},
         },
     },
@@ -189,8 +189,8 @@ int __main(void) {
         wmin[1] = -1/ratio;
         wmax[1] =  1/ratio;
     }
-    wmin[2] = 4;
-    wmax[2] = 1;
+    wmin[2] = 1;
+    wmax[2] = 3;
 
     // TODO I don't really know where to go with this
     // I eventually want control over the screen buffer size/resolution
@@ -543,7 +543,9 @@ void circle_update(MODEL* model, double t, float dt) {
 
     float sratio = (float)swidth/sheight;
 
-    wall_collide_eval(b, (vec3){wmin[0],wmin[1],-1}, (vec3){wmax[0],wmax[1],1}, dt);
+    wall_collide_eval(b, 
+        (vec3){wmin[0],wmin[1],wmin[2]}, 
+        (vec3){wmax[0],wmax[1],wmax[2]}, dt);
 
     for (int i = model->id + 1; i < NUM_MODELS; i++)
         sphere_collide_eval(b, behave+i, dt);
