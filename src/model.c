@@ -20,6 +20,21 @@ MODEL* MODEL_init(MODEL* model) {
     // TODO: add error checking for this and others. As it can return -1 if invalid
     model->vert_pos_loc  = glGetAttribLocation(model->shader_prog,  "vert_pos");
 
+
+    switch (model->drawtype) {
+        case DRAWTYPE_2D_PLAIN:
+            break;
+        case DRAWTYPE_3D_PLAIN:
+            // get u_light_norm location
+            model->u_light_norm_loc = 
+                glGetUniformLocation(model->shader_prog, "u_light_norm");
+
+            // get u_light_map location
+            model->u_light_map_loc = 
+                glGetUniformLocation(model->shader_prog, "u_light_map");
+            break;
+    }
+
     return model;
 }
 
@@ -46,14 +61,28 @@ int MODEL_draw(MODEL* model){
     // TODO: in a more efficient system, this would only
     // need to be set up once for each shader
     // so you would divide models up per-shader
-    glVertexAttribPointer(
-        model->vert_pos_loc,
-        2,
-        GL_FLOAT,
-        GL_FALSE,
-        0*sizeof(GLfloat),
-        (void*)0                // offset from vertex. The cast is confusing
-    );
+    switch (model->drawtype) {
+        case DRAWTYPE_2D_PLAIN:
+            glVertexAttribPointer(
+                model->vert_pos_loc,
+                2,
+                GL_FLOAT,
+                GL_FALSE,
+                0*sizeof(GLfloat),
+                (void*)0            // offset from vertex. The cast is confusing
+            );
+            break;
+        case DRAWTYPE_3D_PLAIN:
+            glVertexAttribPointer(
+                model->vert_pos_loc,
+                3,
+                GL_FLOAT,
+                GL_FALSE,
+                0*sizeof(GLfloat),
+                (void*)0            // offset from vertex. The cast is confusing
+            );
+            break;
+    }
     // TODO: Why does this need to be enabled? Is it possible to have
     // multiple vertex attribute arrays, and then just activate one of them?
     glEnableVertexAttribArray(model->vert_pos_loc);
@@ -63,6 +92,29 @@ int MODEL_draw(MODEL* model){
 
     // set uniform model view matrix
     glUniformMatrix4fv(model->u_mod_mat_loc, 1, GL_FALSE, (GLfloat*)model->view_mat);
+
+
+    switch (model->drawtype) {
+        case DRAWTYPE_2D_PLAIN:
+            break;
+        case DRAWTYPE_3D_PLAIN: {
+
+            // set uniform u_color
+            //glUniform4fv(model->u_color_loc, 1, model->color.raw);
+
+            // set u_light_norm
+            glUniform3fv(model->u_light_norm_loc, 1, world.light.dir.norm);
+            //printf("bongs\n");
+            //glUniform3f(model->u_light_norm_loc, 0.5, 0.7, 0.1);
+
+            // set u_light_map
+            glUniform2fv(model->u_light_map_loc, 1, world.light.dir.range);
+
+            //printf("%d %d\n", model->u_light_norm_loc, model->u_light_map_loc);
+            
+        } break;
+    }
+
     
     // send draw to queue
     glDrawArrays(model->mesh->mode, 0, model->mesh->verts);

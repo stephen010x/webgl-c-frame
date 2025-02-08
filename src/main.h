@@ -1,6 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 
+#include <cglm/cglm.h>
 
 
 // I just don't like this, so I pushed it into here.
@@ -89,7 +90,8 @@ typedef struct {
     })
 
 
-#define LENOF(__n) (sizeof(__n)/sizeof(*(__n)))
+//#define LENOF(__n) (sizeof(__n)/sizeof(*(__n)))
+#define LENOF(__n) (sizeof(__n)/sizeof((__n)[0]))
 #define MATH_PI 3.141592653589793238462643383
 #define ABS(__n) ({typeof(__n) n = (__n); n >= 0 ? n : -n;})
 #define SIGN(__n) ({typeof(__n) n = (__n); n == 0 ? 0 : (n > 0 ? 1 : -1);})
@@ -104,20 +106,43 @@ typedef struct {
     })
 
 
-#endif
+
+// TODO: Add a point light
 
 
+typedef struct {
+    vec3 norm;
+    vec2 range;
+} DIR_LIGHTSOURCE;
+
+typedef struct {
+    vec3 pos;
+    vec2 range;
+} POINT_LIGHTSOURCE;
 
 
+typedef struct {
+    int type;
+    union {
+        DIR_LIGHTSOURCE dir;
+        POINT_LIGHTSOURCE point;
+    };
+} LIGHTSOURCE;
 
 
+enum lightsource_type {
+    LIGHTSOURCE_TYPE_NONE = 0,
+    LIGHTSOURCE_TYPE_DIR,
+    LIGHTSOURCE_TYPE_POINT,
+    LIGHTSOURCE_TYPE_AMBIENT,
+};
 
 
+typedef struct {
+    LIGHTSOURCE light;
+} WORLD;
 
-
-
-
-
+extern WORLD world;
 
 
 
@@ -214,3 +239,10 @@ void* _main(void* args) {
     return (void*)retval;
 }
 */
+
+
+
+
+
+
+#endif

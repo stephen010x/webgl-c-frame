@@ -46,9 +46,9 @@
         
         <script defer>
 
-            alert("test 6");
+            //alert("test 6");
 
-            const isMobile = window.innerWidth < window.innerHeight;
+            const isMobile = window.innerWidth > window.innerHeight;
 
             let canvas = document.getElementById("canvas");
 
@@ -77,13 +77,13 @@
 
 
             function enter_main() {
-                alert("main");
+                //alert("main");
                 if (Module['calledRun'] || Module['calledMain']) {
-                    alert("MAIN");
+                    //alert("MAIN");
                     Module.ccall('main', 'number', [], []);
                 } else {
                     Module['onRuntimeInitialized'] = function () {
-                        alert("MAIN");
+                        //alert("MAIN");
                         Module.ccall('main', 'number', [], []);
                     }
                 }
@@ -100,7 +100,7 @@
                 document.body.appendChild(button);
 
                 button.addEventListener("click", function () {
-                    alert("wtf??");
+                    //alert("wtf??");
                     // TODO: setup_canvas is somehow pulling the old values
                     //       even after this call. Fix this!!!
                     //requestFullscreen();
@@ -109,7 +109,7 @@
                         .then(permissionState => {
                             if (permissionState === 'granted') {
                                 button.style.display = "none";
-                                alert("nani?");
+                                //alert("nani?");
                             } else {
                                 alert("Device orientation permission not granted");
                                 

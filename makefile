@@ -7,6 +7,11 @@ BINDIR := bin
 LIBDIR := lib
 GENDIR := src/shaders/gen
 
+# TODO: create a phony target that preprocesses every
+# source and header file, and places them in a temp directory
+# for you to view and debug
+#emcc -E -iquote -I../lib/cglm/include input.h -o input.pp.h
+
 
 CC := emcc
 CFLAGS := -Wno-gnu-variable-sized-type-not-at-end
@@ -82,6 +87,7 @@ release: _release $(BINTARG).$(TEXTEN)
 
 # TODO: FIX THIX!!!
 shaders: $(GENDIR)/shaders.h
+	@:
 
 
 # -sGL_DEBUG=1

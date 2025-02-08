@@ -8,7 +8,6 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 //#include <emscripten/fetch.h>
-#include <cglm/cglm.h>
 #include "main.h"
 #include "model.h"
 #include "webgl.h"
@@ -48,7 +47,21 @@ bool disable_rotgrav = false;
 
 
 
-void init_scene(GLuint shader_program);
+//#define SQRT_3 1.73205080757
+
+WORLD world = {
+    .light = {
+        .type = LIGHTSOURCE_TYPE_DIR,
+        .dir = {
+            .norm = {1, 1, 1},
+            .range = {0.1, 1.5},
+        },
+    },
+};
+
+
+
+void init_scene(void);
 EM_BOOL frame_loop(double t, void *user_data);
 int __main(void);
 bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params);
@@ -68,13 +81,27 @@ MESH(6) triangle_mesh = {
         0.0,  0.5,
        -0.5, -0.5,
         0.5, -0.5,
-    }
+    },
 };
 
-MESH(CIRC_RES*2) circle_mesh = {
+MESH2(CIRC_RES) circle_mesh = {
     .verts = CIRC_RES,
     .mode = GL_TRIANGLE_FAN,
-    .data = {0}
+    .data = {0},
+};
+
+
+
+#define SPHERE_V_RES ((int)CIRC_RES/2)
+#define SPHERE_D_RES CIRC_RES
+
+#define STRIP_VERTS ((SPHERE_V_RES+1)*2)
+#define SPHERE_VERTS STRIP_VERTS*SPHERE_D_RES
+
+MESH3(SPHERE_VERTS) sphere_mesh = {
+    .verts = SPHERE_VERTS,
+    .mode = GL_TRIANGLE_STRIP,
+    .data = {0},
 };
 
 
@@ -114,6 +141,11 @@ void get_elementid_size(char* id, int* width, int* height) {
 int swidth, sheight;
 vec3 wmin, wmax;
 
+
+GLuint poly_program;
+GLuint sphere_program;
+
+
 int __main(void) {
 
     // set starting random seed
@@ -125,8 +157,12 @@ int __main(void) {
     int err = init_webgl("#canvas");
     ASSERT(err == 0, -1, "init_webgl failed\n");
 
-    GLuint program = shader_program(
-        "program", "model.vert", model_vert, "model.frag", model_frag);
+    poly_program = shader_program(
+        "poly_program", "poly.vert", poly_vert, "poly.frag", poly_frag);
+    sphere_program = shader_program(
+        "sphere_program", "sphere.vert", sphere_vert, "sphere.frag", sphere_frag);
+
+    GLuint programs[] = {poly_program, sphere_program};
 
     // TODO: good lord fix this
     //emscripten_set_canvas_element_size("#canvas", 256, 256);
@@ -142,28 +178,35 @@ int __main(void) {
 
     if (ratio > 1) {
         wmin[0] = -1*ratio;
-        wmin[1] = -1;
         wmax[0] =  1*ratio;
+        wmin[1] = -1;
         wmax[1] =  1;
     } else {
         wmin[0] = -1;
-        wmin[1] = -1/ratio;
         wmax[0] =  1;
+        wmin[1] = -1/ratio;
         wmax[1] =  1/ratio;
     }
+    wmin[2] = -1;
+    wmax[2] =  1;
 
     // TODO I don't really know where to go with this
     // I eventually want control over the screen buffer size/resolution
     //glViewport(0, 0, 256, 256);
 
     // set the uniform u_proj_mat
-    GLint u_proj_mat_loc = glGetUniformLocation(program, "u_proj_mat");
+    for (int i = 0; i < LENOF(programs); i++){
+        GLint u_proj_mat_loc = glGetUniformLocation(programs[i], "u_proj_mat");
 
-    mat4 u_proj_mat;
-    // TODO: Make this cooler. (ie. 0 to 256 rather than -1 to 1)
-    glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], 0, (1<<16)-1, u_proj_mat);
+        mat4 u_proj_mat;
+        // TODO: Make this cooler. (ie. 0 to 256 rather than -1 to 1)
+        //glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], -1, (1<<16)-1, u_proj_mat);
+        glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], wmin[2], wmax[2], u_proj_mat);
+        glm_perspective(45*MATH_PI/180, ratio, -10, 0, u_proj_mat);
+        glm_translate(u_proj_mat, (vec3){0,0,-3});
 
-    glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
+        glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
+    }
 
     emscripten_set_keydown_callback(
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &keydown_event_handler);
@@ -177,8 +220,11 @@ int __main(void) {
     emscripten_set_deviceorientation_callback(NULL, EM_FALSE, &orient_event_handler);
     emscripten_lock_orientation(EMSCRIPTEN_ORIENTATION_PORTRAIT_PRIMARY);
 
+    glEnable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+
     // init scene
-    init_scene(program);
+    init_scene();
 
     // set frame callback
     // a while loop would stall the webpage, so this is neccissary
@@ -315,7 +361,7 @@ void circle_update(MODEL* model, double t, float dt);
 
 
 
-void init_scene(GLuint program) {
+void init_scene(void) {
     // set background color
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
@@ -328,8 +374,43 @@ void init_scene(GLuint program) {
         circle_mesh.data[i*2+1] = (float)sin( (float)i * (2*MATH_PI/CIRC_RES) );
     }
 
+    #define STRIP_VERT_INDEX(__V, __D) ((__V) + (__D)*STRIP_VERTS)
+    #define X_ANG_OFFSET ((MATH_PI*1/(float)SPHERE_V_RES))
+    // 4??? Yeah... This will probably be a problem later
+    #define Y_ANG_OFFSET ((MATH_PI*4/(float)SPHERE_D_RES))
+        
+    // generate sphere mesh
+    for (int i = 0; i < SPHERE_D_RES; i++) {
+        float yang = Y_ANG_OFFSET*i;
+        for (int j = 0; j < SPHERE_V_RES+1; j++) {
+            float xang = X_ANG_OFFSET*j;
+            // y extruding point
+            // rotate on x first and then y, and then y again for extra offset
+            vec3 v = {0, 1, 0};
+            glm_vec3_rotate(v, xang, (vec3){1, 0, 0});
+            glm_vec3_rotate(v, yang, (vec3){0, 1, 0});
+            glm_vec3_copy(v, sphere_mesh.v3[STRIP_VERT_INDEX(j*2, i)]);
+            //printf("vec1 %f, %f, %f\n", v[0], v[1], v[2]);
+            glm_vec3_rotate(v, Y_ANG_OFFSET, (vec3){0, 1, 0});
+            glm_vec3_copy(v, sphere_mesh.v3[STRIP_VERT_INDEX(j*2+1, i)]);
+            //printf("vec2 %f, %f, %f\n", v[0], v[1], v[2]);
+        }
+        //glm_vec3_copy((vec3){0, 1,0}, sphere_mesh.v3[STRIP_VERT_INDEX(0, i)]);
+        //glm_vec3_copy((vec3){0,-1,0},
+        //    sphere_mesh.v3[STRIP_VERT_INDEX(STRIP_VERTS-1, i)]);
+    }
+
+    /*for (int i = 0; i < SPHERE_VERTS; i++) {
+        vec3* v = sphere_mesh.v3+i;
+        if (i%STRIP_VERTS == 0)
+            printf("#### strip %d ####\n", i/STRIP_VERTS);
+        printf("vec[%d] %f, %f, %f\n", i, v[0][0], v[0][1], v[0][2]);
+    }*/
+
     
     // create model
+    // 2D Circle
+    #if 0
     for (int i = 0; i < NUM_MODELS; i++) {
         models[i] = (MODEL){
             .color = {
@@ -341,9 +422,9 @@ void init_scene(GLuint program) {
             .id = i,
             .mesh = (MESH*)&circle_mesh,
             .visable = true,
-            .drawtype = 0, // not implemented yet
+            .drawtype = DRAWTYPE_2D_PLAIN,
             .update_call = (UPDATE_CALLBACK)circle_update,
-            .shader_prog = program,
+            .shader_prog = poly_program,
             .view_mat = GLM_MAT4_IDENTITY_INIT,
         };
 
@@ -368,6 +449,47 @@ void init_scene(GLuint program) {
 
         MODEL_init(models+i);
     }
+    #else
+    // 3D Sphere
+    for (int i = 0; i < NUM_MODELS; i++) {
+        models[i] = (MODEL){
+            .color = {
+                .r = FRAND(),
+                .g = FRAND(),
+                .b = FRAND(),
+                .w = 1.0
+            },
+            .id = i,
+            .mesh = (MESH*)&sphere_mesh,
+            .visable = true,
+            .drawtype = DRAWTYPE_3D_PLAIN,
+            .update_call = (UPDATE_CALLBACK)circle_update,
+            .shader_prog = sphere_program,
+            .view_mat = GLM_MAT4_IDENTITY_INIT,
+        };
+
+        float scale = (FRAND()*0.9 + 0.2)/4;
+        
+        behave[i] = (BEHAVE){
+            .vel = {
+                (FRAND()*2-1)/10/10,
+                (FRAND()*2-1)/10/10,
+                (FRAND()*2-1)/10/10,
+            },
+            .pos = {
+                FRANDRANGE(wmin[0]+scale, wmax[0]-scale),
+                FRANDRANGE(wmin[1]+scale, wmax[1]-scale),
+                FRANDRANGE(wmin[2]+scale, wmax[2]-scale),
+            },
+            .scale = scale,
+            .mass = (4/3)*MATH_PI*scale*scale*scale*DENSITY,
+        };
+
+        model_transform(models+i);
+
+        MODEL_init(models+i);
+    }
+    #endif
 }
 
 
@@ -473,7 +595,7 @@ bool orient_event_handler(int etype, const EmscriptenDeviceOrientationEvent* eve
     glm_vec3_rotate(gravity, -yrot, (vec3){0,1,0});
 
     // remove z part of gravity.
-    gravity[2] = 0;
+    //gravity[2] = 0;
 
     /*EM_ASM_({
 	        alert("Orien: " + $0 + " " + $1+ " " + $2);

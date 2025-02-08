@@ -5,6 +5,9 @@
 #include <stdbool.h>
 #include <GLES2/gl2.h>
 #include <cglm/types.h>
+// for the LENOF macro
+// TODO: move the LENOF macro to a more general file instead of main.h
+#include "main.h"
 
 
 #define __FORCE_INLINE__ inline __attribute__((always_inline))
@@ -35,18 +38,35 @@
     */
 
 
-typedef struct {
+/*typedef struct {
     int verts;
     GLenum mode;
+    union {
+        vec3 verts[0];
+    }
     GLfloat data[];
-} MESH;
+} MESH;*/
+
+
+//#define LENOF(__n) (sizeof(__n)/sizeof((__n)[0]))
+
+
+// to be used for sizeof or LENOF only. Otherwise you will segfault
+#define VEC3_DUMMY (*(vec3*)NULL)
 
 
 #define MESH(__n) struct {  \
     int verts;              \
     GLenum mode;            \
+    union {                 \
+        vec2 v2[0];         \
+        vec3 v3[0];         \
+    };                      \
     GLfloat data[__n];      \
 }
+#define MESH2(__n) MESH((__n)*LENOF(VEC3_DUMMY))
+#define MESH3(__n) MESH((__n)*LENOF(VEC3_DUMMY))
+typedef MESH() MESH;
 
 
 
@@ -79,6 +99,13 @@ typedef union {
 #define MODEL_DRAWVOID 0
 
 
+enum drawtype {
+    DRAYTYPE_NONE = 0,
+    DRAWTYPE_2D_PLAIN,
+    DRAWTYPE_3D_PLAIN,
+};
+
+
 typedef struct {
     // user set items
     COLOR color;
@@ -99,6 +126,8 @@ typedef struct {
     GLint u_mod_mat_loc;
     GLint u_color_loc;
     GLint vert_pos_loc;
+    GLint u_light_norm_loc;
+    GLint u_light_map_loc;
 } MODEL;
 
 
