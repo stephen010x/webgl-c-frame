@@ -26,7 +26,7 @@
 // processing intensive.
 #define BEHAVE_PASSES 10
 // TODO: ducktape. Get rid of
-#define GRAV_MUL ((float)1/10)
+#define GRAV_MUL (((float)1/10)*2)
 
 
 //vec3 dev_rot = {(float)MATH_PI/2, 0, 0};
