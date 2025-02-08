@@ -53,6 +53,7 @@ int init_webgl(const char* canvas_id) {
     // populate webgl attributes with default and custom values
     emscripten_webgl_init_context_attributes(&gl_attrib);
     gl_attrib.alpha = EM_FALSE;
+    gl_attrib.depth = EM_TRUE;
     gl_attrib.antialias = EM_FALSE;
     gl_attrib.powerPreference = EM_WEBGL_POWER_PREFERENCE_LOW_POWER;
     gl_attrib.majorVersion = 2; // might be less compatible with browsers

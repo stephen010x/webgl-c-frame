@@ -195,18 +195,18 @@ int __main(void) {
     //glViewport(0, 0, 256, 256);
 
     // set the uniform u_proj_mat
-    for (int i = 0; i < LENOF(programs); i++){
+    /*for (int i = 0; i < LENOF(programs); i++){
         GLint u_proj_mat_loc = glGetUniformLocation(programs[i], "u_proj_mat");
 
         mat4 u_proj_mat;
         // TODO: Make this cooler. (ie. 0 to 256 rather than -1 to 1)
         //glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], -1, (1<<16)-1, u_proj_mat);
-        glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], wmin[2], wmax[2], u_proj_mat);
+        //glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], wmin[2], wmax[2], u_proj_mat);
         glm_perspective(45*MATH_PI/180, ratio, -10, 0, u_proj_mat);
-        glm_translate(u_proj_mat, (vec3){0,0,-3});
+        glm_translate(u_proj_mat, (vec3){0,0,-4});
 
         glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
-    }
+    }*/
 
     emscripten_set_keydown_callback(
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &keydown_event_handler);
@@ -222,6 +222,11 @@ int __main(void) {
 
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
+
+    glDepthFunc(GL_LESS);
+
+    //glDisable(GL_CULL_FACE);
+    //glDisable(GL_DEPTH_TEST);
 
     // init scene
     init_scene();
@@ -280,6 +285,23 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     // draw models
     for (int i = 0; i < NUM_MODELS; i++)
         MODEL_draw(models+i);
+
+
+    
+    
+    {
+        GLint u_proj_mat_loc = glGetUniformLocation(sphere_program, "u_proj_mat");
+
+        float ratio = (float)swidth/sheight;
+
+        mat4 u_proj_mat;
+        glm_perspective(45*MATH_PI/180, ratio, 0.1, 100.0, u_proj_mat);
+        glm_translate(u_proj_mat, (vec3){0,0,-4});
+        if (!disable_rotgrav)
+            glm_rotate_y(u_proj_mat, t/300, u_proj_mat);
+
+        glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
+    }
 
     if (!disable_rotgrav) {
         // rotate gravity
@@ -386,7 +408,7 @@ void init_scene(void) {
             float xang = X_ANG_OFFSET*j;
             // y extruding point
             // rotate on x first and then y, and then y again for extra offset
-            vec3 v = {0, 1, 0};
+            vec3 v = {0, -1, 0};
             glm_vec3_rotate(v, xang, (vec3){1, 0, 0});
             glm_vec3_rotate(v, yang, (vec3){0, 1, 0});
             glm_vec3_copy(v, sphere_mesh.v3[STRIP_VERT_INDEX(j*2, i)]);
