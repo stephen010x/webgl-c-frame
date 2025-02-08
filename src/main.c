@@ -188,9 +188,6 @@ int __main(void) {
 
     float ratio = (float)swidth/sheight;
 
-    if (swidth > sheight)
-        behave_flag = !behave_flag;
-
     if (ratio > 1) {
         wmin[0] = -1*ratio;
         wmax[0] =  1*ratio;
@@ -202,8 +199,15 @@ int __main(void) {
         wmin[1] = -1/ratio;
         wmax[1] =  1/ratio;
     }
-    wmin[2] = -3;
-    wmax[2] = 1;
+
+    if (swidth < sheight) {
+        behave_flag = !behave_flag;
+        wmin[2] = -1;
+        wmax[2] =  1;
+    } else {
+        wmin[2] = -3;
+        wmax[2] =  1;
+    }
 
     // TODO I don't really know where to go with this
     // I eventually want control over the screen buffer size/resolution
@@ -319,6 +323,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
         glm_vec3_scale(gravity, (float)1/sqrt(BEHAVE_PASSES)*3*GRAV_MUL, gravity);
         glm_vec3_rotate(gravity, (float)MATH_PI/2, (vec3){1,0,0});
         glm_vec3_rotate(gravity, t/300, (vec3){0,0,1});
+        glm_vec3_rotate(gravity, t/300, (vec3){0,1,0});
     }
 
     // requests frame buffer swap. Will actually render stuff to screen
