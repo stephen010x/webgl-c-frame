@@ -78,7 +78,43 @@
             }
 
 
-            function enter_main() {
+                try {
+                    if (!isMobile && window.DeviceOrientationEvent) {
+                    console.log("device orientation event found");
+                    const button = document.createElement("button");
+                    canvas.style.display = "none";
+                    button.innerText = "Enable device orientation";
+                    document.body.appendChild(button);
+
+                    button.addEventListener("click", function () {
+                        if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
+                            window.DeviceOrientationEvent.requestPermission()
+                            .then(permissionState => {
+                                if (permissionState === 'granted') {
+                                    button.style.display = "none";
+                                } else {
+                                    alert("Device orientation permission not granted");                                  }
+                            }).catch(console.error);
+                        } else {
+                            button.style.display = "none";
+                        }
+                        canvas.style.display = "inline";
+                        
+                    });
+                } else {
+                    console.log("no device orientation event");
+                    setup_canvas();
+                }
+            } catch (error) {
+                alert(error);
+                console.log(error);
+            }
+
+            setup_canvas();
+            
+
+
+            /*function enter_main() {
                 //alert("main");
                 if (Module['calledRun'] || Module['calledMain']) {
                     //alert("MAIN");
@@ -89,10 +125,10 @@
                         Module.ccall('main', 'number', [], []);
                     }
                 }
-            }
+            }*/
 
 
-            try {if (!isMobile && window.DeviceOrientationEvent) {
+            /*try {if (!isMobile && window.DeviceOrientationEvent) {
                 //alert("oh?");
                 console.log("device orientation event found");
                 const button = document.createElement("button");
@@ -118,10 +154,10 @@
                             }
                             //alert("yoy?");
                         })
-                        /*.catch(error) {
+                        /\*.catch(error) {
                             alert(error);
                             console.log(error);
-                        };*/
+                        };*\/
                     } else {
                         button.style.display = "none";
                     }
@@ -137,7 +173,7 @@
             }} catch (error) {
                 alert(error);
                 console.log(error);
-            }
+            }*/
 
 
 
