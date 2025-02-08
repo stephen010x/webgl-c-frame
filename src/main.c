@@ -145,6 +145,16 @@ vec3 wmin, wmax;
 GLuint poly_program;
 GLuint sphere_program;
 
+// T/ODO: WTF IS THERE A MEMORY LEAK????
+// this is getting overridden by something to 1065353216
+// turns out 1065353216 is the integer representation of 1.0f
+// enable and disable certain functions to find out what is 
+// causing this!!!
+// FIS THIX!!!!!
+// AHAH! I FOUND IT!
+// The circle mesh generator in init_scene overflows
+bool behave_flag = true;
+
 
 int __main(void) {
 
@@ -177,6 +187,9 @@ int __main(void) {
     get_elementid_size("canvas", &swidth, &sheight);
 
     float ratio = (float)swidth/sheight;
+
+    if (swidth > sheight)
+        behave_flag = !behave_flag;
 
     if (ratio > 1) {
         wmin[0] = -1*ratio;
@@ -252,15 +265,6 @@ void model_update_pipeline(double t, float dt);
 
 #define UPDATE_DIVISOR 1
 
-// T/ODO: WTF IS THERE A MEMORY LEAK????
-// this is getting overridden by something to 1065353216
-// turns out 1065353216 is the integer representation of 1.0f
-// enable and disable certain functions to find out what is 
-// causing this!!!
-// FIS THIX!!!!!
-// AHAH! I FOUND IT!
-// The circle mesh generator in init_scene overflows
-bool behave_flag = true;
 
 
 EM_BOOL frame_loop(double _t, void *user_data) {
