@@ -148,6 +148,8 @@ GLuint sphere_program;
 
 int __main(void) {
 
+    printf("%d\n", SPHERE_VERTS);
+
     // set starting random seed
     srand((unsigned int)time(NULL));
 

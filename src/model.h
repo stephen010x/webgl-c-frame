@@ -52,9 +52,11 @@
 
 
 // to be used for sizeof or LENOF only. Otherwise you will segfault
+#define VEC2_DUMMY (*(vec2*)NULL)
 #define VEC3_DUMMY (*(vec3*)NULL)
 
 
+// TODO: I should've put the 3d/2d stuff in the mesh mode, not model drawtype!
 #define MESH(__n) struct {  \
     int verts;              \
     GLenum mode;            \
@@ -69,12 +71,6 @@
 typedef MESH() MESH;
 
 
-
-__FORCE_INLINE__ size_t MESH_sizeof(void* m) {
-    MESH* mesh = (MESH*)m;
-    // the *2 because two floats per vertex
-    return mesh->verts * sizeof(mesh->data[0]) * 2;
-}
 
 
 
@@ -140,6 +136,23 @@ __FORCE_INLINE__ void MODEL_update(MODEL* model, double t, float dt) {
         return model->update_call(model, t, dt);
 }
 
+
+
+// TODO: replace this with MESH_sizeof once you
+// make the drawmode in mesh instead of model
+__FORCE_INLINE__ size_t MODEL_MESH_sizeof(void* m) {
+    MODEL* model = (MODEL*)m;
+    MESH* mesh = model->mesh;
+
+    switch (model->drawtype) {
+        case DRAWTYPE_2D_PLAIN:
+            return mesh->verts * sizeof(VEC2_DUMMY);
+        case DRAWTYPE_3D_PLAIN:
+            return mesh->verts * sizeof(VEC3_DUMMY);
+    }
+    // the *2 because two floats per vertex
+    return 0;
+}
 
 
 #endif

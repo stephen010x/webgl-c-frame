@@ -8,7 +8,7 @@ MODEL* MODEL_init(MODEL* model) {
     glBindBuffer(GL_ARRAY_BUFFER, model->vert_buff);
     glBufferData(
         GL_ARRAY_BUFFER, 
-        (GLsizeiptr)MESH_sizeof(model->mesh),
+        (GLsizeiptr)MODEL_MESH_sizeof(model),
         model->mesh->data,
         GL_STATIC_DRAW
     );
@@ -114,9 +114,9 @@ int MODEL_draw(MODEL* model){
             
         } break;
     }
-
     
     // send draw to queue
+    //printf("verts: %d\n", model->mesh->verts);
     glDrawArrays(model->mesh->mode, 0, model->mesh->verts);
 
     return 0;
