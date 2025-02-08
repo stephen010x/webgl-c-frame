@@ -201,7 +201,7 @@ int __main(void) {
     }
 
     if (swidth > sheight) {
-        behave_flag = !behave_flag;
+        behave_flag = true;
         wmin[2] = -1;
         wmax[2] =  1;
     } else {
@@ -586,13 +586,16 @@ bool keydown_event_handler(int etype, const EmscriptenKeyboardEvent* event, void
 
 
 bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params) {
-    behave_flag = !behave_flag;
+    //behave_flag = !behave_flag;
 
     /*EM_ASM_({
 	        alert("pp: " + $0 + " " + $1+ " " + $2);
 	}, 1, 1, 1);*/
     
-    return true;
+    //return true;
+
+    behave_flag = true;
+    return false;
 }
 
 
