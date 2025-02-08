@@ -189,8 +189,8 @@ int __main(void) {
         wmin[1] = -1/ratio;
         wmax[1] =  1/ratio;
     }
-    wmin[2] = -4;
-    wmax[2] = -1;
+    wmin[2] = -1;
+    wmax[2] = -4;
 
     // TODO I don't really know where to go with this
     // I eventually want control over the screen buffer size/resolution
