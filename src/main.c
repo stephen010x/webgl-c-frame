@@ -53,8 +53,8 @@ WORLD world = {
     .light = {
         .type = LIGHTSOURCE_TYPE_DIR,
         .dir = {
-            .norm = {1, 1, 1},
-            .range = {0.1, 1.5},
+            .norm = {0.8, 1, 0.8},
+            .range = {0.05, 1.5},
         },
     },
 };
@@ -189,8 +189,8 @@ int __main(void) {
         wmin[1] = -1/ratio;
         wmax[1] =  1/ratio;
     }
-    wmin[2] = -1;
-    wmax[2] =  1;
+    wmin[2] = -4;
+    wmax[2] = -1;
 
     // TODO I don't really know where to go with this
     // I eventually want control over the screen buffer size/resolution
@@ -492,7 +492,8 @@ void init_scene(void) {
             .view_mat = GLM_MAT4_IDENTITY_INIT,
         };
 
-        float scale = (FRAND()*0.9 + 0.2)/4;
+        //float scale = (FRAND()*0.9 + 0.6)/4;
+        float scale = FRANDRANGE(0.1, 0.4);
         
         behave[i] = (BEHAVE){
             .vel = {
