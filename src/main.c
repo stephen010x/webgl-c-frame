@@ -200,7 +200,7 @@ int __main(void) {
         wmax[1] =  1/ratio;
     }
 
-    if (swidth < sheight) {
+    if (swidth > sheight) {
         behave_flag = !behave_flag;
         wmin[2] = -1;
         wmax[2] =  1;
