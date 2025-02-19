@@ -41,7 +41,7 @@
             html, body {margin: 0; height: 100%; overflow: hidden}
         </style>
         
-        <script src="script.js"></script>
+        <!--script src="script.js"></script-->
     </head>
     
     <body style="background-color:lightgrey;">
@@ -66,16 +66,16 @@
 
                 let sratio = swidth/sheight;
 
-                console.log(swidth, sheight);
+                //console.log(swidth, sheight);
 
                 if (sratio>1) {
                     canvas.height = 256;
                     canvas.width = Math.round(canvas.height * sratio);
-                    console.log(canvas.width, canvas.height);
+                    //console.log(canvas.width, canvas.height);
                 } else {
                     canvas.width = 256;
                     canvas.height = Math.round(canvas.width / sratio);
-                    console.log(canvas.width, canvas.height);
+                    //console.log(canvas.width, canvas.height);
                 }
                 
                 canvas.style.width = swidth+"px";
@@ -83,8 +83,8 @@
             }
 
 
-                try {
-                    if (!isMobile && window.DeviceOrientationEvent) {
+            /*try {
+                if (!isMobile && window.DeviceOrientationEvent) {
                     console.log("device orientation event found");
                     const button = document.createElement("button");
                     canvas.style.display = "none";
@@ -113,7 +113,7 @@
             } catch (error) {
                 alert(error);
                 console.log(error);
-            }
+            }*/
 
             setup_canvas();
             

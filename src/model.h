@@ -61,6 +61,9 @@
     int verts;              \
     GLenum mode;            \
     union {                 \
+        /*vec2 v2[__n/sizeof(vec2)];  \
+        vec3 v3[__n/sizeof(vec3)];  \*/ \
+        float v1[0];        \
         vec2 v2[0];         \
         vec3 v3[0];         \
     };                      \
@@ -99,6 +102,8 @@ enum drawtype {
     DRAYTYPE_NONE = 0,
     DRAWTYPE_2D_PLAIN,
     DRAWTYPE_3D_PLAIN,
+    DRAWTYPE_3D_LINE,
+    DRAWTYPE_1D,
 };
 
 
@@ -145,8 +150,11 @@ __FORCE_INLINE__ size_t MODEL_MESH_sizeof(void* m) {
     MESH* mesh = model->mesh;
 
     switch (model->drawtype) {
+        case DRAWTYPE_1D:
+            return mesh->verts * sizeof(float);
         case DRAWTYPE_2D_PLAIN:
             return mesh->verts * sizeof(VEC2_DUMMY);
+        case DRAWTYPE_3D_LINE:
         case DRAWTYPE_3D_PLAIN:
             return mesh->verts * sizeof(VEC3_DUMMY);
     }

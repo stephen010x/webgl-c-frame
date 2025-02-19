@@ -14,6 +14,45 @@ typedef struct {
 
 
 
+
+#define FRAND() ((float)rand()/(float)RAND_MAX)
+
+#define FRANDRANGE(__min, __max) MAP(FRAND(), 0, 1, __min, __max)
+
+
+
+
+#define VEC3_RANDRANGE(__min, __max) (vec3){    \
+        FRANDRANGE(__min, __max),               \
+        FRANDRANGE(__min, __max),               \
+        FRANDRANGE(__min, __max),               \
+    }
+    
+
+
+
+#define CAMERA_NULL         0
+#define CAMERA_ORTHOGRAPHIC 1
+#define CAMERA_PERSPECTIVE  2
+
+
+typedef struct {
+    vec3 pos;
+    vec3 rot; // rotated on x, y, z axes in that order around it's position, not origin
+    float fov;
+    //vec2 window[2];
+    float ratio;
+    int type;
+    union {
+        mat4 viewmat;
+        GLfloat raw[16];
+    };
+} CAMERA;
+
+extern CAMERA camera;
+
+
+
 // TODO:
 // Delete this header eventually. Main doesn't need a header.
 // I just wanted to get these assert macros out of there to reduce
@@ -146,6 +185,7 @@ extern WORLD world;
 
 
 
+extern vec3 wmin, wmax;
 
 
 
@@ -155,6 +195,31 @@ extern WORLD world;
 // Actually, lets just push some more junk code I don't want cluttering the
 // main file into here that I am not yet willing to delete
 
+
+
+
+
+    // TODO I don't really know where to go with this
+    // I eventually want control over the screen buffer size/resolution
+    //glViewport(0, 0, 256, 256);
+
+    // set the uniform u_proj_mat
+    /*for (int i = 0; i < LENOF(programs); i++){
+        GLint u_proj_mat_loc = glGetUniformLocation(programs[i], "u_proj_mat");
+
+        mat4 u_proj_mat;
+        // TODO: Make this cooler. (ie. 0 to 256 rather than -1 to 1)
+        //glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], -1, (1<<16)-1, u_proj_mat);
+        //glm_ortho(wmin[0], wmax[0], wmin[1], wmax[1], wmin[2], wmax[2], u_proj_mat);
+        glm_perspective(45*MATH_PI/180, ratio, -10, 0, u_proj_mat);
+        glm_translate(u_proj_mat, (vec3){0,0,-4});
+
+        glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
+    }*/
+
+
+
+    
 
 
 /*typedef struct {

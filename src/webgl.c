@@ -34,7 +34,8 @@ GLuint shader_program(const char* progname, const char* vertname, const char* ve
     ASSERT(!link_program(program, progname), (GLuint)0, "");
 
     // install program as part of current rendering state
-    glUseProgram(program);
+    // whoops. this should be in other places in my code, not here.
+    //glUseProgram(program);
 
     return program;
 }

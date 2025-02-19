@@ -3,38 +3,11 @@
 
 
 MODEL* MODEL_init(MODEL* model) {
+    // select shader program to use
+    glUseProgram(model->shader_prog);
+    
     // create buffer
     glGenBuffers(1, &model->vert_buff);
-    glBindBuffer(GL_ARRAY_BUFFER, model->vert_buff);
-    glBufferData(
-        GL_ARRAY_BUFFER, 
-        (GLsizeiptr)MODEL_MESH_sizeof(model),
-        model->mesh->data,
-        GL_STATIC_DRAW
-    );
-
-    // store locations for values
-    // TODO: this is the sort of thing to be stored in a shader object
-    model->u_color_loc   = glGetUniformLocation(model->shader_prog, "u_color");
-    model->u_mod_mat_loc = glGetUniformLocation(model->shader_prog, "u_mod_mat");
-    // TODO: add error checking for this and others. As it can return -1 if invalid
-    model->vert_pos_loc  = glGetAttribLocation(model->shader_prog,  "vert_pos");
-
-
-    switch (model->drawtype) {
-        case DRAWTYPE_2D_PLAIN:
-            break;
-        case DRAWTYPE_3D_PLAIN:
-            // get u_light_norm location
-            model->u_light_norm_loc = 
-                glGetUniformLocation(model->shader_prog, "u_light_norm");
-
-            // get u_light_map location
-            model->u_light_map_loc = 
-                glGetUniformLocation(model->shader_prog, "u_light_map");
-            break;
-    }
-
     return model;
 }
 
@@ -43,6 +16,48 @@ MODEL* MODEL_init(MODEL* model) {
 int MODEL_draw(MODEL* model){
     if (!model->visable)
         return 0;
+
+    // select shader program to use
+    // disabled because I think setting it will refresh all of the 
+    // uniforms, including one that is being set before this function 
+    // is called.
+    glUseProgram(model->shader_prog);
+
+    { // temporarily moved this block from init to here for this
+        glBindBuffer(GL_ARRAY_BUFFER, model->vert_buff);
+        glBufferData(
+            GL_ARRAY_BUFFER, 
+            (GLsizeiptr)MODEL_MESH_sizeof(model),
+            model->mesh->data,
+            GL_STATIC_DRAW
+        );
+
+        // store locations for values
+        // TODO: this is the sort of thing to be stored in a shader object
+        model->u_color_loc   = glGetUniformLocation(model->shader_prog, "u_color");
+        model->u_mod_mat_loc = glGetUniformLocation(model->shader_prog, "u_mod_mat");
+        // TODO: add error checking for this and others. As it can return -1 if invalid
+        model->vert_pos_loc  = glGetAttribLocation(model->shader_prog,  "vert_pos");
+
+        //printf("locs %d\n", model->vert_pos_loc);
+
+
+        switch (model->drawtype) {
+            case DRAWTYPE_1D:
+            case DRAWTYPE_3D_LINE:
+            case DRAWTYPE_2D_PLAIN:
+                break;
+            case DRAWTYPE_3D_PLAIN:
+                // get u_light_norm location
+                model->u_light_norm_loc = 
+                    glGetUniformLocation(model->shader_prog, "u_light_norm");
+
+                // get u_light_map location
+                model->u_light_map_loc = 
+                    glGetUniformLocation(model->shader_prog, "u_light_map");
+                break;
+        }
+    }
 
     //*DEBUG*/printf("%p, %p, %p\n", &model->mesh->data[0], &model->mesh->data[1], &model->mesh->data[2]);
 
@@ -62,6 +77,16 @@ int MODEL_draw(MODEL* model){
     // need to be set up once for each shader
     // so you would divide models up per-shader
     switch (model->drawtype) {
+        case DRAWTYPE_1D:
+            glVertexAttribPointer(
+                model->vert_pos_loc,
+                1,
+                GL_FLOAT,
+                GL_FALSE,
+                0*sizeof(GLfloat),
+                (void*)0            // offset from vertex. The cast is confusing
+            );
+            break;
         case DRAWTYPE_2D_PLAIN:
             glVertexAttribPointer(
                 model->vert_pos_loc,
@@ -73,6 +98,7 @@ int MODEL_draw(MODEL* model){
             );
             break;
         case DRAWTYPE_3D_PLAIN:
+        case DRAWTYPE_3D_LINE:
             glVertexAttribPointer(
                 model->vert_pos_loc,
                 3,
@@ -95,7 +121,7 @@ int MODEL_draw(MODEL* model){
 
 
     switch (model->drawtype) {
-        case DRAWTYPE_2D_PLAIN:
+        case DRAWTYPE_1D:
             break;
         case DRAWTYPE_3D_PLAIN: {
 
