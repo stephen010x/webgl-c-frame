@@ -119,7 +119,6 @@ int MODEL_draw(MODEL* model){
     // set uniform model view matrix
     glUniformMatrix4fv(model->u_mod_mat_loc, 1, GL_FALSE, (GLfloat*)model->view_mat);
 
-
     switch (model->drawtype) {
         case DRAWTYPE_1D:
             break;

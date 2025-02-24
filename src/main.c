@@ -12,14 +12,17 @@
 #include "model.h"
 #include "webgl.h"
 #include "input.h"
-#include "bezier.h"
+//#include "bezier.h"
+#include "fractal.h"
 #include "shaders/gen/shaders.h"
 
 
-#define MAX_CURVES 5
+//#define MAX_CURVES 5
 
 
-BEZIER curves[MAX_CURVES];
+//BEZIER curves[MAX_CURVES];
+
+FRACTAL fractal;
 
 
 enum {
@@ -45,10 +48,10 @@ WORLD world = {
 
 
 CAMERA camera = {
-    .pos = {0,0,-3},
+    .pos = {0,0,-1},
     .rot = {0,0,0},
-    .fov = MATH_PI/4,
-    .type = CAMERA_PERSPECTIVE,
+    .fov = 0,
+    .type = CAMERA_ORTHOGRAPHIC,
 };
 
 
@@ -103,8 +106,9 @@ void update_camera(void);
 
 //GLuint poly_program;
 //GLuint sphere_program;
-GLuint bezier_program;
-GLuint point_program;
+//GLuint bezier_program;
+//GLuint point_program;
+GLuint fractal_program;
 
 
 int __main(void) {
@@ -123,10 +127,13 @@ int __main(void) {
         "poly_program", "poly.vert", poly_vert, "poly.frag", poly_frag);
     sphere_program = shader_program(
         "sphere_program", "sphere.vert", sphere_vert, "sphere.frag", sphere_frag);*/
-    bezier_program = shader_program(
+    /*bezier_program = shader_program(
         "bezier_program", "bezier.vert", bezier_vert, "simple.frag", simple_frag);
     point_program = shader_program(
-        "point_program", "point.vert", point_vert, "simple.frag", simple_frag);
+        "point_program", "point.vert", point_vert, "simple.frag", simple_frag);*/
+
+    fractal_program = shader_program(
+        "fractal_program", "poly.vert", poly_vert, "fractal.frag", fractal_frag);
 
     //GLuint programs[] = {poly_program, sphere_program, bezier_program};
 
@@ -224,7 +231,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     for (int i = 0; i < NUM_MODELS; i++)
         MODEL_draw(models+i);*/
 
-    controls(t, dt);
+    //controls(t, dt);
 
     //camera.rot[1] += 0.001;
     //camera.pos[2] -= 0.01;
@@ -234,20 +241,16 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     GLint u_proj_mat_loc;
 
 
-    glUseProgram(bezier_program);
-    u_proj_mat_loc = glGetUniformLocation(bezier_program, "u_proj_mat");
+    glUseProgram(fractal_program);
+    u_proj_mat_loc = glGetUniformLocation(fractal_program, "u_proj_mat");
     glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, camera.raw);
 
-    glUseProgram(point_program);
+    /*glUseProgram(point_program);
     u_proj_mat_loc = glGetUniformLocation(point_program, "u_proj_mat");
-    glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, camera.raw);
+    glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, camera.raw);*/
 
-    for (int i = 0; i < MAX_CURVES; i++) {
-        BEZIER_update(curves+i, t, dt);
-        BEZIER_draw(curves+i, t);
-    }
-
-
+    FRACTAL_update(&fractal, t, dt);
+    FRACTAL_draw(&fractal, t);
 
 
     // requests frame buffer swap. Will actually render stuff to screen
@@ -288,15 +291,21 @@ void controls(double t, float dt) {
 
 void init_scene(void) {
     // set background color
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClearColor(0.0f, 1.0f, 0.0f, 1.0f);
 
-    for (int i = 0; i < MAX_CURVES; i++)
+    /*for (int i = 0; i < MAX_CURVES; i++)
         BEZIER_init(curves+i, (vec3[4]){
             {FRANDRANGE(-1, 1), FRANDRANGE(-1, 1), FRANDRANGE(-1, 1)},
             {FRANDRANGE(-1, 1), FRANDRANGE(-1, 1), FRANDRANGE(-1, 1)},
             {FRANDRANGE(-1, 1), FRANDRANGE(-1, 1), FRANDRANGE(-1, 1)},
             {FRANDRANGE(-1, 1), FRANDRANGE(-1, 1), FRANDRANGE(-1, 1)},
-        }, 0);
+        }, 0);*/
+
+    FRACTAL_init(&fractal, 
+        (vec2[]){
+            {wmin[0], wmin[1]},
+            {wmax[0], wmax[1]},
+        }, (vec3){0,0,0});
 }
 
 
@@ -304,10 +313,17 @@ void init_scene(void) {
 void update_camera(void) {
     switch (camera.type) {
         case CAMERA_ORTHOGRAPHIC:
-            glm_ortho_aabb((vec3[]){
-                {wmin[0], wmin[1], wmin[2]}, 
-                {wmax[0], wmax[1], wmin[2]},
-            }, camera.viewmat);
+            /*glm_ortho_aabb((vec3[]){
+                {wmin[0], wmin[1], 0}, 
+                {wmax[0], wmax[1], 10000},
+            }, camera.viewmat);*/
+            glm_ortho(
+                wmin[0], wmax[0],
+                wmin[1], wmax[1],
+                0,
+                1000,
+                camera.viewmat
+            );
             break;
         case CAMERA_PERSPECTIVE:
             glm_perspective(camera.fov, camera.ratio, 0.1, 100.0, camera.viewmat);
