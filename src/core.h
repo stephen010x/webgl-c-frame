@@ -1,0 +1,10 @@
+#ifndef CORE_H
+#define CORE_H
+
+#include "core/model.h"
+#include "core/webgl.h"
+#include "core/input.h"
+#include "core/physics.h"
+//#include "core/linear.h"
+
+#endif

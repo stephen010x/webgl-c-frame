@@ -43,7 +43,7 @@ infiles = [os.path.basename(path) for path in infiles]
 
 with open(curr+header, 'w') as fout:
     fout.write(warning)
-    fout.write("#ifndef SHADERS_H\n#define SHADERS_H\n")
+    fout.write("#ifndef GEN_SHADERS_H\n#define GEN_SHADERS_H\n")
 
 for fname in infiles:
     with open(curr+fname, 'r') as fin, open(curr+direct+fname+'.c', 'w') as fout:

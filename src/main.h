@@ -2,14 +2,31 @@
 #define MAIN_H
 
 #include <cglm/cglm.h>
+#include "core/camera.h"
 
 
 // I just don't like this, so I pushed it into here.
-typedef struct {
+/*typedef struct {
     int width;
     int height;
 } FRAME;
+*/
 
+
+
+#define FRAND() ((float)rand()/(float)RAND_MAX)
+
+#define FRANDRANGE(__min, __max) MAP(FRAND(), 0, 1, __min, __max)
+
+
+
+
+#define VEC3_RANDRANGE(__min, __max) (vec3){    \
+        FRANDRANGE(__min, __max),               \
+        FRANDRANGE(__min, __max),               \
+        FRANDRANGE(__min, __max),               \
+    }
+    
 
 
 
@@ -107,35 +124,6 @@ typedef struct {
 
 
 
-// TODO: Add a point light
-
-
-typedef struct {
-    vec3 norm;
-    vec2 range;
-} DIR_LIGHTSOURCE;
-
-typedef struct {
-    vec3 pos;
-    vec2 range;
-} POINT_LIGHTSOURCE;
-
-
-typedef struct {
-    int type;
-    union {
-        DIR_LIGHTSOURCE dir;
-        POINT_LIGHTSOURCE point;
-    };
-} LIGHTSOURCE;
-
-
-enum lightsource_type {
-    LIGHTSOURCE_TYPE_NONE = 0,
-    LIGHTSOURCE_TYPE_DIR,
-    LIGHTSOURCE_TYPE_POINT,
-    LIGHTSOURCE_TYPE_AMBIENT,
-};
 
 
 typedef struct {
@@ -149,100 +137,17 @@ extern WORLD world;
 
 
 
-
-
-
-// Actually, lets just push some more junk code I don't want cluttering the
-// main file into here that I am not yet willing to delete
-
-
-
-/*typedef struct {
-    struct {
-        int width;
-        int height;
-    } canvas;
-    
-} GL_INSTANCE;*/
-
-
-
-/*
-void init_scene(
-    CIRCLE* circles, MESH* circle_mesh, GLuint shader_program , int screen_width, int screen_height) {
-
-    for (int i = 0; i <= CIRC_RES; i++) {
-        circle_mesh->verts[i+0] = 0;
-        circle_mesh->verts[i+1] = 0;
-        circle_mesh->verts[i+2] = (float)cos( (float)i * (2*MATH_PI/CIRC_RES) );
-        circle_mesh->verts[i+3] = (float)sin( (float)i * (2*MATH_PI/CIRC_RES) );
-    }
-    
-    for (int i = 0; i < NUM_CIRCLES; i++) {
-        CIRCLE_init( CIRCLE_default(
-            &circles[i],
-            screen_width,
-            screen_height,
-            shader_program,
-            circle_mesh
-        ));
-    }
-}
-*/
-
-
-
-    // update the scene
-    //for (int i = 0; i < NUM_CIRCLES; i++)
-    //    CIRCLE_update(circles+i, (float)dt);
-
-    //for (int i = 0; i < NUM_CIRCLES; i++)
-    //    CIRCLE_draw(circles+i);
-
-    //SIMPLET_draw(&simp);
+enum {
+    ERROR_NONE = 0,
+    ERROR_CREATE_CONTEXT,
+};
 
 
 
 
-/*int main() {
-    printf("starting webgl\n");
-
-    //\*debug*\/ printf("%p %lu %p %lu\n", &_circle_mesh, sizeof(_circle_mesh), &circle_mesh_struct._circle_mesh_verts, sizeof(circle_mesh_struct._circle_mesh_verts));
-
-    /\*int retval;
-    pthread_t thread;
-    pthread_create(&thread, NULL, _main, NULL);
-    //pthread_join(thread, (void**)&retval);
-    return retval;*\/
-    
-    int retval = __main();
-    printf("main exited with code (%d)\n", retval);
-
-    // this is just a busyloop
-    //emscripten_sleep(1000);
-
-    // TODO: This function may work to replace emscripten FETCH
-    // int emscripten_wget(const char *url, const char *file)
-    
-    return retval;
-}*/
-
-
-
-
-/*
-void* _main(void* args) {
-    printf("detatching main\n");
-    int retval =__main();
-    // TODO: this errors for some reason??? Fix this
-    //printf("main exited with code (%d)\n", retval);
-    return (void*)retval;
-}
-*/
-
-
-
-
+//typedef unsigned char bool;
+#define TRUE 1
+#define FALSE 0
 
 
 #endif

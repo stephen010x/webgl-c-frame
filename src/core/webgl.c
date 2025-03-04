@@ -34,7 +34,8 @@ GLuint shader_program(const char* progname, const char* vertname, const char* ve
     ASSERT(!link_program(program, progname), (GLuint)0, "");
 
     // install program as part of current rendering state
-    glUseProgram(program);
+    // whoops. this should be in other places in my code, not here.
+    //glUseProgram(program);
 
     return program;
 }
@@ -228,3 +229,19 @@ static int link_program(GLuint program, const char* name) {
     return 0;
 }
 
+
+
+
+
+void compile_shaders(int len, SHADER_DESCRIPTOR* desc) {
+    for (int i = 0; i < len; i++) {
+        if (desc->active)
+            *desc->program = shader_program(
+                desc->program_name, 
+                desc->vert_name,
+                desc->vert_src,
+                desc->frag_name, 
+                desc->frag_src
+            );
+    }
+}
