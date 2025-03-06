@@ -68,7 +68,8 @@ enum lightsource_type {
 
 
 CAMERA* camera_init(CAMERA* camera);
-CAMERA* camera_apply(CAMERA* c, unsigned int shader_program)
+CAMERA* camera_update(CAMERA* c);
+CAMERA* camera_apply(CAMERA* c, unsigned int shader_program);
 
 
 #endif

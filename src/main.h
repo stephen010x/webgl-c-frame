@@ -2,6 +2,7 @@
 #define MAIN_H
 
 #include <cglm/cglm.h>
+// TODO: does this need to be here? Can I just move it to main.c?
 #include "core/camera.h"
 
 
@@ -15,8 +16,9 @@
 
 
 #define FRAND() ((float)rand()/(float)RAND_MAX)
-
 #define FRANDRANGE(__min, __max) MAP(FRAND(), 0, 1, __min, __max)
+// non-inclusive
+#define RANDRANGE(__min, __max) ( (rand() % ((__max)-(__min))) + (__min) )
 
 
 

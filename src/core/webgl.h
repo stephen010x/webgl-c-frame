@@ -23,9 +23,9 @@ typedef struct {
         .program      = (__variable),                   \
         .program_name = #__vert "_" #__frag "_program", \
         .vert_name    = #__vert ".vert",                \
-        .vert_src     = __vert ## _vert,                \
+        .vert_src     = (char*)__vert ## _vert,         \
         .frag_name    = #__frag ".frag",                \
-        .frag_src     = __frag ## _frag,                \
+        .frag_src     = (char*)__frag ## _frag,         \
 }
 
 

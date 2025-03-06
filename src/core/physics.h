@@ -17,7 +17,7 @@
 //#define BOUNCE_THRESH 0.01
 #define BOUNCE_THRESH 0
 
-#define DT_DIVISOR 8
+//#define DT_DIVISOR 8
 
 
 // device is assumed to be at rest

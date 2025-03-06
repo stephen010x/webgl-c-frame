@@ -18,6 +18,10 @@
 #include "shaders/shaders.h"
 
 
+#define COLOR_RED   ((COLOR){0.8, 0.3, 0.2, 1.0})
+#define COLOR_WHITE ((COLOR){1.0, 1.0, 1.0, 1.0})
+
+
 //#define MAX_CURVES 5
 //BEZIER curves[MAX_CURVES];
 
@@ -26,12 +30,9 @@
 #define DT_DIVISOR 100
 
 
-WINDOW window;
-
+//WINDOW window;
 MOUSE mouse;
 
-
-bool disable_rotgrav = false;
 
 
 
@@ -64,44 +65,9 @@ EM_BOOL frame_loop(double t, void *user_data);
 int __main(void);
 
 
-// TODO:
-// I'm realizing if two models are using the same mesh, they
-// should reference the opengl context for it rather than make a new
-// one. In other words, the mesh should create a buffer, not the model
-MESH(6) triangle_mesh = {
-    .verts = 3,
-    .mode = GL_TRIANGLES,
-    .data = {
-        0.0,  0.5,
-       -0.5, -0.5,
-        0.5, -0.5,
-    },
-};
 
-MESH2(CIRC_RES) circle_mesh = {
-    .verts = CIRC_RES,
-    .mode = GL_TRIANGLE_FAN,
-    .data = {0},
-};
-
-
-
-#define SPHERE_V_RES ((int)CIRC_RES/2)
-#define SPHERE_D_RES CIRC_RES
-
-#define STRIP_VERTS ((SPHERE_V_RES+1)*2)
-#define SPHERE_VERTS STRIP_VERTS*SPHERE_D_RES
-
-MESH3(SPHERE_VERTS) sphere_mesh = {
-    .verts = SPHERE_VERTS,
-    .mode = GL_TRIANGLE_STRIP,
-    .data = {0},
-};
-
-
-MODEL models[NUM_MODELS];
-
-void controls(double t, float dt);
+//MODEL models[NUM_MODELS];
+//void controls(double t, float dt);
 void update_camera(void);
 
 
@@ -130,6 +96,10 @@ GLuint bezier_program;
 GLuint point_program;
 GLuint fractal_program;
 
+SHADER poly_shader;
+
+MAZE maze;
+
 
 
 int __main(void) {
@@ -153,7 +123,12 @@ int __main(void) {
         SHADER_DESC_GEN( false, &fractal_program, poly,   fractal ),
     };
 
+    compile_shaders(LENOF(sdesc), sdesc);
 
+    shader_init(&poly_shader, poly_program, NULL, NULL);
+
+
+    // TODO: enable clockwise vertex order here or whatever
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
@@ -163,6 +138,8 @@ int __main(void) {
 
     camera_init(&camera);
     input_init();
+    shapes_init();
+    
     init_scene();
 
     // set frame callback
@@ -204,15 +181,27 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     double t;
     float dt;
 
-    // update frame times
-    update_frame_time(_t, double* t, float* dt)
+    //////////////////////////
+    //// UPDATE SCENE  //////
+    ////////////////////////
 
-    // clear the scene
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // update frame times
+    update_frame_time(_t, &t, &dt);
+
+    camera_update(&camera);
+    camera_apply(&camera, poly_program);
+
 
     // update models
     /*if (count%UPDATE_DIVISOR == 0 && behave_flag)
         model_update_pipeline(t, dt);
+
+    //////////////////////////
+    //// DRAW SCENE  ////////
+    ////////////////////////
+
+    // clear the scene
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // draw models
     for (int i = 0; i < NUM_MODELS; i++)
@@ -220,7 +209,9 @@ EM_BOOL frame_loop(double _t, void *user_data) {
         glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
     }*/
 
-    
+    //draw_rectangle(WALL_THICK, WALL_LENGTH, 0, (vec2){0.5,0}, COLOR_RED, &poly_shader);
+
+    maze_draw(&maze, t);
 
     // requests frame buffer swap. Will actually render stuff to screen
     // this is neccissary because explicitSwapControl was set to GL_TRUE
@@ -259,6 +250,10 @@ void init_scene(void) {
             {wmin[0], wmin[1]},
             {wmax[0], wmax[1]},
         }, (vec3){0,0,0});*/
+
+    maze_init(&maze, 10, 10, COLOR_WHITE, &poly_shader);
+    maze.x = -CELL_SIZE*5;
+    maze.y = -CELL_SIZE*5;
 }
 
 

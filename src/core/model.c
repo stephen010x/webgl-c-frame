@@ -5,11 +5,6 @@
 
 
 
-
-
-
-
-
 // TODO use this to create a function that updates all models, maybe.
 
 /*void model_update_pipeline(double t, float dt) {
@@ -58,7 +53,7 @@
 
 
 MODEL* MODEL_easy(MODEL* model, MESH* mesh, void* data, GLuint shader, bool stream) {
-    static count = 0;
+    static int count = 0;
     
     *model = (MODEL){
         .color = (COLOR){1.0f, 1.0f, 1.0f, 1.0f},
@@ -70,8 +65,7 @@ MODEL* MODEL_easy(MODEL* model, MESH* mesh, void* data, GLuint shader, bool stre
         .update_call = NULL,
         .draw_call = NULL,
         .shader_prog = shader,
-        .view_mat = 
-        
+        .view_mat = GLM_MAT4_IDENTITY_INIT,
     };
 
     if (!stream)
@@ -96,6 +90,7 @@ MODEL* MODEL_init(MODEL* model) {
     model->u_color_loc   = glGetUniformLocation(model->shader_prog, "u_color");
     // TODO: add error checking for this and others. As it can return -1 if invalid
     model->vert_pos_loc  = glGetAttribLocation(model->shader_prog,  "vert_pos");
+    ASSERT(model->vert_pos_loc >= 0, NULL, "no location for vert_pos_loc\n");
 
     // get u_light_norm and map location (if it exists)
     model->u_light_norm_loc = glGetUniformLocation(model->shader_prog, "u_light_norm");
@@ -130,7 +125,7 @@ MODEL* MODEL_init(MODEL* model) {
 
 
 
-int MODEL_draw(MODEL* model){
+int MODEL_draw(MODEL* model, double t){
     if (!model->visable)
         return 0;
 
@@ -156,7 +151,6 @@ int MODEL_draw(MODEL* model){
                 model->mesh->data,
             );
         break;
-
     }
 
     // set vertex attributes
@@ -172,14 +166,14 @@ int MODEL_draw(MODEL* model){
     GLsizei attrib_stride = 0*sizeof(GLfloat);
     
 
-    switch (model->mesh.type) {
+    switch (model->mesh->type) {
         case MESHTYPE_1D_PACKED:
             attrib_size = 1;
             break;
         case MESHTYPE_2D_PACKED:
             attrib_size = 2;
             break;
-        case DRAWTYPE_3D_PACKED:
+        case MESHTYPE_3D_PACKED:
             attrib_size = 3;
             break;
     }
@@ -188,15 +182,14 @@ int MODEL_draw(MODEL* model){
         model->vert_pos_loc,
         attrib_size,
         attrib_type,
+        GL_FALSE,
         attrib_stride,
-        0*sizeof(GLfloat),
         (void*)0            // offset from vertex. The cast is confusing
     );
 
-    
+
     // TODO: Why does this need to be enabled? Is it possible to have
     // multiple vertex attribute arrays, and then just activate one of them?
-    ASSERT(model->vert_pos_loc >= 0, -1, "no location for vert_pos_loc\n");
     glEnableVertexAttribArray(model->vert_pos_loc);
 
     // set uniform u_color

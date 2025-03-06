@@ -1,7 +1,7 @@
 #ifndef FRACTAL_H
 #define FRACTAL_H
 
-#include "model.h"
+#include "../core/model.h"
 
 
 

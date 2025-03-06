@@ -2,6 +2,7 @@
 #include <emscripten/html5.h>
 #include <GLES2/gl2.h>
 #include "camera.h"
+#include "../main.h"
 #include "../helper.h"
 
 
@@ -60,10 +61,14 @@ CAMERA* camera_update(CAMERA* c) {
 
 
 CAMERA* camera_apply(CAMERA* c, GLuint shader_program) {
+    ASSERT(shader_program > 0, NULL, "invalid shader program");
     GLint u_proj_mat_loc;
     glUseProgram(shader_program);
     u_proj_mat_loc = glGetUniformLocation(shader_program, "u_proj_mat");
-    glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLuint*)c->raw);
+    // TODO consider just making this an assert, as if you don't want to use 
+    // a camera for a shader, then just don't call fhis function. /shrug
+    if (u_proj_mat_loc > 0)
+        glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)c->raw);
 
     return c;
 }
