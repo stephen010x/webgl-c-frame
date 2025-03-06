@@ -4,5 +4,6 @@
 #include "objects/bezier.h"
 #include "objects/fractal.h"
 #include "objects/shapes.h"
+#include "objects/maze.h"
 
 #endif

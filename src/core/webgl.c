@@ -1,5 +1,5 @@
 #include "webgl.h"
-#include "main.h"
+#include "../main.h"
 
 #include <emscripten.h>
 #include <emscripten/html5.h>
@@ -235,13 +235,13 @@ static int link_program(GLuint program, const char* name) {
 
 void compile_shaders(int len, SHADER_DESCRIPTOR* desc) {
     for (int i = 0; i < len; i++) {
-        if (desc->active)
-            *desc->program = shader_program(
-                desc->program_name, 
-                desc->vert_name,
-                desc->vert_src,
-                desc->frag_name, 
-                desc->frag_src
+        if (desc[i].active)
+            *desc[i].program = shader_program(
+                desc[i].program_name, 
+                desc[i].vert_name,
+                desc[i].vert_src,
+                desc[i].frag_name, 
+                desc[i].frag_src
             );
     }
 }

@@ -1,7 +1,7 @@
 #ifndef BEZIER_H
 #define BEZIER_H
 
-#include "model.h"
+#include "../core/model.h"
 
 
 #define BEZIER_RESOLUTION 64

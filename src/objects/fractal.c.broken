@@ -1,9 +1,9 @@
 #include <math.h>
 #include <GLES2/gl2.h>
 
-#include "main.h"
+#include "../main.h"
 #include "fractal.h"
-#include "input.h"
+#include "../core/input.h"
 
 
 extern GLint fractal_program;

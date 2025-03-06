@@ -7,7 +7,7 @@
 #include <cglm/types.h>
 // for the LENOF macro
 // TODO: move the LENOF macro to a more general file instead of main.h
-#include "main.h"
+#include "../main.h"
 
 
 // I should really get my macro library working and just put these in there.
@@ -40,7 +40,7 @@ enum meshtype {
     int verts;              \
     int type;               \
     GLenum mode;            \
-    union {                 \ /*is this union even neccessary?*/
+    union {          /*is this union even neccessary?*/       \
         /*vec2 v2[__n/sizeof(vec2)];  \
         vec3 v3[__n/sizeof(vec3)];  \*/ \
         float v1[0];        \
@@ -57,6 +57,7 @@ typedef MESH() MESH;
 
 // TODO: replace this with MESH_sizeof once you
 // make the drawmode in mesh instead of model
+// Since the return value is unsigned, maybe I should return 0
 __FORCE_INLINE__ size_t MESH_sizeof(void* m) {
     MESH* mesh = (MESH*)m;
 
@@ -66,7 +67,7 @@ __FORCE_INLINE__ size_t MESH_sizeof(void* m) {
             return mesh->verts * sizeof(float);
         case MESHTYPE_2D_PACKED:
             return mesh->verts * sizeof(VEC2_DUMMY);
-        case DRAWTYPE_3D_PACKED:
+        case MESHTYPE_3D_PACKED:
             return mesh->verts * sizeof(VEC3_DUMMY);
     }
     return -1;
@@ -133,7 +134,8 @@ typedef struct {
     mat4 view_mat;
 
     // background items
-    // these really need to be put into a shader class.
+    // TODO: these really need to be put into a shader class.
+    // TODO: The vert buff specifically should go into a mesh class
     GLuint vert_buff;
     GLint u_mod_mat_loc;
     GLint u_color_loc;
@@ -144,9 +146,9 @@ typedef struct {
 
 
 // expects the user set items to be populated
-MODEL* MODEL_easy(MODEL* model);
+MODEL* MODEL_easy(MODEL* model, MESH* mesh, void* data, GLuint shader, bool stream);
 MODEL* MODEL_init(MODEL* model);
-int MODEL_draw(MODEL* model);
+int MODEL_draw(MODEL* model, double t);
 
 __FORCE_INLINE__ void MODEL_update(MODEL* model, double t, float dt) {
     if (model->update_call != NULL)
