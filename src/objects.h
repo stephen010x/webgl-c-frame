@@ -5,5 +5,6 @@
 #include "objects/fractal.h"
 #include "objects/shapes.h"
 #include "objects/maze.h"
+#include "objects/mouse.h"
 
 #endif

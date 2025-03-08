@@ -28,8 +28,8 @@ typedef struct {
 
 
 
-#define KEYDOWN     0
-#define KEYUP       1
+#define KEYUP       0
+#define KEYDOWN     1
 #define MOUSEUP     0
 #define MOUSEDOWN   1
 

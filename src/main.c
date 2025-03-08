@@ -18,8 +18,11 @@
 #include "shaders/shaders.h"
 
 
-#define COLOR_RED   ((COLOR){0.8, 0.3, 0.2, 1.0})
-#define COLOR_WHITE ((COLOR){1.0, 1.0, 1.0, 1.0})
+#define COLOR_RED    ((COLOR){0.8, 0.3, 0.2, 1.0})
+#define COLOR_BLUE   ((COLOR){0.3, 0.4, 0.9, 1.0})
+#define COLOR_PURPLE ((COLOR){0.7, 0.2, 0.6, 1.0})
+#define COLOR_WHITE  ((COLOR){1.0, 1.0, 1.0, 1.0})
+#define COLOR_BLACK  ((COLOR){0.0, 0.0, 0.0, 1.0})
 
 
 //#define MAX_CURVES 5
@@ -32,6 +35,8 @@
 
 //WINDOW window;
 MOUSE mouse;
+// player mouse
+PMOUSE pmouse;
 
 
 
@@ -131,6 +136,8 @@ int __main(void) {
     // TODO: enable clockwise vertex order here or whatever
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
     glDepthFunc(GL_LESS);
 
     //glDisable(GL_CULL_FACE);
@@ -139,7 +146,7 @@ int __main(void) {
     camera_init(&camera);
     input_init();
     shapes_init();
-    
+        
     init_scene();
 
     // set frame callback
@@ -191,19 +198,22 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     camera_update(&camera);
     camera_apply(&camera, poly_program);
 
+    mouse_update(&pmouse, t, dt);
+
 
     // update models
     /*if (count%UPDATE_DIVISOR == 0 && behave_flag)
-        model_update_pipeline(t, dt);
+        model_update_pipeline(t, dt);*/
 
     //////////////////////////
     //// DRAW SCENE  ////////
     ////////////////////////
 
     // clear the scene
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT);
 
-    // draw models
+    /*// draw models
     for (int i = 0; i < NUM_MODELS; i++)
         MODEL_draw(models+i);
         glUniformMatrix4fv(u_proj_mat_loc, 1, GL_FALSE, (GLfloat*)&u_proj_mat);
@@ -212,6 +222,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     //draw_rectangle(WALL_THICK, WALL_LENGTH, 0, (vec2){0.5,0}, COLOR_RED, &poly_shader);
 
     maze_draw(&maze, t);
+    mouse_draw(&pmouse, t);
 
     // requests frame buffer swap. Will actually render stuff to screen
     // this is neccissary because explicitSwapControl was set to GL_TRUE
@@ -251,9 +262,17 @@ void init_scene(void) {
             {wmax[0], wmax[1]},
         }, (vec3){0,0,0});*/
 
-    maze_init(&maze, 10, 10, COLOR_WHITE, &poly_shader);
-    maze.x = -CELL_SIZE*5;
-    maze.y = -CELL_SIZE*5;
+    maze_init(&maze, 20, 40, COLOR_WHITE, &poly_shader);
+    maze.x = -CELL_SIZE*10;
+    maze.y = -CELL_SIZE*20;
+
+    float x, y;
+    maze_getpos(&maze, 10, 1, &x, &y);
+    
+    //mouse_init(&pmouse, x, y, 0.03, COLOR_PURPLE, &maze, &poly_shader);
+    mouse_init(&pmouse, x, y, 0.03, COLOR_BLACK, &maze, &poly_shader);
+    //mouse_init(&pmouse, x, y, CELL_SIZE-WALL_THICK, COLOR_BLACK, &maze, &poly_shader);
+    pmouse.pcolor = COLOR_BLUE;
 }
 
 

@@ -41,11 +41,18 @@ SQUARE_MESH_TYPE square_mesh = {
     .verts = 4,
     .type = MESHTYPE_2D_PACKED,
     .mode = GL_TRIANGLE_FAN,
-    .data = {
+    /*.data = {
         -0.5,  0.5,
         -0.5, -0.5,
          0.5, -0.5,
          0.5,  0.5,
+    },*/
+    // I decided that the math was easier like this
+    .data = {
+        0.0, 1.0,
+        0.0, 0.0,
+        1.0, 0.0,
+        1.0, 1.0,
     },
 };
     
@@ -231,7 +238,7 @@ int draw_triangle(vec2 points[3], vec2 pos, SHADER* shader) {
 
 
 
-int draw_rectangle( float width, float height, float rot, vec2 pos, COLOR color, SHADER* shader) {
+int draw_rectangle( float width, float height, float rot, vec2 pos, COLOR color, SHADER* shader, int layer) {
     shader_use(shader);
     
     glBindBuffer(GL_ARRAY_BUFFER, square_vert_buff);
@@ -252,9 +259,9 @@ int draw_rectangle( float width, float height, float rot, vec2 pos, COLOR color,
 
     mat4 viewmat = GLM_MAT4_IDENTITY_INIT;
     // blegh. I forgot about the opengl ordering here. These need to be in reverse
-    glm_translate(viewmat, (vec3){pos[0], pos[1], 0});
+    glm_translate(viewmat, (vec3){pos[0], pos[1], (float)layer/100.0-1.0});
     glm_rotate_z(viewmat, rot, viewmat);
-    glm_scale(viewmat, (vec3){width, height, 0});
+    glm_scale(viewmat, (vec3){width, height, 1});
 
     // set uniform model view matrix
     if (shader->u_mod_mat_loc >= 0)

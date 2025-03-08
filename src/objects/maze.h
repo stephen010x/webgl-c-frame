@@ -9,16 +9,19 @@
 
 
 
-#define CELL_SIZE ((float)0.1)
-#define WALL_THICK ((float)0.01)
+//#define CELL_SIZE ((float)0.1)
+//#define WALL_THICK ((float)0.01)
+//#define CELL_SIZE ((float)0.05*1.5)
+//#define WALL_THICK ((float)0.005*1.5)
+#define CELL_SIZE ((float)0.075)
+#define WALL_THICK ((float)0.02625)
 
-#define WALL_LENGTH (CELL_SIZE + WALL_THICK*1.5)
+#define WALL_LENGTH (CELL_SIZE + WALL_THICK)
 
 
-
-#define WALLS(__n) typeof(unsigned char[__n+1][__n])
-#define WALLS_PTR(__n) typeof(unsigned char (*)[__n])
-#define GRID(__c, __r) typeof(unsigned char[__c][__r])
+#define WALLS(__n, __m)    typeof(unsigned char[__m+1][__n])
+#define WALLS_PTR(__n)     typeof(unsigned char (*)[__n])
+#define GRID(__c, __r)     typeof(unsigned char[__c][__r])
 #define GRID_PTR(__c, __r) typeof(unsigned char (*)[__r])
 
 
@@ -28,10 +31,15 @@
 #define CELL_EMPTY 0
 #define CELL_USED  1
 
-#define WALL_UP    (1<<0)
-#define WALL_DOWN  (1<<1)
-#define WALL_LEFT  (1<<2)
-#define WALL_RIGHT (1<<3)
+#define WALL_UP_BIT     0
+#define WALL_DOWN_BIT   1
+#define WALL_RIGHT_BIT  2
+#define WALL_LEFT_BIT   3
+
+#define WALL_UP    (1<<WALL_UP_BIT)
+#define WALL_DOWN  (1<<WALL_DOWN_BIT)
+#define WALL_RIGHT (1<<WALL_RIGHT_BIT)
+#define WALL_LEFT  (1<<WALL_LEFT_BIT)
 
 typedef unsigned char WALL_FLAGS;
 
@@ -71,27 +79,23 @@ typedef struct {
 } MAZE;
 
 
-typedef struct {
-    unsigned char* up;
-    unsigned char* down;
-    unsigned char* left;
-    unsigned char* right;
-} MAZE_WALLS;
 
 
-MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader);
+
+MAZE* maze_init(  MAZE* maze, int cols, int rows, COLOR color, SHADER* shader);
 void maze_destroy(MAZE* maze);
-MAZE* maze_draw(MAZE* maze, double t);
+MAZE* maze_draw(  MAZE* maze, double t);
 
-WALL_FLAGS maze_getwalls(MAZE* maze, int c, int r);
-MAZE_WALLS maze_findwalls(MAZE* maze, int c, int r);
+WALL_FLAGS maze_getwalls(  MAZE* maze, int c, int r);
+WALL_FLAGS maze_setwalls(  MAZE* maze, int c, int r, WALL_FLAGS flags);
+WALL_FLAGS maze_clearwalls(MAZE* maze, int c, int r, WALL_FLAGS flags);
 
-void maze_getcell(MAZE* maze, float x, float y, int* c, int* r);
-void maze_getpos(MAZE* maze, int c, int r, float* x, float* y);
+void maze_getcell(MAZE* maze, float x, float y, int* c,   int* r);
+void maze_getpos( MAZE* maze, int c,   int r,   float* x, float* y);
 
 
 
-/* Holy shit this actually works...
+/* Holy crap this actually works...
  * This means that sizeof also works during runtime, not just compiletime
 
 

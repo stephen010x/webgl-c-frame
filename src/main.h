@@ -18,11 +18,12 @@
 #define FRAND() ((float)rand()/(float)RAND_MAX)
 #define FRANDRANGE(__min, __max) MAP(FRAND(), 0, 1, __min, __max)
 // non-inclusive
+// TODO: don't directly use __min and __max. What if they were functions?
 #define RANDRANGE(__min, __max) ( (rand() % ((__max)-(__min))) + (__min) )
 
 
 
-
+// TODO: don't directly use __min and __max. What if they were functions?
 #define VEC3_RANDRANGE(__min, __max) (vec3){    \
         FRANDRANGE(__min, __max),               \
         FRANDRANGE(__min, __max),               \

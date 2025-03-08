@@ -73,7 +73,7 @@ void shapes_init(void);
 
 int draw_triangle(vec2 points[3], vec2 pos, SHADER* shader);
 int draw_polygon(vec2* points, float rot, vec2 pos, SHADER* shader);
-int draw_rectangle( float width, float height, float rot, vec2 pos, COLOR color, SHADER* shader);
+int draw_rectangle( float width, float height, float rot, vec2 pos, COLOR color, SHADER* shader, int layer);
 int draw_oval(      float width, float height, float rot, vec2 pos, SHADER* shader);
 int draw_sphere(vec3 size, vec3 pos, SHADER* shader);
 

@@ -1,29 +1,242 @@
 #include <string.h>
 //#include <cglm/cglm.h>
 #include "maze.h"
+#include "../main.h"
+
+
+
+// TODO: move this to macro header
+#define __FORCE_INLINE__ inline __attribute__((always_inline))
+// it is so stupid that I need this
+#define mod(__a, __b) ({    \
+    typeof(__b) b = (__b);  \
+    typeof(__a) n = (__a)%b;\
+    n >= 0 ? n : n + b;     \
+})
+
+
+typedef struct {
+    unsigned char* up;
+    unsigned char* down;
+    unsigned char* left;
+    unsigned char* right;
+} MAZE_WALLS;
+
+
+
+WALL_FLAGS maze_findwalls(MAZE* maze, int c, int r, MAZE_WALLS* walls);
+void maze_walls_write(MAZE_WALLS* walls, WALL_FLAGS flags);
 
 
 
 
 
 
+__FORCE_INLINE__ bool grid_isdead(void* vgrid, int width, int height, int x, int y) {
+    GRID_PTR(width, height) grid = vgrid;
 
-void maze_traverse(MAZE* maze/*, vec3 start, vec3 end*/) {
-    /*int buffer[maze->cols*maze->rows][2];
-    GRID(maze->cols, maze->rows) grid = {0};
-    int buff_index = 0;
-    int x = 0;
-    int y = 5;
-    while (x != maze->cols-1 && y != 5) {
-        int k = rand()%4;
-        switch ()
-    }*/
+    return  ((x <= 0       ) || grid[x-1][y  ] == CELL_USED) &&
+            ((x >= width-1 ) || grid[x+1][y  ] == CELL_USED) &&
+            ((y <= 0       ) || grid[x  ][y-1] == CELL_USED) &&
+            ((y >= height-1) || grid[x  ][y+1] == CELL_USED);
+}
 
-    int y = maze->cols/2;
-    for (int x = 0; x < maze->cols; x++) {
-        int ny = maze->cols/2 + RANDRANGE(-maze->cols/2, maze->cols/2+1);
+
+
+
+__FORCE_INLINE__ bool grid_isused(void* vgrid, int width, int height, int x, int y) {
+    GRID_PTR(width, height) grid = vgrid;
+
+    return  (grid[x][y] == CELL_USED)   ||
+            (x < 0) || (x >= width )    ||
+            (y < 0) || (y >= height);
+}
+
+
+
+
+/*__FORCE_INLINE__ int grid_random_path(void* vgrid, int width, int height, int x, int y) {
+    GRID_PTR(width, height) grid = vgrid;
+
+    if (grid_isdead(vgrid, width, height, x, y))
+        return -1;
+
+    int dir;
+
+    switch (dir) {
         
-        y = ny;
+    };
+}*/
+
+/*  ab
+    -----
+    00   0, -1
+    01   0,  1
+    10  -1,  0
+    11   1,  0
+
+    n = ((b<<1)-1);
+    a ? n : 0, a ? 0 : n
+*/
+
+
+void maze_room(MAZE* maze, void* vgrid, int cols, int rows, int _x, int _y, int width, int height, WALL_FLAGS flags) {
+    GRID_PTR(cols, rows) grid = vgrid;
+
+    for (int y = _y; y < _y+height; y++) {
+        for (int x = _x; x < _x+width; x++) {
+            grid[x][y] = CELL_USED;
+        }
+    }
+
+    for (int y = _y; y < _y+height-1; y++) {
+        for (int x = _x; x < _x+width; x++) {
+            maze_clearwalls(maze, x, y, WALL_UP);
+        }
+    }
+
+    for (int y = _y; y < _y+height; y++) {
+        for (int x = _x; x < _x+width-1; x++) {
+            maze_clearwalls(maze, x, y, WALL_RIGHT);
+        }
+    }
+
+    if (flags & WALL_UP)
+        maze_clearwalls(maze, _x+width/2, _y+height, WALL_DOWN);
+        
+    if (flags & WALL_DOWN)
+        maze_clearwalls(maze, _x+(width-0.5)/2, _y, WALL_DOWN);
+        
+    if (flags & WALL_RIGHT)
+        maze_clearwalls(maze, _x+width, _y+height/2, WALL_LEFT);
+        
+    if (flags & WALL_LEFT)
+        maze_clearwalls(maze, _x, _y+(height-0.5)/2, WALL_LEFT);
+}
+
+
+
+
+// I should create a bias for straight lines
+void maze_traverse(MAZE* maze) {
+    int xmax = maze->cols;
+    int ymax = maze->rows;
+    
+    int buffer[xmax*ymax][2];
+    GRID(xmax, ymax) grid;
+    memset(&grid, 0, sizeof(GRID(xmax, ymax)));
+
+    // create three main rooms pre-traversal
+    maze_room(maze, &grid, xmax, ymax, xmax/2-2, 0, 4, 4, WALL_UP);
+    maze_room(maze, &grid, xmax, ymax, xmax/2-2, ymax-4, 4, 4, WALL_DOWN);
+    maze_room(maze, &grid, xmax, ymax, xmax/2-3, ymax/2-3, 6, 6, WALL_UP | WALL_DOWN);
+
+    // generate random rooms
+    for (int i = 0; i < 5; i++) {
+        int width = RANDRANGE(2,5);
+        int height = RANDRANGE(2,5);
+        int x = RANDRANGE(1, xmax-width-1);
+        int y = RANDRANGE(1, ymax-height-1);
+        WALL_FLAGS flags = 1 << (rand()%4);
+        if (rand()%2 == 0)
+            flags |= 1 << (rand()%4);
+        if (rand()%5 == 0)
+            flags |= 1 << (rand()%4);
+        if (rand()%11 == 0)
+            flags |= 1 << (rand()%4);
+        maze_room(maze, &grid, xmax, ymax, x, y, width, height, flags);
+    }
+
+    // generate random hallways
+    for (int i = 0; i < 5; i++) {
+        int width, height;
+        WALL_FLAGS flags;
+        if (rand()%2) {
+            width = 2;
+            height = RANDRANGE(5,(int)(ymax/1.5));
+            flags = WALL_UP | WALL_DOWN;
+            if (rand()%4 == 0) flags |= WALL_RIGHT;
+            if (rand()%4 == 0) flags |= WALL_LEFT;
+        } else {
+            width = RANDRANGE(2,(int)(xmax/1.5));
+            height = 2;
+            flags = WALL_RIGHT | WALL_LEFT;
+            if (rand()%4 == 0) flags |= WALL_UP;
+            if (rand()%4 == 0) flags |= WALL_DOWN;
+        }
+        int x = RANDRANGE(1, xmax-width-1);
+        int y = RANDRANGE(1, ymax-height-1);
+        maze_room(maze, &grid, xmax, ymax, x, y, width, height, flags);
+    }
+
+    int x, y;
+
+    do {
+        x = rand()%xmax;
+        y = rand()%ymax;
+    } while (grid[x][y] == CELL_USED);
+
+    buffer[0][0] = x;
+    buffer[0][1] = y;
+
+    int k = mod(rand(), 4);
+
+    for (int i = 0; i >= 0;) {
+        int x = buffer[i][0];
+        int y = buffer[i][1];
+
+        WALL_FLAGS flags = maze_getwalls(maze, x, y);
+
+        // if dead end, then traverse backwards
+        if (grid_isdead(grid, xmax, ymax, x, y)) {
+            i--;
+            continue;
+        }
+        
+        // randomly pick directions
+        int dx, dy;
+
+        // make paths straighter
+        if (rand()%2 == 0)
+            k = mod(rand(), 4);
+            
+        // random rotate direction is added to remove clockwise bias
+        int dir = (mod(rand(), 2)<<1) - 1;
+
+        bool flip = false;
+        // rotate through directions until an empty cell is found.
+        do {
+            dx = dy = 0;
+
+            if (flip)
+                k = mod(k+dir, 4);
+            
+            switch (k) {
+                case WALL_UP_BIT:    dy =  1; break;
+                case WALL_DOWN_BIT:  dy = -1; break;
+                case WALL_RIGHT_BIT: dx =  1; break;
+                case WALL_LEFT_BIT:  dx = -1; break;
+            }
+            
+            //dx = ((k & 0b01)<<1) - 1;
+            //dy = ((k & 0b10)<<1) - 1;
+
+            flip = true;
+        } while (grid_isused(grid, xmax, ymax, x+dx, y+dy));
+
+        // remove cell wall
+        maze_clearwalls(maze, x, y, 1<<k);
+
+        // step to the new cell
+        x += dx;
+        y += dy;
+
+        // mark new cell as used
+        grid[x][y] = CELL_USED;
+
+        i++;
+        buffer[i][0] = x;
+        buffer[i][1] = y;
     }
 }
 
@@ -34,9 +247,8 @@ void maze_traverse(MAZE* maze/*, vec3 start, vec3 end*/) {
 
 
 MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader) {
-
-    WALLS_PTR(cols) hwalls = malloc(sizeof(WALLS(cols)));
-    WALLS_PTR(rows) vwalls = malloc(sizeof(WALLS(rows)));
+    WALLS_PTR(cols) hwalls = malloc(sizeof(WALLS(cols, rows)));
+    WALLS_PTR(rows) vwalls = malloc(sizeof(WALLS(rows, cols)));
     GRID_PTR(cols, rows) grid = malloc(sizeof(GRID(cols, rows)));
     memset(grid, 0, sizeof(GRID(cols, rows)));
 
@@ -62,6 +274,200 @@ MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader) {
             vwalls[c][r] = WALL_EXIST;
         }
 
+    /*for (int i = 0; i < cols; i++) {
+        hwalls[2][i] = 0;
+    }
+    for (int i = 0; i < rows; i++) {
+        vwalls[4][i] = 0;
+    }*/
+
+    /*for (int i = 0; i < 30; i++) {
+        hwalls[i][0] = 0;
+    }*/
+    /*for (int i = 0; i < cols+1; i++) {
+        vwalls[i][8] = 0;
+    }*/
+
+    /*for (int i = 0; i < 11; i++) {
+        vwalls[i][9] = 0;
+        hwalls[i][9] = 0;
+    }*/
+
+    maze_traverse(maze);
+
+    return maze;
+}
+
+
+
+
+
+void maze_destroy(MAZE* maze) {
+    free(maze->hwalls);
+    free(maze->vwalls);
+    free(maze->grid);
+}
+
+
+
+
+MAZE* maze_draw(MAZE* maze, double t) {
+    WALLS_PTR(maze->cols) hwalls = maze->hwalls;
+    WALLS_PTR(maze->rows) vwalls = maze->vwalls;
+
+    // draw the left border of maze
+    for (int r = 0; r < maze->rows; r++) {
+        WALL_FLAGS flags = maze_getwalls(maze, 0, r);
+        if (flags & WALL_LEFT) {
+            float x, y;
+            maze_getpos(maze, 0, r, &x, &y);
+            //x -= CELL_SIZE/2.0;
+            draw_rectangle(
+                WALL_THICK, WALL_LENGTH, 0, (vec2){x, y}, 
+                maze->color, maze->shader, 0);
+        }
+    }
+
+    // draw the bottom border of maze
+    for (int c = 0; c < maze->cols; c++) {
+        WALL_FLAGS flags = maze_getwalls(maze, c, 0);
+        if (flags & WALL_DOWN) {
+            float x, y;
+            maze_getpos(maze, c, 0, &x, &y);
+            //y -= CELL_SIZE/2.0;
+            draw_rectangle(
+                WALL_LENGTH, WALL_THICK, 0, (vec2){x, y}, 
+                maze->color, maze->shader, 0);
+        }
+    }
+
+    // draw the top and right walls of each of the cells
+    for (int r = 0; r < maze->rows; r++)
+        for (int c = 0; c < maze->cols; c++) {
+            WALL_FLAGS flags = maze_getwalls(maze, c, r);
+            float x, y;
+            maze_getpos(maze, c, r, &x, &y);
+            
+            if (flags & WALL_RIGHT)
+                draw_rectangle(
+                    WALL_THICK, WALL_LENGTH, 0, (vec2){x + CELL_SIZE, y}, 
+                    maze->color, maze->shader, 0);
+
+            if (flags & WALL_UP)
+                draw_rectangle(
+                    WALL_LENGTH, WALL_THICK, 0, (vec2){x, y + CELL_SIZE}, 
+                    maze->color, maze->shader, 0);
+        }
+    return maze;
+}
+
+
+
+
+
+
+
+
+// TODO: finish implementing this
+// it will basically just return the wall status on each four sides of the
+// square pointed to with the x and y
+// TODO: inline this
+WALL_FLAGS maze_getwalls(MAZE* maze, int c, int r) {
+    MAZE_WALLS walls;
+    return maze_findwalls(maze, c, r, &walls);
+}
+
+
+WALL_FLAGS maze_setwalls(MAZE* maze, int c, int r, WALL_FLAGS flags) {
+    MAZE_WALLS walls;
+    WALL_FLAGS newflags = maze_findwalls(maze, c, r, &walls) | flags;
+    maze_walls_write(&walls, newflags);
+    return newflags;
+}
+
+
+
+WALL_FLAGS maze_clearwalls(MAZE* maze, int c, int r, WALL_FLAGS flags) {
+    MAZE_WALLS walls;
+    WALL_FLAGS newflags = maze_findwalls(maze, c, r, &walls) & (~flags);
+    maze_walls_write(&walls, newflags);
+    return newflags;
+}
+
+
+
+
+
+
+__FORCE_INLINE__ WALL_FLAGS maze_findwalls(MAZE* maze, int c, int r, MAZE_WALLS* walls) {
+    WALL_FLAGS retval = 0;
+    WALLS_PTR(maze->cols) hwalls = maze->hwalls;
+    WALLS_PTR(maze->rows) vwalls = maze->vwalls;
+
+    *walls = (MAZE_WALLS){
+        .down  = &hwalls[ r   ][ c ],
+        .up    = &hwalls[ r+1 ][ c ],
+        .left  = &vwalls[ c   ][ r ],
+        .right = &vwalls[ c+1 ][ r ]
+    };
+
+    if (*walls->up    == WALL_EXIST) retval |= WALL_UP;
+    if (*walls->down  == WALL_EXIST) retval |= WALL_DOWN;
+    if (*walls->left  == WALL_EXIST) retval |= WALL_LEFT;
+    if (*walls->right == WALL_EXIST) retval |= WALL_RIGHT;
+
+    return retval;
+}
+
+
+
+
+__FORCE_INLINE__ void maze_walls_write(MAZE_WALLS* walls, WALL_FLAGS flags) {
+    *walls->up    = (flags & WALL_UP)    ? WALL_EXIST : WALL_NONE;
+    *walls->down  = (flags & WALL_DOWN)  ? WALL_EXIST : WALL_NONE;
+    *walls->left  = (flags & WALL_LEFT)  ? WALL_EXIST : WALL_NONE;
+    *walls->right = (flags & WALL_RIGHT) ? WALL_EXIST : WALL_NONE;
+}
+
+
+
+
+
+
+// this converts position to cell and column
+// TODO: finish implementing this
+void maze_getcell(MAZE* maze, float x, float y, int* c, int* r) {
+    *c = (int)((x - maze->x)/CELL_SIZE);
+    *r = (int)((y - maze->y)/CELL_SIZE);
+}
+
+
+
+
+void maze_getpos(MAZE* maze, int c, int r, float* x, float* y) {
+    *x = (float)c*CELL_SIZE + maze->x;
+    *y = (float)r*CELL_SIZE + maze->y;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Remnants of super naive maze generation algorithm
+
+
     /*int start = RANDRANGE(0, rows);
     int end = RANDRANGE(0, rows);
 
@@ -72,11 +478,7 @@ MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader) {
 
     // I don't have time for good maze generation, so...
 
-    for (int i = 0; i < 20; i++) {
-        printf("%d\n", rand()%4);
-    }
-
-    for (int y = 0; y < rows; y++)
+    /*for (int y = 0; y < rows; y++)
         for (int x = 0; x < cols; x++) {
             MAZE_WALLS walls = maze_findwalls(maze, x, y);
             for (int i = 0; i < RANDRANGE(1,3); i++) {
@@ -118,138 +520,27 @@ MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader) {
 
     for (int i = 0; i < 3; i++) {
         MAZE_WALLS walls;
-        walls = maze_findwalls(maze, i, maze->cols/2+1);
+        walls = maze_findwalls(maze, i, maze->cols/2);
         *walls.left = WALL_NONE;
         walls = maze_findwalls(maze, cols-1-i, maze->cols/2);
         *walls.right = WALL_NONE;
-    }
+    }*/
+
+    /*for (int i = 0; i < 10; i++) {
+        vwalls[1][i] = 0;
+        hwalls[1][i] = 0;
+    }*/
+
+    /*for (int i = 0; i < 11; i++) {
+        vwalls[i][9] = 0;
+        hwalls[i][9] = 0;
+    }*/
 
     /*for (int y = 1; y < 10; y++)
         for (int x = 1; x < 10; x++) {
             vwalls[x][y] = 0;
         }*/
 
-    return maze;
-}
 
-
-
-
-
-void maze_destroy(MAZE* maze) {
-    free(maze->hwalls);
-    free(maze->vwalls);
-    free(maze->grid);
-}
-
-
-
-
-MAZE* maze_draw(MAZE* maze, double t) {
-    WALLS_PTR(maze->cols) hwalls = maze->hwalls;
-    WALLS_PTR(maze->rows) vwalls = maze->vwalls;
-
-    // draw the left border of maze
-    for (int r = 0; r < maze->rows; r++) {
-        WALL_FLAGS flags = maze_getwalls(maze, 0, r);
-        if (flags & WALL_LEFT) {
-            float x, y;
-            maze_getpos(maze, 0, r, &x, &y);
-            x -= CELL_SIZE/2.0;
-            draw_rectangle(
-                WALL_THICK*1.5, WALL_LENGTH, 0, (vec2){x, y}, maze->color, maze->shader);
-        }
-    }
-
-    // draw the bottom border of maze
-    for (int c = 0; c < maze->cols; c++) {
-        WALL_FLAGS flags = maze_getwalls(maze, c, 0);
-        if (flags & WALL_DOWN) {
-            float x, y;
-            maze_getpos(maze, c, 0, &x, &y);
-            y -= CELL_SIZE/2.0;
-            draw_rectangle(
-                WALL_LENGTH, WALL_THICK*1.5, 0, (vec2){x, y}, maze->color, maze->shader);
-        }
-    }
-
-    // draw the top and right walls of each of the cells
-    for (int r = 0; r < maze->rows; r++)
-        for (int c = 0; c < maze->cols; c++) {
-            WALL_FLAGS flags = maze_getwalls(maze, c, r);
-            float x, y;
-            maze_getpos(maze, c, r, &x, &y);
-            
-            if (flags & WALL_RIGHT)
-                draw_rectangle(
-                    WALL_THICK*1.5, WALL_LENGTH, 0, (vec2){x + CELL_SIZE/2.0, y}, 
-                    maze->color, maze->shader);
-
-            if (flags & WALL_UP)
-                draw_rectangle(
-                    WALL_LENGTH, WALL_THICK*1.5, 0, (vec2){x, y + CELL_SIZE/2.0}, 
-                    maze->color, maze->shader);
-        }
-    return maze;
-}
-
-
-
-
-
-
-
-
-// TODO: finish implementing this
-// it will basically just return the wall status on each four sides of the
-// square pointed to with the x and y
-// TODO: inline this
-WALL_FLAGS maze_getwalls(MAZE* maze, int c, int r) {
-    MAZE_WALLS walls = maze_findwalls(maze, c, r);
-    WALL_FLAGS retval = 0;
-    
-    if (*walls.up    == WALL_EXIST) retval |= WALL_UP;
-    if (*walls.down  == WALL_EXIST) retval |= WALL_DOWN;
-    if (*walls.left  == WALL_EXIST) retval |= WALL_LEFT;
-    if (*walls.right == WALL_EXIST) retval |= WALL_RIGHT;
-    
-    return retval;
-}
-
-
-
-
-
-
-// TODO: inline this
-MAZE_WALLS maze_findwalls(MAZE* maze, int c, int r) {
-    MAZE_WALLS walls;
-    WALLS_PTR(maze->cols) hwalls = maze->hwalls;
-    WALLS_PTR(maze->rows) vwalls = maze->vwalls;
-
-    walls.down  = &vwalls[ c   ][ r ];
-    walls.up    = &vwalls[ c+1 ][ r ];
-    walls.left  = &hwalls[ r   ][ c ];
-    walls.right = &hwalls[ r+1 ][ c ];
-
-    return walls;
-}
-
-
-
-
-
-
-// this converts position to cell and column
-// TODO: finish implementing this
-void maze_getcell(MAZE* maze, float x, float y, int* c, int* r) {
-    return;
-}
-
-
-
-
-void maze_getpos(MAZE* maze, int c, int r, float* x, float* y) {
-    *x = (float)c*CELL_SIZE + maze->x;
-    *y = (float)r*CELL_SIZE + maze->y;
-}
+    //MAZE_WALLS walls = maze_findwalls(maze, int 0, int 0);
+    //*walls.up = 

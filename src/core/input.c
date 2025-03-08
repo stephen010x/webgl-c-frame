@@ -1,6 +1,8 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 
+#include <stdio.h>
+
 #include "input.h"
 
 
@@ -64,10 +66,12 @@ void input_pop_callback(EVENT_CALLBACK callback) {
 bool key_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params) {
     switch (etype) {
         case EMSCRIPTEN_EVENT_KEYDOWN:
+            //printf("keydown %d\n", event->keyCode);
             key[event->keyCode] = KEYDOWN;
             return false;
             //return true;                    // return that it was handled
         case EMSCRIPTEN_EVENT_KEYUP:
+            //printf("keyup %d\n", event->keyCode);
             key[event->keyCode] = KEYUP;
             return false;
             //return true;                    // return that it was handled
