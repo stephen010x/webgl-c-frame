@@ -5,9 +5,20 @@
 
 
 
+#define CAM_SCALE_MODE CAM_SCALE_STATICHEIGHT
+
+// this is mostly for orthographic
+//#define ZOOM_SCALE 1
+#define ZOOM_SCALE 1.7
+
+
 #define CAMERA_NULL         0
 #define CAMERA_ORTHOGRAPHIC 1
 #define CAMERA_PERSPECTIVE  2
+
+#define CAM_SCALE_DYNAMIC      0
+#define CAM_SCALE_STATICWIDTH  1
+#define CAM_SCALE_STATICHEIGHT 2
 
 
 typedef struct {
@@ -31,6 +42,9 @@ typedef struct {
 
 
 extern CAMERA camera;
+
+
+
 
 
 

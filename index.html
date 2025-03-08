@@ -53,6 +53,12 @@
         
         <script defer>
 
+            const DYNAMIC      = 0;
+            const FIXED_WIDTH  = 1;
+            const FIXED_HEIGHT = 2;
+
+            let mode = FIXED_HEIGHT;
+
             //alert("test 6");
 
             const isMobile = window.innerWidth > window.innerHeight;
@@ -68,14 +74,29 @@
 
                 //console.log(swidth, sheight);
 
-                if (sratio>1) {
-                    canvas.height = 256;
-                    canvas.width = Math.round(canvas.height * sratio);
-                    //console.log(canvas.width, canvas.height);
-                } else {
+                //canvas.height = 256;
+                //canvas.width = Math.round(canvas.height * sratio);
+
+                // TODO:
+                // try to have the c code pull both the style sizes and the canvas
+                // sizes to determine the screen ratio
+
+                if (mode == DYNAMIC) {
+                    if (sratio<1) {
+                        canvas.height = 256;
+                        canvas.width = Math.round(canvas.height * sratio);
+                        //console.log(canvas.width, canvas.height);
+                    } else {
+                        canvas.width = 256;
+                        canvas.height = Math.round(canvas.width / sratio);
+                        //console.log(canvas.width, canvas.height);
+                    }
+                } else if (mode == FIXED_WIDTH) {
                     canvas.width = 256;
                     canvas.height = Math.round(canvas.width / sratio);
-                    //console.log(canvas.width, canvas.height);
+                } else if (mode == FIXED_HEIGHT) {
+                    canvas.height = 256;
+                    canvas.width = Math.round(canvas.height * sratio);
                 }
                 
                 canvas.style.width = swidth+"px";

@@ -28,6 +28,7 @@
 
 #define WALL_NONE  0
 #define WALL_EXIST 1
+// consider renaming to CELL_UNUSED
 #define CELL_EMPTY 0
 #define CELL_USED  1
 

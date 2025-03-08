@@ -117,65 +117,13 @@ void maze_room(MAZE* maze, void* vgrid, int cols, int rows, int _x, int _y, int 
 
 
 
-// I should create a bias for straight lines
-void maze_traverse(MAZE* maze) {
+
+void maze_traverse(MAZE* maze, int buffer[][2], void* vgrid, int x, int y) {
     int xmax = maze->cols;
     int ymax = maze->rows;
+
+    GRID_PTR(xmax, ymax) grid = vgrid;
     
-    int buffer[xmax*ymax][2];
-    GRID(xmax, ymax) grid;
-    memset(&grid, 0, sizeof(GRID(xmax, ymax)));
-
-    // create three main rooms pre-traversal
-    maze_room(maze, &grid, xmax, ymax, xmax/2-2, 0, 4, 4, WALL_UP);
-    maze_room(maze, &grid, xmax, ymax, xmax/2-2, ymax-4, 4, 4, WALL_DOWN);
-    maze_room(maze, &grid, xmax, ymax, xmax/2-3, ymax/2-3, 6, 6, WALL_UP | WALL_DOWN);
-
-    // generate random rooms
-    for (int i = 0; i < 5; i++) {
-        int width = RANDRANGE(2,5);
-        int height = RANDRANGE(2,5);
-        int x = RANDRANGE(1, xmax-width-1);
-        int y = RANDRANGE(1, ymax-height-1);
-        WALL_FLAGS flags = 1 << (rand()%4);
-        if (rand()%2 == 0)
-            flags |= 1 << (rand()%4);
-        if (rand()%5 == 0)
-            flags |= 1 << (rand()%4);
-        if (rand()%11 == 0)
-            flags |= 1 << (rand()%4);
-        maze_room(maze, &grid, xmax, ymax, x, y, width, height, flags);
-    }
-
-    // generate random hallways
-    for (int i = 0; i < 5; i++) {
-        int width, height;
-        WALL_FLAGS flags;
-        if (rand()%2) {
-            width = 2;
-            height = RANDRANGE(5,(int)(ymax/1.5));
-            flags = WALL_UP | WALL_DOWN;
-            if (rand()%4 == 0) flags |= WALL_RIGHT;
-            if (rand()%4 == 0) flags |= WALL_LEFT;
-        } else {
-            width = RANDRANGE(2,(int)(xmax/1.5));
-            height = 2;
-            flags = WALL_RIGHT | WALL_LEFT;
-            if (rand()%4 == 0) flags |= WALL_UP;
-            if (rand()%4 == 0) flags |= WALL_DOWN;
-        }
-        int x = RANDRANGE(1, xmax-width-1);
-        int y = RANDRANGE(1, ymax-height-1);
-        maze_room(maze, &grid, xmax, ymax, x, y, width, height, flags);
-    }
-
-    int x, y;
-
-    do {
-        x = rand()%xmax;
-        y = rand()%ymax;
-    } while (grid[x][y] == CELL_USED);
-
     buffer[0][0] = x;
     buffer[0][1] = y;
 
@@ -244,6 +192,79 @@ void maze_traverse(MAZE* maze) {
 
 
 
+void maze_generate(MAZE* maze) {
+    int xmax = maze->cols;
+    int ymax = maze->rows;
+    
+    int buffer[xmax*ymax][2];
+    GRID(xmax, ymax) grid;
+    memset(&grid, 0, sizeof(GRID(xmax, ymax)));
+
+    // create three main rooms pre-traversal
+    maze_room(maze, &grid, xmax, ymax, xmax/2-2, 0, 4, 4, WALL_UP);
+    maze_room(maze, &grid, xmax, ymax, xmax/2-2, ymax-4, 4, 4, WALL_DOWN);
+    maze_room(maze, &grid, xmax, ymax, xmax/2-3, ymax/2-3, 6, 6, WALL_UP | WALL_DOWN);
+
+    // generate random rooms
+    for (int i = 0; i < 10; i++) {
+        int width = RANDRANGE(2,5);
+        int height = RANDRANGE(2,5);
+        int x = RANDRANGE(1, xmax-width-1);
+        int y = RANDRANGE(1, ymax-height-1);
+        WALL_FLAGS flags = 1 << (rand()%4);
+        if (rand()%2 == 0)
+            flags |= 1 << (rand()%4);
+        if (rand()%5 == 0)
+            flags |= 1 << (rand()%4);
+        if (rand()%11 == 0)
+            flags |= 1 << (rand()%4);
+        maze_room(maze, &grid, xmax, ymax, x, y, width, height, flags);
+    }
+
+    // generate random hallways
+    for (int i = 0; i < 5; i++) {
+        int width, height;
+        WALL_FLAGS flags;
+        if (rand()%2) {
+            width = 2;
+            height = RANDRANGE(5,(int)(ymax/1.5));
+            flags = WALL_UP | WALL_DOWN;
+            if (rand()%4 == 0) flags |= WALL_RIGHT;
+            if (rand()%4 == 0) flags |= WALL_LEFT;
+        } else {
+            width = RANDRANGE(2,(int)(xmax/1.5));
+            height = 2;
+            flags = WALL_RIGHT | WALL_LEFT;
+            if (rand()%4 == 0) flags |= WALL_UP;
+            if (rand()%4 == 0) flags |= WALL_DOWN;
+        }
+        int x = RANDRANGE(1, xmax-width-1);
+        int y = RANDRANGE(1, ymax-height-1);
+        maze_room(maze, &grid, xmax, ymax, x, y, width, height, flags);
+    }
+
+    // find random unused spot on grid
+    int x, y;
+    do {
+        x = rand()%xmax;
+        y = rand()%ymax;
+    } while (grid[x][y] == CELL_USED);
+
+    // do initial maze traversal
+    maze_traverse(maze, buffer, grid, x, y);
+
+    // second pass of traversals to fill out any spaces the first traversal
+    // was unable to.
+    for (int x = 0; x < xmax; x++)
+        for (int y = 0; y < ymax; y++)
+            if (grid[x][y] == CELL_EMPTY)
+                maze_traverse(maze, buffer, grid, x, y);
+}
+
+
+
+
+
 
 
 MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader) {
@@ -293,7 +314,7 @@ MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader) {
         hwalls[i][9] = 0;
     }*/
 
-    maze_traverse(maze);
+    maze_generate(maze);
 
     return maze;
 }

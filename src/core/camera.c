@@ -12,17 +12,37 @@ CAMERA* camera_init(CAMERA* c) {
     get_elementid_size("canvas", &c->swidth, &c->sheight);
     c->ratio = (float)c->swidth/c->sheight;
 
+    // TODO: pull these values from canvas + style width and height values
+    // rather than assert modes in the c code. Instead assert modes solely
+    // in the js code.
+
+    #if CAM_SCALE_MODE == CAM_SCALE_DYNAMIC
     if (c->ratio > 1) {
-        c->wmin[0] = -1*c->ratio;
-        c->wmax[0] =  1*c->ratio;
-        c->wmin[1] = -1;
-        c->wmax[1] =  1;
+        c->wmin[0] = -ZOOM_SCALE * c->ratio;
+        c->wmax[0] =  ZOOM_SCALE * c->ratio;
+        c->wmin[1] = -ZOOM_SCALE;
+        c->wmax[1] =  ZOOM_SCALE;
     } else {
-        c->wmin[0] = -1;
-        c->wmax[0] =  1;
-        c->wmin[1] = -1/c->ratio;
-        c->wmax[1] =  1/c->ratio;
+        c->wmin[0] = -ZOOM_SCALE;
+        c->wmax[0] =  ZOOM_SCALE;
+        c->wmin[1] = -ZOOM_SCALE/c->ratio;
+        c->wmax[1] =  ZOOM_SCALE/c->ratio;
     }
+
+    #elif CAM_SCALE_MODE == CAM_SCALE_STATICWIDTH
+    c->wmin[0] = -ZOOM_SCALE;
+    c->wmax[0] =  ZOOM_SCALE;
+    c->wmin[1] = -ZOOM_SCALE/c->ratio;
+    c->wmax[1] =  ZOOM_SCALE/c->ratio;
+    
+    #elif CAM_SCALE_MODE == CAM_SCALE_STATICHEIGHT
+    c->wmin[0] = -ZOOM_SCALE*c->ratio;
+    c->wmax[0] =  ZOOM_SCALE*c->ratio;
+    c->wmin[1] = -ZOOM_SCALE;
+    c->wmax[1] =  ZOOM_SCALE;
+    
+    #endif
+    
     c->wmin[2] = 0.1;
     c->wmax[2] = 1000.0;
     
