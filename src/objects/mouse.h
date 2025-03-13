@@ -10,12 +10,16 @@
 typedef struct {
     float x, y;
     float px, py;
+    /*float dx, dy; /\* <-- to "visually" filter out collision jitter
+                         Because no better way to fix a problem than to simply hide it */
     float scale;
     float speed;
     COLOR color;
     COLOR pcolor;
     MAZE* maze;
-    SHADER* shader;
+    SHADER* shader2;
+    SHADER* shader3;
+    CAMERA trail_camera;
 } PMOUSE;
 
 

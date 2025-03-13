@@ -1,6 +1,8 @@
 #include <string.h>
+#include <math.h>
 //#include <cglm/cglm.h>
 #include "maze.h"
+#include "drawsurface.h"
 #include "../main.h"
 
 
@@ -26,6 +28,7 @@ typedef struct {
 
 WALL_FLAGS maze_findwalls(MAZE* maze, int c, int r, MAZE_WALLS* walls);
 void maze_walls_write(MAZE_WALLS* walls, WALL_FLAGS flags);
+void maze_draw_wall(MAZE* maze, vec3 pos, vec3 scale);
 
 
 
@@ -274,10 +277,13 @@ MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader) {
     memset(grid, 0, sizeof(GRID(cols, rows)));
 
     *maze = (MAZE){
+        .mode = MAZE_MODE_2D,
         .cols = cols,
         .rows = rows,
         .color = color,
-        .shader = shader,
+        .shader_2d = shader,
+        .shader_3d = NULL,
+        .shader_detailed = NULL,
         .hwalls = hwalls,
         .vwalls = vwalls,
         .grid = grid,
@@ -316,6 +322,11 @@ MAZE* maze_init(MAZE* maze, int cols, int rows, COLOR color, SHADER* shader) {
 
     maze_generate(maze);
 
+    vec2 scale = (vec2){cols*CELL_SIZE, rows*CELL_SIZE};
+
+    // I am just going to let the mouse hijack the callback for this
+    drawsurface_init(&maze->surface, TRAIL_TEX_RES, TRAIL_TEX_RES*rows/cols, TEX_NEAREST, NULL);
+
     return maze;
 }
 
@@ -332,6 +343,8 @@ void maze_destroy(MAZE* maze) {
 
 
 
+
+
 MAZE* maze_draw(MAZE* maze, double t) {
     WALLS_PTR(maze->cols) hwalls = maze->hwalls;
     WALLS_PTR(maze->rows) vwalls = maze->vwalls;
@@ -343,9 +356,8 @@ MAZE* maze_draw(MAZE* maze, double t) {
             float x, y;
             maze_getpos(maze, 0, r, &x, &y);
             //x -= CELL_SIZE/2.0;
-            draw_rectangle(
-                WALL_THICK, WALL_LENGTH, 0, (vec2){x, y}, 
-                maze->color, maze->shader, 0);
+            maze_draw_wall(maze, (vec3){x, y, 0}, 
+                (vec3){WALL_THICK, WALL_LENGTH, WALL_HEIGHT});
         }
     }
 
@@ -356,9 +368,8 @@ MAZE* maze_draw(MAZE* maze, double t) {
             float x, y;
             maze_getpos(maze, c, 0, &x, &y);
             //y -= CELL_SIZE/2.0;
-            draw_rectangle(
-                WALL_LENGTH, WALL_THICK, 0, (vec2){x, y}, 
-                maze->color, maze->shader, 0);
+            maze_draw_wall(maze, (vec3){x, y, 0}, 
+                (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
         }
     }
 
@@ -370,18 +381,50 @@ MAZE* maze_draw(MAZE* maze, double t) {
             maze_getpos(maze, c, r, &x, &y);
             
             if (flags & WALL_RIGHT)
-                draw_rectangle(
-                    WALL_THICK, WALL_LENGTH, 0, (vec2){x + CELL_SIZE, y}, 
-                    maze->color, maze->shader, 0);
+                maze_draw_wall(
+                    maze, (vec3){x + CELL_SIZE, y, 0}, 
+                    (vec3){WALL_THICK, WALL_LENGTH, WALL_HEIGHT});
 
             if (flags & WALL_UP)
-                draw_rectangle(
-                    WALL_LENGTH, WALL_THICK, 0, (vec2){x, y + CELL_SIZE}, 
-                    maze->color, maze->shader, 0);
+                maze_draw_wall(
+                    maze, (vec3){x, y + CELL_SIZE, 0}, 
+                    (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
         }
+
+    // whoops. No dt
+    // render stuff to the surface
+    drawsurface_draw(&maze->surface, t, INFINITY);
+
+    // render surface as texture plane beneath maze
+    if (maze->shader_trail) {
+        vec2 scale = (vec2){maze->cols*CELL_SIZE, maze->rows*CELL_SIZE};
+        vec3 pos = (vec3){maze->x, maze->y, -0.0001};
+        draw_texture_plane(pos, scale, NULL, 0, 
+            &maze->surface.texture, maze->shader_trail, true);
+    }
+
     return maze;
 }
 
+
+
+void maze_draw_wall(MAZE* maze, vec3 pos, vec3 scale) {
+    switch (maze->mode) {
+        case MAZE_MODE_DETAILED:
+            if (maze->shader_detailed) {
+                draw_rect3(pos, scale, (vec3){0,0,0}, 0, maze->color, maze->shader_detailed);
+                break;
+            }
+        case MAZE_MODE_3D:
+            if (maze->shader_3d) {
+                draw_rect3(pos, scale, (vec3){0,0,0}, 0, maze->color, maze->shader_3d);
+                break;
+            }
+        case MAZE_MODE_2D:
+            draw_rectangle(scale[0], scale[1], 0, (vec2){pos[0], pos[1]}, maze->color, maze->shader_2d, 0);
+            break;
+    }
+}
 
 
 

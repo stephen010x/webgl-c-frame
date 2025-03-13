@@ -44,6 +44,8 @@ GLuint shader_program(const char* progname, const char* vertname, const char* ve
 
 
 
+
+
 int init_webgl(const char* canvas_id) {
     //static const char const* vs_path = "./src/shaders/default.vert";
     //static const char const* fs_path = "./src/shaders/default.frag"
@@ -63,8 +65,7 @@ int init_webgl(const char* canvas_id) {
     gl_attrib.renderViaOffscreenBackBuffer = EM_TRUE;
 
     // create webgl context to canvas element using id
-    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE gl_context = emscripten_webgl_create_context(
-        canvas_id, &gl_attrib);
+    EMSCRIPTEN_WEBGL_CONTEXT_HANDLE gl_context = emscripten_webgl_create_context(canvas_id, &gl_attrib);
     ASSERT(gl_context, -1, "Error: Failed to create webgl context\n");
 
     // activate webgl context

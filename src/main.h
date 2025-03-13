@@ -15,6 +15,10 @@
 
 
 
+#define HTML_CANVAS_ID "canvas"
+
+
+
 #define FRAND() ((float)rand()/(float)RAND_MAX)
 #define FRANDRANGE(__min, __max) MAP(FRAND(), 0, 1, __min, __max)
 // non-inclusive

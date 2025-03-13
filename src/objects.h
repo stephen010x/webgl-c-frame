@@ -6,5 +6,6 @@
 #include "objects/shapes.h"
 #include "objects/maze.h"
 #include "objects/mouse.h"
+#include "objects/drawsurface.h"
 
 #endif

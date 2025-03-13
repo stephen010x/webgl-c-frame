@@ -5,6 +5,7 @@
 #include "core/webgl.h"
 #include "core/input.h"
 #include "core/physics.h"
+#include "core/texture.h"
 //#include "core/linear.h"
 
 #endif

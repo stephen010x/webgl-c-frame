@@ -114,7 +114,7 @@ MODEL* MODEL_init(MODEL* model) {
         GL_ARRAY_BUFFER, 
         (GLsizeiptr)MESH_sizeof(model->mesh),
         model->mesh->data,
-        model->gl_usage, /*data_usage*/
+        model->gl_usage /*data_usage*/
     );
     
     return model;
@@ -148,7 +148,7 @@ int MODEL_draw(MODEL* model, double t){
                 GL_ARRAY_BUFFER,
                 0,
                 (GLsizeiptr)MESH_sizeof(model->mesh),
-                model->mesh->data,
+                model->mesh->data
             );
         break;
     }

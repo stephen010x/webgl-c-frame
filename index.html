@@ -39,15 +39,104 @@
                 -ms-interpolation-mode: nearest-neighbor;   /*IE*/
             }
             html, body {margin: 0; height: 100%; overflow: hidden}
+
+            #controls {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 600px;
+                background-color: rgba(0, 0, 0, 0.8);
+                color: white;
+                text-align: left;
+                padding: 0px 200px;
+                margin: 0;
+                white-space: pre;
+                font-family: monospace;
+            }
         </style>
+
+        <script>
+            window.onload = function() {
+                console.log('All resources have completely loaded');
+            }
+        </script>
         
         <script src="script.js"></script>
     </head>
     
     <body style="background-color:lightgrey;">
-        <canvas id="canvas" style="background-color:white"></canvas>
+
+        <div id="controls">
+    	    <p>
+<u>Movement</u>
+    
+&lt;up arrow&gt;    - move forward
+&lt;left arrow&gt;  - move left
+&lt;down arrow&gt;  - move backward
+&lt;right arrow&gt; - move right
+
+&lt;w key&gt;       - move forward
+&lt;a key&gt;       - move left
+&lt;s key&gt;       - move backward
+&lt;d key&gt;       - move right
+
+&lt;mouse move&gt;  - rotate camera (realism mode)
+
+
+<u>Switch Cameras/Gamemodes</u>
+
+&lt;1 key&gt;       - 2D camera
+&lt;2 key&gt;       - 3D camera
+&lt;3 key&gt;       - realism mode
+
+
+<u>Others</u>
+
+&lt;h key&gt;       - show this help box
+    	    </p>
+    	</div>
+    
+        <canvas id="canvas" style="background-color:white;"></canvas>
             <!--width="800" height="600"-->
 
+        <canvas id="asset-loader" style="display: none;"></canvas>
+        <!--canvas id="asset-loader" width="400" height="400"></canvas-->
+
+
+        <!--div id="media" style="display: none;-->
+        <div id="media" style="visibility: hidden; position: absolute;">
+
+            <img id="crying-cat" src="assets/crying-cat.jpg">
+
+        </div>
+
+
+        <!--script>
+            window.onload = function() {
+                const canvas_id = "asset-loader";
+                const image_id = "cryingcat";
+                
+                //console.log(canvas_id, image_id);
+                const canvas = document.getElementById(canvas_id);
+                const context = canvas.getContext('2d');
+                const image = document.getElementById(image_id);
+
+                console.log(canvas, context, image);
+
+                canvas.width = image.width;
+                canvas.height = image.height;
+                context.drawImage(image, 0, 0);
+
+                context.fillStyle = 'red';
+                context.fillRect(50, 50, 100, 100);
+
+                var img = document.getElementById('sourceImage');
+            }
+        </script-->
+
+
+        
 
         <script src="bin/bin.js"></script>
         
@@ -102,107 +191,8 @@
                 canvas.style.width = swidth+"px";
                 canvas.style.height = sheight+"px";
             }
-
-
-                /*try {
-                    if (!isMobile && window.DeviceOrientationEvent) {
-                    console.log("device orientation event found");
-                    const button = document.createElement("button");
-                    canvas.style.display = "none";
-                    button.innerText = "Enable device orientation";
-                    document.body.appendChild(button);
-
-                    button.addEventListener("click", function () {
-                        if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
-                            window.DeviceOrientationEvent.requestPermission()
-                            .then(permissionState => {
-                                if (permissionState === 'granted') {
-                                    button.style.display = "none";
-                                } else {
-                                    alert("Device orientation permission not granted");                                  }
-                            }).catch(console.error);
-                        } else {
-                            button.style.display = "none";
-                        }
-                        canvas.style.display = "inline";
-                        
-                    });
-                } else {
-                    console.log("no device orientation event");
-                    setup_canvas();
-                }
-            } catch (error) {
-                alert(error);
-                console.log(error);
-            }*/
-
             setup_canvas();
             
-
-
-            /*function enter_main() {
-                //alert("main");
-                if (Module['calledRun'] || Module['calledMain']) {
-                    //alert("MAIN");
-                    Module.ccall('main', 'number', [], []);
-                } else {
-                    Module['onRuntimeInitialized'] = function () {
-                        //alert("MAIN");
-                        Module.ccall('main', 'number', [], []);
-                    }
-                }
-            }*/
-
-
-            /*try {if (!isMobile && window.DeviceOrientationEvent) {
-                //alert("oh?");
-                console.log("device orientation event found");
-                const button = document.createElement("button");
-                canvas.style.display = "none";
-                //button.innerText = "Enter Fullscreen";
-                button.innerText = "Enable device orientation";
-                document.body.appendChild(button);
-
-                button.addEventListener("click", function () {
-                    //alert("wtf??");
-                    // TODO: setup_canvas is somehow pulling the old values
-                    //       even after this call. Fix this!!!
-                    //requestFullscreen();
-                    if (typeof window.DeviceOrientationEvent.requestPermission === 'function') {
-                        window.DeviceOrientationEvent.requestPermission()
-                        .then(permissionState => {
-                            if (permissionState === 'granted') {
-                                button.style.display = "none";
-                                //alert("nani?");
-                            } else {
-                                alert("Device orientation permission not granted");
-                                
-                            }
-                            //alert("yoy?");
-                        })
-                        /\*.catch(error) {
-                            alert(error);
-                            console.log(error);
-                        };*\/
-                    } else {
-                        button.style.display = "none";
-                    }
-                    canvas.style.display = "inline";
-                    setup_canvas();
-                    enter_main();
-                });
-            } else {
-                //alert("heck");
-                console.log("no device orientation event");
-                setup_canvas();
-                enter_main();
-            }} catch (error) {
-                alert(error);
-                console.log(error);
-            }*/
-
-
-
 
             function requestFullscreen() {
                 var elem = document.documentElement;
@@ -217,9 +207,32 @@
                     elem.msRequestFullscreen();
                 }
             }
+
+            let element = document.getElementById('controls');
+
+            let opacity = 1.0;
+
+            document.addEventListener('keydown', function(event) {
+        	    if (event.key === 'h' || event.key === 'H') {
+                    element.style.opacity = 1.0;
+                    element.style.display = 'block';
+                    opacity = 1.0;
+        	    } else {
+                    let fadeEffect = setInterval(function () {
+                        var element = document.getElementById('controls');
+                        if (opacity <= 0.1) {
+                            clearInterval(fadeEffect);
+                            element.style.display = 'none';
+                        } else {
+                            element.style.opacity = opacity;
+                            opacity -= 0.1;
+                        }
+                    }, 100);
+        	    }
+        	});
             
         
-            // weird. Scaling in css doesn't change the resolution
+            // Note that scaling in css doesn't change the resolution
             // while scaling in js does
             
         </script>

@@ -26,6 +26,8 @@ enum meshtype {
     MESHTYPE_1D_PACKED,
     MESHTYPE_2D_PACKED,
     MESHTYPE_3D_PACKED,
+    MESHTYPE_3D_VERT_NORM,
+    MESHTYPE_3D_VERT_NORM_TEX2,
 };
 
 
@@ -39,6 +41,9 @@ enum meshtype {
 #define MESH(__n) struct {  \
     int verts;              \
     int type;               \
+    /* TODO: consider moving this to shader, so that a shader can determine between wireframe and
+    // rasterization. And then maybe create an enum for types that should be determined by mesh, like
+    // how the triangles are organized to be rendered, as the shader cant know that. */ \
     GLenum mode;            \
     union {          /*is this union even neccessary?*/       \
         /*vec2 v2[__n/sizeof(vec2)];  \
@@ -69,6 +74,10 @@ __FORCE_INLINE__ size_t MESH_sizeof(void* m) {
             return mesh->verts * sizeof(VEC2_DUMMY);
         case MESHTYPE_3D_PACKED:
             return mesh->verts * sizeof(VEC3_DUMMY);
+        case MESHTYPE_3D_VERT_NORM:
+            return mesh->verts * 2 * sizeof(VEC3_DUMMY);
+        case MESHTYPE_3D_VERT_NORM_TEX2:
+            return mesh->verts * (2 * sizeof(VEC3_DUMMY) + 1 * sizeof(VEC2_DUMMY));
     }
     return -1;
 }

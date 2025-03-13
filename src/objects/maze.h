@@ -5,9 +5,14 @@
 // and then use make to point to them or something
 #include "../core/model.h"
 #include "shapes.h"
+#include "drawsurface.h"
 
 
+//struct _DRAWSURFACE;
+//typedef struct _DRAWSURFACE DRAWSURFACE;
 
+
+#define TRAIL_TEX_RES 256
 
 //#define CELL_SIZE ((float)0.1)
 //#define WALL_THICK ((float)0.01)
@@ -15,6 +20,7 @@
 //#define WALL_THICK ((float)0.005*1.5)
 #define CELL_SIZE ((float)0.075)
 #define WALL_THICK ((float)0.02625)
+#define WALL_HEIGHT ((float)0.05)
 
 #define WALL_LENGTH (CELL_SIZE + WALL_THICK)
 
@@ -60,7 +66,18 @@ typedef unsigned char WALL_FLAGS;
 
 
 
+enum maze_mode {
+    MAZE_MODE_NONE = 0,
+    MAZE_MODE_2D,
+    MAZE_MODE_3D,
+    MAZE_MODE_DETAILED,
+};
+
+
+
 typedef struct {
+    int mode;
+
     int cols;
     int rows;
 
@@ -72,20 +89,25 @@ typedef struct {
 
     COLOR color;
 
-    SHADER* shader;
+    SHADER* shader_2d;
+    SHADER* shader_3d;
+    SHADER* shader_detailed;
+    SHADER* shader_trail;
 
     void* hwalls;
     void* vwalls;
     void* grid;
+
+    DRAWSURFACE surface;
 } MAZE;
 
 
 
 
 
-MAZE* maze_init(  MAZE* maze, int cols, int rows, COLOR color, SHADER* shader);
-void maze_destroy(MAZE* maze);
-MAZE* maze_draw(  MAZE* maze, double t);
+MAZE* maze_init(   MAZE* maze, int cols, int rows, COLOR color, SHADER* shader);
+void maze_destroy( MAZE* maze);
+MAZE* maze_draw(   MAZE* maze, double t);
 
 WALL_FLAGS maze_getwalls(  MAZE* maze, int c, int r);
 WALL_FLAGS maze_setwalls(  MAZE* maze, int c, int r, WALL_FLAGS flags);

@@ -51,8 +51,8 @@ for fname in infiles:
         fout.write('const char ' + fname.replace('.', '_') + '[]=')
         for line in fin:
             nline = line.strip().replace('"', '\\"').replace('\\', '\\\\')
-            if nline != "" and nline[0:2] != "//":
-                fout.write('"'+nline+'\\n"\n')
+            #if nline != "" and nline[0:2] != "//":
+            fout.write('"'+nline+'\\n"\n')
         fout.write(';\n')
     
     with open(curr+header, 'a') as fout:
