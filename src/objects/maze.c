@@ -346,6 +346,36 @@ void maze_destroy(MAZE* maze) {
 
 
 MAZE* maze_draw(MAZE* maze, double t) {
+
+    // I moved this to the top so that everything below can benefit from the texture bindings
+    switch (maze->mode) {
+        case MAZE_MODE_DETAILED:
+            if (maze->texture_wall)
+                texture_bind(maze->texture_wall, maze->shader_detailed, "tex0", GL_TEXTURE0);
+                    /*texture_bind_scale(maze->texture_wall, maze->shader_detailed, 
+                        "tex0", GL_TEXTURE0, "u_tex_scale", 6);*/
+            if (maze->texture_wall_norm) {
+                texture_bind(maze->texture_wall_norm, maze->shader_detailed, "norm0", GL_TEXTURE1);
+            }
+
+            vec3 scale = (vec3){maze->cols*CELL_SIZE, maze->rows*CELL_SIZE, 1};
+            shader_set_float(maze->shader_detailed, "u_tex_scale", 3);
+            shader_set_int(maze->shader_detailed, "u_mode", 1);
+            {
+                vec3 pos = (vec3){maze->x, maze->y, WALL_HEIGHT*2};
+                draw_rect3(pos, scale, NULL, 0, maze->color2, maze->shader_detailed);
+            }
+            {
+                vec3 pos = (vec3){maze->x, maze->y, -1};
+                draw_rect3(pos, scale, NULL, 0, maze->color2, maze->shader_detailed);
+            }
+
+            shader_set_float(maze->shader_detailed, "u_tex_scale", 6);
+            shader_set_int(maze->shader_detailed, "u_mode", 0);
+            break;
+    }
+
+
     WALLS_PTR(maze->cols) hwalls = maze->hwalls;
     WALLS_PTR(maze->rows) vwalls = maze->vwalls;
 
@@ -391,16 +421,23 @@ MAZE* maze_draw(MAZE* maze, double t) {
                     (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
         }
 
+
+    // TODO: move these to their own function to be called
     // whoops. No dt
     // render stuff to the surface
     drawsurface_draw(&maze->surface, t, INFINITY);
 
-    // render surface as texture plane beneath maze
-    if (maze->shader_trail) {
-        vec2 scale = (vec2){maze->cols*CELL_SIZE, maze->rows*CELL_SIZE};
-        vec3 pos = (vec3){maze->x, maze->y, -0.0001};
-        draw_texture_plane(pos, scale, NULL, 0, 
-            &maze->surface.texture, maze->shader_trail, true);
+    switch (maze->mode) {
+        case MAZE_MODE_3D:
+        case MAZE_MODE_2D:
+            // render surface as texture plane beneath maze
+            if (maze->shader_trail) {
+                vec2 scale = (vec2){maze->cols*CELL_SIZE, maze->rows*CELL_SIZE};
+                vec3 pos = (vec3){maze->x, maze->y, -0.0001};
+                draw_texture_plane(pos, scale, NULL, 0, 
+                    &maze->surface.texture, maze->shader_trail, true);
+            }
+            break;
     }
 
     return maze;
@@ -408,20 +445,34 @@ MAZE* maze_draw(MAZE* maze, double t) {
 
 
 
-void maze_draw_wall(MAZE* maze, vec3 pos, vec3 scale) {
+void maze_draw_wall(MAZE* maze, vec3 _pos, vec3 _scale) {    
     switch (maze->mode) {
         case MAZE_MODE_DETAILED:
             if (maze->shader_detailed) {
-                draw_rect3(pos, scale, (vec3){0,0,0}, 0, maze->color, maze->shader_detailed);
+                vec3 pos, scale;
+                glm_vec3_copy(_pos, pos);
+                glm_vec3_copy(_scale, scale);
+                scale[2] *= 2;
+                /*if (maze->texture_wall)
+                    texture_bind_scale(maze->texture_wall, maze->shader_detailed, 
+                        "tex0", GL_TEXTURE0, "u_tex_scale", 6);
+                if (maze->texture_wall_norm)
+                    texture_bind(maze->texture_wall_norm, maze->shader_detailed, "norm0", GL_TEXTURE1);*/
+                draw_rect3(pos, scale, NULL, 0, maze->color2, maze->shader_detailed);
                 break;
             }
         case MAZE_MODE_3D:
             if (maze->shader_3d) {
-                draw_rect3(pos, scale, (vec3){0,0,0}, 0, maze->color, maze->shader_3d);
+                vec3 pos, scale;
+                glm_vec3_copy(_pos, pos);
+                glm_vec3_copy(_scale, scale);
+                pos[2] -= scale[2]*1;
+                scale[2] = scale[2]*2;
+                draw_rect3(pos, scale, NULL, 0, maze->color, maze->shader_3d);
                 break;
             }
         case MAZE_MODE_2D:
-            draw_rectangle(scale[0], scale[1], 0, (vec2){pos[0], pos[1]}, maze->color, maze->shader_2d, 0);
+            draw_rectangle(_scale[0], _scale[1], 0, (vec2){_pos[0], _pos[1]}, maze->color, maze->shader_2d, 0);
             break;
     }
 }

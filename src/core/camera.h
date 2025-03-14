@@ -100,5 +100,7 @@ void camera_rotate_about(CAMERA* c, vec3 origin, vec3 rot, float radius);
 // TODO: add update modes (for instance, rotate about origin vs fps)
 // TODO: replace zoom with z translation post-rotation
 void camera_update(CAMERA* c);
+// TODO: get rid of this duck-tape function
+void camera_update_actual(CAMERA* c);
 
 #endif

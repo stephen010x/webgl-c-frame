@@ -228,17 +228,30 @@ void texture_init(TEXTURE* t, ASSET* asset, int mode, int flags) {
 }
 
 
-int texture_bind(TEXTURE* t, SHADER* shader, char* svar, GLenum tex_unit) {
+int texture_bind(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit) {
     glUseProgram(shader->program);
 
     // set active texture unit, and then bind texture to it
     glActiveTexture(tex_unit);
     glBindTexture(GL_TEXTURE_2D, t->id);
     
-    GLint tex_u_loc = glGetUniformLocation(shader->program, svar);
+    GLint tex_u_loc = glGetUniformLocation(shader->program, uvar);
 
     if (tex_u_loc >= 0)
         glUniform1i(tex_u_loc, tex_unit-GL_TEXTURE0);
+
+    return 0;
+}
+
+
+
+int texture_bind_scale(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit, char* svar, float scale) {
+    texture_bind(t, shader, uvar, tex_unit);
+
+    GLint scale_u_loc = glGetUniformLocation(shader->program, svar);
+
+    if (scale_u_loc >= 0)
+        glUniform1f(scale_u_loc, scale);
 
     return 0;
 }

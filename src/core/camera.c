@@ -51,7 +51,7 @@ void camera_init(CAMERA* c) {
     
     #endif
     
-    c->wmin[2] = 0.1;
+    c->wmin[2] = 0.001;
     c->wmax[2] = 1000.0;
 
     // some default initilization. Makes things easy for static cameras
@@ -72,6 +72,7 @@ void camera_setviewport(CAMERA* c, vec3 min, vec3 max) {
 
 // call this when you want to apply the parameters in the camera class
 // to the camera viewport matrix
+// TODO this function doesn't work right. But things are using it, so fix this later
 void camera_update(CAMERA* c) {
     camera_setup(c);
 
@@ -82,6 +83,22 @@ void camera_update(CAMERA* c) {
     glm_rotate_x(c->viewmat, c->rot[0], c->viewmat);
     glm_rotate_y(c->viewmat, c->rot[1], c->viewmat);
     glm_rotate_z(c->viewmat, c->rot[2], c->viewmat);
+}
+
+
+// TODO: get rid of this duck-tape function
+void camera_update_actual(CAMERA* c) {
+    camera_setup(c);
+
+    // rotate first, x, y, z axes in order
+    glm_rotate_x(c->viewmat, c->rot[0], c->viewmat);
+    glm_rotate_y(c->viewmat, c->rot[2], c->viewmat);
+    glm_rotate_z(c->viewmat, c->rot[1], c->viewmat);
+
+    // translate second so that it rotates about the camera origin
+    vec3 pos;
+    glm_vec3_negate_to(c->pos, pos);
+    glm_translate(c->viewmat, pos);
 }
 
 

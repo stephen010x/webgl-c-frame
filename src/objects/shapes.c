@@ -362,6 +362,7 @@ SHADER* shader_init(SHADER* shader, GLuint program, SHADER_USE_CALL call, void* 
         glUniformMatrix4fv(shader->u_norm_mat_loc, 
             1, GL_FALSE, (GLfloat*)viewmat);*/
 
+    // debug color
     if (shader->u_color_loc > 0) 
         glUniform4fv(shader->u_color_loc, 1, (GLfloat[]){0.0, 1.0, 0.0, 1.0});
 
@@ -392,6 +393,71 @@ SHADER* shader_use(SHADER* shader) {
         shader->callback(shader, shader->data);
 
     return shader;
+}
+
+
+// TODO: create an error message system that collects different types of the same error
+// and then have a handler that prints out the error and how many instances of it every interval
+// to reduce error bloat
+// that way I can let the programmer know that the uniforms arent being set if they wish
+int shader_set_float(SHADER* shader, char* vname, float val) {
+    glUseProgram(shader->program);
+    GLint u_loc = glGetUniformLocation(shader->program, vname);
+    if (u_loc > 0) {
+        glUniform1f(u_loc, (GLfloat)val);
+        return 0;
+    }
+    return -1;
+}
+
+int shader_set_int(SHADER* shader, char* vname, int val) {
+    glUseProgram(shader->program);
+    GLint u_loc = glGetUniformLocation(shader->program, vname);
+    if (u_loc > 0) {
+        glUniform1i(u_loc, (GLint)val);
+        return 0;
+    }
+    return -1;
+}
+
+int shader_set_mat4(SHADER* shader, char* vname, mat4 val) {
+    glUseProgram(shader->program);
+    GLint u_loc = glGetUniformLocation(shader->program, vname);
+    if (u_loc > 0) {
+        glUniformMatrix4fv(u_loc, 1, GL_FALSE, (GLfloat*)val);
+        return 0;
+    }
+    return -1;
+}
+
+int shader_set_vec2(SHADER* shader, char* vname, vec2 val) {
+    glUseProgram(shader->program);
+    GLint u_loc = glGetUniformLocation(shader->program, vname);
+    if (u_loc > 0) {
+        glUniform2fv(u_loc, 1, (GLfloat*)val);
+        return 0;
+    }
+    return -1;
+}
+
+int shader_set_vec3(SHADER* shader, char* vname, vec3 val) {
+    glUseProgram(shader->program);
+    GLint u_loc = glGetUniformLocation(shader->program, vname);
+    if (u_loc > 0) {
+        glUniform3fv(u_loc, 1, (GLfloat*)val);
+        return 0;
+    }
+    return -1;
+}
+
+int shader_set_vec4(SHADER* shader, char* vname, vec4 val) {
+    glUseProgram(shader->program);
+    GLint u_loc = glGetUniformLocation(shader->program, vname);
+    if (u_loc > 0) {
+        glUniform4fv(u_loc, 1, (GLfloat*)val);
+        return 0;
+    }
+    return -1;
 }
 
 
@@ -700,16 +766,18 @@ int draw_rect2(vec3 pos, vec2 scale, vec3 norm, float rot, COLOR color, SHADER* 
     shape_setup_attributes(square_mesh.type, shader);
 
     mat4 viewmat = GLM_MAT4_IDENTITY_INIT;
-    mat4 lookmat;
+    //mat4 lookmat;
     glm_translate(viewmat, pos);
 
-    // get the cross product to find axis of rotation and angle of rotation
-    vec3 axis;
-    glm_vec3_crossn(norm, (vec3){0,0,1}, axis);
-    float angle = glm_vec3_angle(norm, (vec3){0,0,1});
-    // rotate matrix on axis of rotation
-    glm_rotate(viewmat, angle, axis);
-    glm_rotate(viewmat, rot, (vec3){0,0,1});
+    if (norm != NULL && (norm[0] != 0 || norm[1] != 0 || norm[2] != 0)) {
+        // get the cross product to find axis of rotation and angle of rotation
+        vec3 axis;
+        glm_vec3_crossn(norm, (vec3){0,0,1}, axis);
+        float angle = glm_vec3_angle(norm, (vec3){0,0,1});
+        // rotate matrix on axis of rotation
+        glm_rotate(viewmat, angle, axis);
+        glm_rotate(viewmat, rot, (vec3){0,0,1});
+    }
 
     glm_scale(viewmat, (vec3){scale[0], scale[1], 1});
 
@@ -722,7 +790,21 @@ int draw_rect2(vec3 pos, vec2 scale, vec3 norm, float rot, COLOR color, SHADER* 
         glUniform4fv(shader->u_color_loc, 1, color.raw);
 
     // set uniform normal matrix
+    // the matrix has to be completely rebuilt to avoid scaling affecting normals
     if (shader->u_norm_mat_loc > 0) {
+        mat4 viewmat = GLM_MAT4_IDENTITY_INIT;
+        glm_translate(viewmat, pos);
+        if (norm != NULL && (norm[0] != 0 || norm[1] != 0 || norm[2] != 0)) {
+            // get the cross product to find axis of rotation and angle of rotation
+            vec3 axis;
+            glm_vec3_crossn(norm, (vec3){0,0,1}, axis);
+            float angle = glm_vec3_angle(norm, (vec3){0,0,1});
+            // rotate matrix on axis of rotation
+            glm_rotate(viewmat, angle, axis);
+            glm_rotate(viewmat, rot, (vec3){0,0,1});
+        }
+        // no scaling
+    
         //mat3 norm_mat = mat3(transpose(inverse(u_mod_mat)));
         mat3 norm_mat;
         glm_mat4_pick3(viewmat, norm_mat);
@@ -776,7 +858,7 @@ int draw_rect3(vec3 pos, vec3 scale, vec3 dir, float roll, COLOR color, SHADER* 
         glm_rotate(viewmat, angle, axis);
         glm_rotate(viewmat, roll, (vec3){0,0,1});
         
-        glm_scale(viewmat, (vec3){scale[0], scale[1], 1});
+        //glm_scale(viewmat, (vec3){scale[0], scale[1], 1});
     }
     glm_scale(viewmat, scale);
 
@@ -791,6 +873,19 @@ int draw_rect3(vec3 pos, vec3 scale, vec3 dir, float roll, COLOR color, SHADER* 
 
     // set uniform normal matrix
     if (shader->u_norm_mat_loc > 0) {
+        mat4 viewmat = GLM_MAT4_IDENTITY_INIT;
+        glm_translate(viewmat, pos);
+        if (dir != NULL && (dir[0] != 0 || dir[1] != 0 || dir[2] != 0)) {
+            // get the cross product to find axis of rotation and angle of rotation
+            vec3 axis;
+            glm_vec3_crossn(dir, (vec3){0,0,1}, axis);
+            float angle = glm_vec3_angle(dir, (vec3){0,0,1});
+            // rotate matrix on axis of rotation
+            glm_rotate(viewmat, angle, axis);
+            glm_rotate(viewmat, roll, (vec3){0,0,1});
+        }
+        // no scaling
+    
         //mat3 norm_mat = mat3(transpose(inverse(u_mod_mat)));
         mat3 norm_mat;
         glm_mat4_pick3(viewmat, norm_mat);

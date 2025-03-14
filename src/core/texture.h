@@ -87,7 +87,9 @@ void asset_free(ASSET* asset);
 // I should start making all class init helpers return void. It enforces cleaner code rather than
 // inline hard-to-read garbage
 void texture_init(TEXTURE* t, ASSET* asset, int mode, int flags);
-int texture_bind(TEXTURE* t, SHADER* shader, char* svar, GLenum tex_unit);
+int texture_bind(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit);
+// used mostly for repeating textures that aren't mapped to vertices
+int texture_bind_scale(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit, char* svar, float scale);
 
 
 bool is_page_loaded(void);

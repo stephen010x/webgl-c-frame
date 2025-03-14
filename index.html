@@ -71,9 +71,9 @@
     	    <p>
 <u>Movement</u>
     
-&lt;up arrow&gt;    - move forward
-&lt;left arrow&gt;  - move left
-&lt;down arrow&gt;  - move backward
+&lt;up    arrow&gt; - move forward
+&lt;left  arrow&gt; - move left
+&lt;down  arrow&gt; - move backward
 &lt;right arrow&gt; - move right
 
 &lt;w key&gt;       - move forward
@@ -82,13 +82,16 @@
 &lt;d key&gt;       - move right
 
 &lt;mouse move&gt;  - rotate camera (realism mode)
+&lt;shift key&gt;   - sprint        (realism mode)
 
 
 <u>Switch Cameras/Gamemodes</u>
 
 &lt;1 key&gt;       - 2D camera
 &lt;2 key&gt;       - 3D camera
-&lt;3 key&gt;       - realism mode
+&lt;3 key&gt;       - toggle dithering
+&lt;4 key&gt;       - realism mode
+&lt;5 key&gt;       - switch between dev-modes
 
 
 <u>Others</u>
@@ -108,8 +111,25 @@
         <div id="media" style="visibility: hidden; position: absolute;">
 
             <img id="crying-cat" src="assets/crying-cat.jpg">
+            <img id="rock-wall-tex" src="assets/rock_wall_tex.png">
+            <img id="rock-wall-norm" src="assets/rock_wall_norm.png">
+            <img id="rock-wall-white" src="assets/rock_wall_white.png">
+            <!--img id="rock-wall-smooth" src="assets/rock_wall_smooth.png"-->
+            <img id="test-norm" src="assets/test_norm.png">
 
+            <audio id="nyan-cat-sound"> <source  src="assets/nyan_cat.mp3" type="audio/mpeg"> </audio>
+            <audio id="silent-sound"> <source  src="assets/silence.mp3" type="audio/mpeg"> </audio>
         </div>
+
+        <script>
+            /*{
+                var sound1 = document.getElementById("nyan-cat-sound");
+                var sound2 = sound1.cloneNode(true);
+                setTimeout(function () {sound1.play()}, 1000);
+                setTimeout(function () {sound2.play()}, 6000);
+            }*/
+            
+        </script>
 
 
         <!--script>
@@ -230,6 +250,26 @@
                     }, 100);
         	    }
         	});
+
+
+
+            
+            /*
+            document.addEventListener('click', function() {
+                document.body.requestPointerLock();
+            });
+
+            document.addEventListener('pointerlockchange', function() {
+                if (document.pointerLockElement === document.body) {
+                    console.log('Pointer is locked');
+                } else {
+                    console.log('Pointer is unlocked');
+                }
+            });
+
+            document.addEventListener('pointerlockerror', function() {
+                console.error('Error while trying to lock the pointer');
+            });*/
             
         
             // Note that scaling in css doesn't change the resolution

@@ -11,10 +11,10 @@ typedef void (*EVENT_CALLBACK)(void* params);
 
 
 void input_init(void);
+void input_refresh(void);
 // TODO not implemented yet
 void input_push_callback(EVENT_CALLBACK callback);
 void input_pop_callback(EVENT_CALLBACK callback);
-
 
 
 typedef struct {
@@ -22,6 +22,7 @@ typedef struct {
     int y;
     int dx;
     int dy;
+    bool grabbed;
     char button[3];
 } MOUSE;
 

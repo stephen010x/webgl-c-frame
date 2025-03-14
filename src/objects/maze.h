@@ -10,6 +10,8 @@
 
 //struct _DRAWSURFACE;
 //typedef struct _DRAWSURFACE DRAWSURFACE;
+struct _TEXTURE;
+typedef struct _TEXTURE TEXTURE;
 
 
 #define TRAIL_TEX_RES 256
@@ -88,6 +90,7 @@ typedef struct {
     float scale;
 
     COLOR color;
+    COLOR color2;
 
     SHADER* shader_2d;
     SHADER* shader_3d;
@@ -99,6 +102,8 @@ typedef struct {
     void* grid;
 
     DRAWSURFACE surface;
+    TEXTURE* texture_wall;
+    TEXTURE* texture_wall_norm;
 } MAZE;
 
 

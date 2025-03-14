@@ -35,6 +35,10 @@ void input_init(void) {
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &mouse_event_handler);
     emscripten_set_mousemove_callback(
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &mouse_event_handler);
+    /*emscripten_set_mouseenter_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &mouse_event_handler);
+    emscripten_set_mouseleave_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &mouse_event_handler);*/
 
     emscripten_set_touchstart_callback(
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &touch_event_handler);
@@ -121,8 +125,14 @@ bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* par
 }
 
 
+#include "../main.h"
 
 bool mouse_event_handler(int etype, const EmscriptenMouseEvent *event, void *params) {
+    //printf("%d, %d\n", etype, EMSCRIPTEN_EVENT_MOUSEENTER);
+
+    EmscriptenPointerlockChangeEvent pointerlock;
+    emscripten_get_pointerlock_status(&pointerlock);
+    
     switch (etype) {
         case EMSCRIPTEN_EVENT_MOUSEMOVE:
             mouse.x = event->canvasX;
@@ -133,12 +143,30 @@ bool mouse_event_handler(int etype, const EmscriptenMouseEvent *event, void *par
             return true;
         case EMSCRIPTEN_EVENT_MOUSEDOWN:
             mouse.button[event->button] = MOUSEDOWN;
+            if (!pointerlock.isActive)
+                emscripten_request_pointerlock("#" HTML_CANVAS_ID, EM_FALSE);
             return true;
         case EMSCRIPTEN_EVENT_MOUSEUP:
             mouse.button[event->button] = MOUSEUP;
             return true;
     }
     return false;
+}
+
+
+
+
+void input_refresh(void) {
+    mouse.dx = 0;
+    mouse.dy = 0;
+
+    EmscriptenPointerlockChangeEvent pointerlock;
+    emscripten_get_pointerlock_status(&pointerlock);
+
+    if (pointerlock.isActive)
+        mouse.grabbed = true;
+    else
+        mouse.grabbed = false;
 }
 
 

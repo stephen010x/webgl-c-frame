@@ -31,12 +31,16 @@ INCLUDE := -I$(LIBDIR)/cglm/include
 DEFAULT := fast
 
 
+WHITELIST := all fast debug release
+
+
 GOAL := $(firstword $(MAKECMDGOALS))
 GOAL := $(if $(GOAL),$(GOAL),$(DEFAULT))
 # should grab all paths relative to makefile.
 # colon equal (:=) removed, so as to grab all generated c files as well
 SRCS = $(shell find $(SRCDIR) -name "*.c")
-ifneq ($(GOAL),clean)
+#ifneq ($(GOAL),clean)
+ifneq ($(filter $(GOAL),$(WHITELIST)),)
 	OBJS = $(SRCS:%.c=$(TMPDIR)/$(GOAL)/%.o)
 	DEPS = $(SRCS:%.c=$(TMPDIR)/$(GOAL)/%.d)
 endif
@@ -44,6 +48,7 @@ BINTARG := $(BINDIR)/$(TARGET)
 
 
 #CURRENTDIR := $(shell pwd)
+
 
 
 ifeq ($(OS),Windows_NT) 
@@ -83,12 +88,15 @@ release: _release $(BINTARG).$(TEXTEN)
 
 
 -include $(DEPS)
--include shaders
+#-include shaders
 
 
-# TODO: FIX THIX!!!
-shaders: $(GENDIR)/shaders.h
-	@:
+#shaders: $(GENDIR)/shaders.h
+#	@:
+
+
+shaders:
+	@python3 src/shaders/shader_to_c.py
 
 
 # -sGL_DEBUG=1
@@ -112,7 +120,6 @@ _optimize:
 	$(eval BFLAGS += -Os -g0)
 
 
-# $(basename $@).html
 $(BINTARG).$(TEXTEN): $(OBJS)
 	mkdir -p $(BINDIR)
 	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js $^
@@ -126,8 +133,10 @@ $(TMPDIR)/$(GOAL)/%.d: %.c
 	$(CC) $(INCLUDE) -MM -MT $(patsubst %.d,%.o,$@) -MF $@ $<
 
 
-$(GENDIR)/shaders.h:
-	python3 src/shaders/shader_to_c.py
+# dunno why this doesn't work anymore
+#$(GENDIR)/shaders.h:
+#	@echo done
+#	python3 src/shaders/shader_to_c.py
 
 
 clean:

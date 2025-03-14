@@ -85,6 +85,13 @@ typedef struct _SHADER {
 SHADER* shader_init(SHADER* shader, GLuint program, SHADER_USE_CALL call, void* data);
 SHADER* shader_use(SHADER* shader);
 
+int shader_set_float(SHADER* shader, char* vname, float val);
+int shader_set_int(  SHADER* shader, char* vname, int   val);
+int shader_set_mat4( SHADER* shader, char* vname, mat4  val);
+int shader_set_vec2( SHADER* shader, char* vname, vec2  val);
+int shader_set_vec3( SHADER* shader, char* vname, vec3  val);
+int shader_set_vec4( SHADER* shader, char* vname, vec4  val);
+
 
 
 void shapes_init(void);

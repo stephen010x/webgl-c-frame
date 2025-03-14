@@ -22,11 +22,21 @@
 //*DEBUG*/ extern CUBE_MESH_TYPE cube_mesh;
 
 
-#define COLOR_RED    ((COLOR){0.8, 0.3, 0.2, 1.0})
+#define COLOR_RED    ((COLOR){0.8, 0.2, 0.2, 1.0})
+#define COLOR_ORANGE ((COLOR){0.8, 0.3, 0.2, 1.0})
 #define COLOR_BLUE   ((COLOR){0.3, 0.4, 0.9, 1.0})
 #define COLOR_PURPLE ((COLOR){0.7, 0.2, 0.6, 1.0})
 #define COLOR_WHITE  ((COLOR){1.0, 1.0, 1.0, 1.0})
 #define COLOR_BLACK  ((COLOR){0.0, 0.0, 0.0, 1.0})
+#define COLOR_ORANGE_ALPHA ((COLOR){0.8, 0.3, 0.2, 0.5})
+//#define COLOR_BLUE_ALPHA   ((COLOR){0.3, 0.4, 0.9, 15/16.0})
+#define COLOR_BLUE_ALPHA   ((COLOR){0.3, 0.4, 0.9, 8.0/16.0})
+//#define COLOR_BLUE_ALPHA COLOR_ORANGE_ALPHA
+
+//#define COLOR_DIRT_GREY  ((COLOR){64.0/256.0, 59.0/256.0, 53.0/256.0, 1.0})
+//#define COLOR_DIRT_GREY  ((COLOR){64.0/256.0*2, 59.0/256.0*2, 53.0/256.0*2, 1.0})
+#define COLOR_DIRT_GREY  ((COLOR){68.0/256.0*2, 55.0/256.0*2, 40.0/256.0*2, 1.0})
+
 
 
 //#define MAX_CURVES 5
@@ -73,16 +83,16 @@ CAMERA camera_1 = {
 CAMERA camera_2 = {
     .pos = {0,0,0},
     .rot = {0,0,0},
-    .fov = 45,
+    .fov = DEG_TO_RAD(46.62), //45,
     .type = CAMERA_PERSPECTIVE,
 };
 
-CAMERA camera_3 = {
+/*CAMERA camera_3 = {
     .pos = {0,0,0},
     .rot = {0,0,0},
-    .fov = 45,
+    .fov = DEG_TO_RAD(46.62), //45,
     .type = CAMERA_PERSPECTIVE,
-};
+};*/
 
 
 
@@ -123,6 +133,7 @@ GLuint point_program;
 GLuint fractal_program;
 GLuint poly3d_program;
 GLuint texplane_program;
+GLuint texplane_dither_program;
 GLuint maze_program;
 
 SHADER poly_shader;
@@ -130,9 +141,16 @@ SHADER poly3d_shader;
 SHADER maze_shader;
 SHADER point_shader;
 SHADER texplane_shader;
+SHADER texplane_dither_shader;
 
 ASSET nyan_asset;
+ASSET rock_wall_tex_asset;
+ASSET rock_wall_norm_asset;
+ASSET test_norm_asset;
 TEXTURE nyan_texture;
+TEXTURE rock_wall_tex;
+TEXTURE rock_wall_norm;
+TEXTURE test_norm;
 
 MAZE maze;
 
@@ -157,34 +175,46 @@ int __main(void) {
     // perhaps generate a function to compile them all, and then user
     // their shader id's in manually calling them to compile
     SHADER_DESCRIPTOR sdesc[] = {
-        SHADER_DESC_GEN( true,  &poly_program,     poly,    poly    ),
         SHADER_DESC_GEN( false, &sphere_program,   sphere,  simple  ),
         SHADER_DESC_GEN( false, &bezier_program,   bezier,  simple  ),
-        SHADER_DESC_GEN( true , &point_program,    point,   simple  ),
         SHADER_DESC_GEN( false, &fractal_program,  poly,    fractal ),
+        SHADER_DESC_GEN( false, &point_program,    point,   simple  ),
+        SHADER_DESC_GEN( true,  &poly_program,     poly,    poly    ),
         SHADER_DESC_GEN( true,  &poly3d_program,   poly3d,  simple  ),
         SHADER_DESC_GEN( true,  &texplane_program, texture, texture ),
-        //SHADER_DESC_GEN( true,  &maze_program,     maze,    texture ),
+        SHADER_DESC_GEN( true,  &maze_program,     maze,    texture_lighting ),
+        SHADER_DESC_GEN( true,  &texplane_dither_program, texture, texture_dither ),
     };
 
     compile_shaders(LENOF(sdesc), sdesc);
 
     shader_init(&poly_shader,     poly_program,     NULL, NULL);
     shader_init(&poly3d_shader,   poly3d_program,   NULL, NULL);
-    shader_init(&point_shader,    point_program,    NULL, NULL);
+    //shader_init(&point_shader,    point_program,    NULL, NULL);
     shader_init(&texplane_shader, texplane_program, NULL, NULL);
-    //shader_init(&maze_shader,     maze_program,     NULL, NULL);
+    shader_init(&maze_shader,     maze_program,     NULL, NULL);
+    shader_init(&texplane_dither_shader, texplane_dither_program, NULL, NULL);
 
     // TODO: enable clockwise vertex order here or whatever
     glEnable(GL_CULL_FACE);
     glEnable(GL_DEPTH_TEST);
+    //glEnable(GL_DITHER);
+    //glEnable(GL_BLEND);
+    //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //glDisable(GL_MULTISAMPLE);
     glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
     glDepthFunc(GL_LESS);
 
-    //asset_load_jpg(&nyan_asset, "/assets/nyan-cat.jpg");
-    asset_load_img(&nyan_asset, "crying-cat");
-    texture_init(&nyan_texture, &nyan_asset, TEX_NEAREST, TEX_DEFAULT);
+    //asset_load_jpg(&nyan_asset,           "/assets/nyan-cat.jpg");
+    asset_load_img(&nyan_asset,           "crying-cat");
+    asset_load_img(&rock_wall_tex_asset,  "rock-wall-white");
+    asset_load_img(&rock_wall_norm_asset, "rock-wall-norm");
+    asset_load_img(&test_norm_asset,      "test-norm");
+    texture_init(&nyan_texture,   &nyan_asset,           TEX_NEAREST, TEX_DEFAULT);
+    texture_init(&rock_wall_tex,  &rock_wall_tex_asset,  TEX_NEAREST, TEX_WRAP);
+    texture_init(&rock_wall_norm, &rock_wall_norm_asset, TEX_NEAREST, TEX_WRAP);
+    texture_init(&test_norm,      &test_norm_asset,      TEX_NEAREST, TEX_WRAP);
 
     //glDisable(GL_CULL_FACE);
     //glDisable(GL_DEPTH_TEST);
@@ -192,7 +222,7 @@ int __main(void) {
     camera_init(&camera); // this one probably not neccissary
     camera_init(&camera_1);
     camera_init(&camera_2);
-    camera_init(&camera_3);
+    //camera_init(&camera_3);
     input_init();
     shapes_init();
         
@@ -250,6 +280,11 @@ void init_scene(void) {
     maze.y = -CELL_SIZE*20;
     maze.shader_3d = &poly3d_shader;
     maze.shader_trail = &texplane_shader;
+    maze.shader_detailed = &maze_shader;
+    maze.texture_wall = &rock_wall_tex;
+    maze.texture_wall_norm = &rock_wall_norm;
+    //maze.texture_wall_norm = &test_norm;
+    maze.color2 = COLOR_DIRT_GREY;
     maze.mode = MAZE_MODE_3D;
 
     float x, y;
@@ -258,7 +293,7 @@ void init_scene(void) {
     //mouse_init(&pmouse, x, y, 0.03, COLOR_PURPLE, &maze, &poly_shader);
     mouse_init(&pmouse, x, y, 0.03, COLOR_BLACK, &maze, &poly_shader);
     //mouse_init(&pmouse, x, y, CELL_SIZE-WALL_THICK, COLOR_BLACK, &maze, &poly_shader);
-    pmouse.pcolor = COLOR_BLUE;
+    pmouse.pcolor = COLOR_BLUE_ALPHA;
     pmouse.shader3 = &poly3d_shader;
 }
 
@@ -282,25 +317,60 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     ///////////////////////////////////////////
 
     // lol. Nevermind.
+    
+    //////////////////////////
+    //// UPDATE SCENE  //////
+    ////////////////////////
+
+    static bool dither = false;
+    static int frag_mode = 0;
+    static bool debounce = true;
+    if (key[KEY_3]) {
+        if (debounce) {
+            debounce = false;
+            dither = !dither;
+            if (dither)
+                maze.shader_trail = &texplane_dither_shader;
+            else
+                maze.shader_trail = &texplane_shader;
+        }
+    } else if (key[KEY_5]) {
+        if (debounce) {
+            debounce = false;
+            frag_mode++;
+            if (frag_mode == 5) frag_mode += 2;
+            frag_mode %= 8;
+            printf("%d, %d, %d\n", frag_mode, frag_mode%4, frag_mode/4);
+            shader_set_int(&maze_shader, "u_f_mode", frag_mode%4);
+            switch (frag_mode/4) {
+                case 0:
+                    maze.texture_wall_norm = &rock_wall_norm;
+                    break;
+                case 1:
+                    maze.texture_wall_norm = &test_norm;
+                    break;
+            }
+        }
+    } else {
+        debounce = true;
+    }
+
+    /*if (maze.mode == MAZE_MODE_2D || maze.mode == MAZE_MODE_3D) {
+        mouse_update(&pmouse, t, dt);
+    }*/
+
+    mouse_update(&pmouse, t, dt);
+
+
+    // update models
+    /*if (count%UPDATE_DIVISOR == 0 && behave_flag)
+        model_update_pipeline(t, dt);*/
 
     ///////////////////////////
     //// UPDATE CAMERA  //////
     /////////////////////////
 
     update_cam();
-    
-    //////////////////////////
-    //// UPDATE SCENE  //////
-    ////////////////////////
-
-    if (maze.mode == MAZE_MODE_2D || maze.mode == MAZE_MODE_3D) {
-        mouse_update(&pmouse, t, dt);
-    }
-
-
-    // update models
-    /*if (count%UPDATE_DIVISOR == 0 && behave_flag)
-        model_update_pipeline(t, dt);*/
 
     //////////////////////////
     //// DRAW SCENE  ////////
@@ -314,16 +384,42 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     }
     printf("\n");*/
 
+    // Some witchcraft happenin' here
+    vec3 off = (vec3){pmouse.scale/2, pmouse.scale/2, pmouse.scale/2};
+    vec3 pos = (vec3){pmouse.x, pmouse.y, 0};
+    //vec3 pos = (vec3){maze.x+maze.cols*CELL_SIZE/2, maze.y+CELL_SIZE, CELL_SIZE/4};
+    glm_vec3_rotate(off, -pmouse.camera.rot[1]-MATH_PI, (vec3){0,0,1});
+    
+    glm_vec3_add(off, pos, pos);
+    glm_vec3_add((vec3){pmouse.scale/2, pmouse.scale/2, pmouse.scale/2}, pos, pos);
+    shader_set_vec3(&maze_shader, "point_light_pos", pos);
+    shader_set_float(&maze_shader, "point_light_int", 0.005);
+    //shader_set_float(&maze_shader, "point_light_int", 0.0025);
+    
+
     camera_apply(&camera, poly_program);
     camera_apply(&camera, poly3d_program);
-    camera_apply(&camera, point_program);
+    //camera_apply(&camera, point_program);
     camera_apply(&camera, texplane_program);
+    camera_apply(&camera, texplane_dither_program);
+    camera_apply(&camera, maze_program);
 
     // clear the scene
     // note that with the new framebuffer draws, this is neccissary otherwise
     // weird overlap is going to occur
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     //glClear(GL_DEPTH_BUFFER_BIT);
+
+    vec3 light_norm = (vec3){0, 0, 1};
+    glm_vec3_rotate(light_norm, t/50, (vec3){0,1,0});
+    shader_set_vec3(&maze_shader, "u_light_norm_debug", light_norm);
+
+    if (maze.mode == MAZE_MODE_DETAILED) {
+        glm_vec3_add(pos, (vec3){-0.004, -0.004, -0.01}, pos);
+        //draw_rect3(pos, (vec3){0.008,0.008,0.008}, NULL, 0, COLOR_WHITE, &poly3d_shader);
+        /*draw_rect3((vec3){maze.x+CELL_SIZE*maze.cols/2, maze.y+CELL_SIZE, CELL_SIZE/2}, 
+            (vec3){0.0008,0.0008,0.004}, light_norm, 0, COLOR_WHITE, &poly3d_shader);*/
+    }
 
     /*// draw models
     for (int i = 0; i < NUM_MODELS; i++)
@@ -337,19 +433,21 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     draw_rect3((vec3){-0.4,-0.4,-0.4}, (vec3){0.8,0.8,0.8}, (vec3){0,0,0}, 0, COLOR_RED, &point_shader);
     cube_mesh.mode = GL_TRIANGLE_STRIP;*/
 
-    //draw_rect3((vec3){-0.4,-0.4,-0.4}, (vec3){0.8,0.8,0.8}, (vec3){0,0,0}, 0, COLOR_RED, &poly3d_shader);
+    //draw_rect3((vec3){-0.4,-0.4,-0.4}, (vec3){0.8,0.8,0.8}, (vec3){0,0,0}, 0, COLOR_ORANGE_ALPHA, &poly3d_shader);
 
     mouse_draw(&pmouse, t);
 
-    //draw_texture_plane((vec3){-0.5, -0.5, 0}, (vec2){1,1}, (vec3){0,0,1}, 0, &nyan_texture, &texplane_shader);
+    //draw_texture_plane((vec3){-0.5, -0.5, -0.5}, (vec2){1,1}, (vec3){1,1,1}, 0, &nyan_texture, &texplane_shader, false);
 
     // TODO: this overrides some of the cameras for some shaders, which is why it is last
     // please fix this, yeah?
+    // TODO: perhaps just create a separate draw function for the maze for the texture? Call it manually?
     maze_draw(&maze, t);
     
     // requests frame buffer swap. Will actually render stuff to screen
     // this is neccissary because explicitSwapControl was set to GL_TRUE
     emscripten_webgl_commit_frame();
+    input_refresh();
 
     // return true to keep looping
     // return false to kill loop
@@ -381,7 +479,7 @@ void update_cam(void) {
         lastmode = mode;
         mode = MAZE_MODE_3D;
         inter = cinter = 0;
-    } else if (key[KEY_3] && mode != MAZE_MODE_DETAILED) {
+    } else if (key[KEY_4] && mode != MAZE_MODE_DETAILED) {
         lastmode = mode;
         mode = MAZE_MODE_DETAILED;
         inter = cinter = 1;
@@ -409,14 +507,17 @@ void update_cam(void) {
     if (mode == MAZE_MODE_2D) {
 
         camera_rotate_about(&camera_1, (vec3){0,0,0}, (vec3){0, 0, 0}, 3.0);
+        pmouse.mode = MOUSE_TOP;
     
     } else if (mode == MAZE_MODE_3D) {
 
         camera_rotate_about(&camera_2, (vec3){0,0,2}, (vec3){cy/3, -cx/3, 0}, 3.5);
+        pmouse.mode = MOUSE_TOP;
 
     } else if (mode == MAZE_MODE_DETAILED) {
 
         //camera_3
+        pmouse.mode = MOUSE_FPS;
 
     }
     
@@ -449,7 +550,7 @@ void update_cam(void) {
         case MAZE_MODE_DETAILED:
         
             maze.mode = MAZE_MODE_DETAILED;
-            camera_set(&camera, &camera_3);
+            camera_set(&camera, &pmouse.camera);
             break;
     }
 }

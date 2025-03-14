@@ -7,7 +7,19 @@
 #include "shapes.h"
 
 
+
+#define DEG_TO_RAD(__n) ((__n)*MATH_PI/180.0)
+
+
+enum mouse_modes {
+    MOUSE_NULL = 0,
+    MOUSE_TOP,
+    MOUSE_FPS,
+};
+
+
 typedef struct {
+    int mode;
     float x, y;
     float px, py;
     /*float dx, dy; /\* <-- to "visually" filter out collision jitter
@@ -20,6 +32,7 @@ typedef struct {
     SHADER* shader2;
     SHADER* shader3;
     CAMERA trail_camera;
+    CAMERA camera;
 } PMOUSE;
 
 

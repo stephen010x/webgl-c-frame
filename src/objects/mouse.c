@@ -34,6 +34,7 @@ PMOUSE* mouse_init(PMOUSE* mouse, float x, float y, float scale, COLOR color, MA
     float maze_height = CELL_SIZE * maze->rows;
 
     *mouse = (PMOUSE){
+        .mode = MOUSE_TOP,
         .x = x,
         .y = y,
         .px = x,
@@ -48,17 +49,28 @@ PMOUSE* mouse_init(PMOUSE* mouse, float x, float y, float scale, COLOR color, MA
         //.path_shader = 
         .maze = maze,
         .trail_camera = {
-            .pos = {0,0,0},
+            .pos = {0,0,1},
             .zoom = 1,
             .type = CAMERA_ORTHOGRAPHIC,
             //.type = CAMERA_NULL,
             //.wmin = {-maze_width/2, -maze_height/2, 0},
             //.wmax = { maze_width/2,  maze_height/2, 10},
         },
+        .camera = {
+            .pos = {x+scale/2,y+scale/2,scale},
+            .rot = {MATH_PI/2, MATH_PI, MATH_PI},
+            .fov = DEG_TO_RAD(90), //MATH_PI/2,
+            .type = CAMERA_PERSPECTIVE,
+        },
     };
+
+    //printf("%f\n", DEG_TO_RAD(90));
 
 
     camera_init(&mouse->trail_camera);
+    camera_init(&mouse->camera);
+
+    camera_update_actual(&mouse->camera);
 
     camera_setviewport(&mouse->trail_camera, 
         (vec3){-maze_width/2, -maze_height/2,  1},
@@ -162,18 +174,34 @@ void mouse_draw_wall_test(PMOUSE* mouse, double t) {
 
 
 
+void mouse_update_fps(PMOUSE* mouse, double t, float dt);
+
 //#define CELL_WALL_MAX (CELL_SIZE-WALL_THICK)
 //#define CELL_WALL_MIN WALL_THICK
 
 // get cell using previous position, and collide using current position
 void mouse_update(PMOUSE* mouse, double t, float dt) {
+
+    mouse->px = mouse->x;
+    mouse->py = mouse->y;
+
+    float speed;
+    if (mouse->mode == MOUSE_FPS) {
+        //return mouse_update_fps(mouse, t, dt);
+        mouse_update_fps(mouse, t, dt);
+        //speed = mouse->speed / 4;
+        return;
+    } else {
+        speed = mouse->speed;
+    }
+
     // these need to happen at the beginning rather than the end in order for
     // the draw function to also have valid px and py values (for the trail)
     mouse->px = mouse->x;
     mouse->py = mouse->y;
 
-    float dx = (key[KEY_RIGHT] - key[KEY_LEFT]) * mouse->speed;
-    float dy = (key[KEY_UP]    - key[KEY_DOWN]) * mouse->speed;
+    float dx = ((key[KEY_RIGHT] || key[KEY_D]) - (key[KEY_LEFT] || key[KEY_A])) * speed;
+    float dy = ((key[KEY_UP]    || key[KEY_W]) - (key[KEY_DOWN] || key[KEY_S])) * speed;
 
     float div = sqrt((dx*dx != 0.0) + (dy*dy != 0.0));
 
@@ -219,6 +247,69 @@ void mouse_update(PMOUSE* mouse, double t, float dt) {
     //mouse->dx = (mouse->dx + mouse->x)/2;
     //mouse->dy = (mouse->dy + mouse->y)/2;
 }
+
+
+#define X 0
+#define Y 1
+#define Z 2
+
+void mouse_update_fps(PMOUSE* m, double t, float dt) {
+    if (!mouse.grabbed)
+        return;
+
+    m->camera.pos[X] = m->x + m->scale/2;
+    m->camera.pos[Y] = m->y + m->scale/2;
+
+    m->camera.rot[Y] +=  mouse.dx / 200.0;
+    m->camera.rot[X] +=  mouse.dy / 200.0;
+
+    //m->camera.rot[X] += 0.01;
+
+    // TODO: seriously, create a clamp macro
+    if (m->camera.rot[X] > MATH_PI*1/2+MATH_PI/2.5)
+        m->camera.rot[X] = MATH_PI*1/2+MATH_PI/2.5;
+    else if (m->camera.rot[X] < MATH_PI*1/2-MATH_PI/2.5)
+        m->camera.rot[X] = MATH_PI*1/2-MATH_PI/2.5;
+
+    //printf("%d, %d, %f, %f\n", mouse.dx, mouse.dy, m->camera.rot[X], m->camera.rot[Y]);
+
+    camera_update_actual(&m->camera);
+
+
+
+    float speed = m->speed / 8;
+
+    if (key[KEY_SHIFT])
+        speed *= 2;
+
+    float dx = ((key[KEY_RIGHT] || key[KEY_D]) - (key[KEY_LEFT] || key[KEY_A])) * speed;
+    float dy = ((key[KEY_UP]    || key[KEY_W]) - (key[KEY_DOWN] || key[KEY_S])) * speed;
+
+    float div = sqrt((dx*dx != 0.0) + (dy*dy != 0.0));
+
+    if (div != 0) {
+        vec3 delta = (vec3){-dx/div, -dy/div, 0};
+        glm_vec3_rotate(delta, -m->camera.rot[Y], (vec3){0,0,1});
+    
+        m->x += delta[0];
+        m->y += delta[1];
+    }
+
+
+    int c, r;
+    maze_getcell(m->maze, m->x, m->y, &c, &r);
+
+    mouse_collide_cell(m, c, r);
+    
+    mouse_collide_cell(m, c+1, r  );
+    mouse_collide_cell(m, c,   r+1);
+    mouse_collide_cell(m, c-1, r  );
+    mouse_collide_cell(m, c,   r-1);
+}
+
+#undef X
+#undef Y
+#undef Z
 
 
 
@@ -283,7 +374,7 @@ void mouse_collide_rect(PMOUSE* mouse, float rx, float ry, float width, float he
 
     // this is a duck tape solution to prevent wall stickyness
     // TODO: get rid of this and make this collide algorithm better
-    register float stickfix = mouse->speed*2;
+    #define MOUSE_COLLIDE_GIVE 0.00001
 
     // if current state inside box
     if ((x > right_off) && (x < left_off) && 
@@ -293,19 +384,19 @@ void mouse_collide_rect(PMOUSE* mouse, float rx, float ry, float width, float he
         register float py = mouse->py;
     
         // if past state in diagonal cast
-        //bool test1 = (py-ry+scale )*(width+scale) >  (px-rx+scale)*(height+scale);
-        //bool test2 = (py-ry-height)*(width+scale) > -(px-rx+scale)*(height+scale);
+        bool test1 = (py-ry+scale )*(width+scale) >  (px-rx+scale)*(height+scale);
+        bool test2 = (py-ry-height)*(width+scale) > -(px-rx+scale)*(height+scale);
 
         // alright, so using present values fixes the sticky wall issue
         // but it does force the player to one side of the wall sometimes
         // (which is fine in this case)
-        bool test1 = (y-ry+scale )*(width+scale) >  (x-rx+scale)*(height+scale);
-        bool test2 = (y-ry-height)*(width+scale) > -(x-rx+scale)*(height+scale);
+        //bool test1 = (y-ry+scale )*(width+scale) >  (x-rx+scale)*(height+scale);
+        //bool test2 = (y-ry-height)*(width+scale) > -(x-rx+scale)*(height+scale);
 
         // final checks and position asserts
-        if (test1) if (test2) mouse->y = down_off;
-                   else       mouse->x = right_off;
-        else       if (test2) mouse->x = left_off;
-                   else       mouse->y = up_off;
+        if (test1) if (test2) mouse->y = down_off  + MOUSE_COLLIDE_GIVE;
+                   else       mouse->x = right_off - MOUSE_COLLIDE_GIVE;
+        else       if (test2) mouse->x = left_off  + MOUSE_COLLIDE_GIVE;
+                   else       mouse->y = up_off    - MOUSE_COLLIDE_GIVE;
     }
 }
