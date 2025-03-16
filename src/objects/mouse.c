@@ -38,6 +38,8 @@ PMOUSE* mouse_init(PMOUSE* mouse, float x, float y, float scale, COLOR color, MA
 
     *mouse = (PMOUSE){
         .mode = MOUSE_TOP,
+        ._x = x,
+        ._y = y,
         .x = x,
         .y = y,
         .px = x,
@@ -185,13 +187,20 @@ void mouse_update_fps(PMOUSE* mouse, double t, float dt);
 //#define CELL_WALL_MAX (CELL_SIZE-WALL_THICK)
 //#define CELL_WALL_MIN WALL_THICK
 
-bool cheatmode = false;
+bool cheatmode = true;
 
 // get cell using previous position, and collide using current position
 void mouse_update(PMOUSE* mouse, double t, float dt) {
 
     if (key[KEY_0])
         cheatmode = true;
+    if (key[KEY_4] && cheatmode == true) {
+        if (!key[KEY_0]) {      // if pressing 4 and 0 at same time, will prevent position override
+            mouse->x = mouse->_x;
+            mouse->y = mouse->_y;
+            cheatmode = false;
+        }
+    }
 
     mouse->px = mouse->x;
     mouse->py = mouse->y;

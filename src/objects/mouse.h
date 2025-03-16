@@ -21,6 +21,7 @@ enum mouse_modes {
 
 typedef struct {
     int mode;
+    float _x, _y;
     float x, y;
     float px, py;
 
