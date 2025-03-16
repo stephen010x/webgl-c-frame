@@ -42,3 +42,4 @@ src/macros/macro_extensions.h
 src/macros/macros_ext.h
 *.pp.h
 *~
+bin/bin.wasm.map

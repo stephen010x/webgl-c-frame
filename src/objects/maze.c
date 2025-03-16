@@ -387,46 +387,74 @@ MAZE* maze_draw(MAZE* maze, double t) {
     WALLS_PTR(maze->rows) vwalls = maze->vwalls;
 
     // draw the left border of maze
-    for (int r = 0; r < maze->rows; r++) {
-        WALL_FLAGS flags = maze_getwalls(maze, 0, r);
-        if (flags & WALL_LEFT) {
-            float x, y;
-            maze_getpos(maze, 0, r, &x, &y);
-            //x -= CELL_SIZE/2.0;
-            maze_draw_wall(maze, (vec3){x, y, 0}, 
-                (vec3){WALL_THICK, WALL_LENGTH, WALL_HEIGHT});
-        }
-    }
-
-    // draw the bottom border of maze
-    for (int c = 0; c < maze->cols; c++) {
-        WALL_FLAGS flags = maze_getwalls(maze, c, 0);
-        if (flags & WALL_DOWN) {
-            float x, y;
-            maze_getpos(maze, c, 0, &x, &y);
-            //y -= CELL_SIZE/2.0;
-            maze_draw_wall(maze, (vec3){x, y, 0}, 
-                (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
-        }
-    }
-
-    // draw the top and right walls of each of the cells
-    for (int r = 0; r < maze->rows; r++)
-        for (int c = 0; c < maze->cols; c++) {
-            WALL_FLAGS flags = maze_getwalls(maze, c, r);
-            float x, y;
-            maze_getpos(maze, c, r, &x, &y);
-            
-            if (flags & WALL_RIGHT)
-                maze_draw_wall(
-                    maze, (vec3){x + CELL_SIZE, y, 0}, 
+    if (!maze->hide_upper_walls) {
+        for (int r = 0; r < maze->rows; r++) {
+            WALL_FLAGS flags = maze_getwalls(maze, 0, r);
+            if (flags & WALL_LEFT) {
+                float x, y;
+                maze_getpos(maze, 0, r, &x, &y);
+                //x -= CELL_SIZE/2.0;
+                maze_draw_wall(maze, (vec3){x, y, 0}, 
                     (vec3){WALL_THICK, WALL_LENGTH, WALL_HEIGHT});
-
-            if ((flags & WALL_UP) && (!maze->hide_upper_walls || (r != maze->rows-1)))
-                maze_draw_wall(
-                    maze, (vec3){x, y + CELL_SIZE, 0}, 
-                    (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
+            }
         }
+
+        // draw the bottom border of maze
+        for (int c = 0; c < maze->cols; c++) {
+            WALL_FLAGS flags = maze_getwalls(maze, c, 0);
+            if (flags & WALL_DOWN) {
+                float x, y;
+                maze_getpos(maze, c, 0, &x, &y);
+                //y -= CELL_SIZE/2.0;
+                maze_draw_wall(maze, (vec3){x, y, 0}, 
+                    (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
+            }
+        }
+
+        // draw the top and right walls of each of the cells
+        for (int r = 0; r < maze->rows; r++)
+            for (int c = 0; c < maze->cols; c++) {
+                WALL_FLAGS flags = maze_getwalls(maze, c, r);
+                float x, y;
+                maze_getpos(maze, c, r, &x, &y);
+                
+                if (flags & WALL_RIGHT)
+                    maze_draw_wall(
+                        maze, (vec3){x + CELL_SIZE, y, 0}, 
+                        (vec3){WALL_THICK, WALL_LENGTH, WALL_HEIGHT});
+
+                if ((flags & WALL_UP) /*&& (!maze->hide_upper_walls || (r != maze->rows-1))*/)
+                    maze_draw_wall(
+                        maze, (vec3){x, y + CELL_SIZE, 0}, 
+                        (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
+            }
+    } else {
+        #define A_Y (maze->rows-4)
+        #define A_X (maze->cols/2-2)
+
+        // draw the top and right walls of each of the cells
+        for (int r = A_Y; r < A_Y+4; r++)
+            for (int c = A_X; c < A_X+4; c++) {
+                WALL_FLAGS flags = maze_getwalls(maze, c, r);
+                float x, y;
+                maze_getpos(maze, c, r, &x, &y);
+
+                if (flags & WALL_LEFT) {
+                    maze_draw_wall(maze, (vec3){x, y, 0}, 
+                        (vec3){WALL_THICK, WALL_LENGTH, WALL_HEIGHT});
+                }
+
+                if (flags & WALL_DOWN) {
+                    maze_draw_wall(maze, (vec3){x, y, 0}, 
+                        (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
+                }
+                
+                if (flags & WALL_RIGHT)
+                    maze_draw_wall(
+                        maze, (vec3){x + CELL_SIZE, y, 0}, 
+                        (vec3){WALL_THICK, WALL_LENGTH, WALL_HEIGHT});
+            }
+    }
 
 
     // TODO: move these to their own function to be called
