@@ -184,6 +184,7 @@ MAZE maze;
 DRAWSURFACE mirror;
 
 
+
 // assume mirror always points (0, -1, 0)
 struct {
     vec3 pos;

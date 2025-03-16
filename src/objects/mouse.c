@@ -185,8 +185,13 @@ void mouse_update_fps(PMOUSE* mouse, double t, float dt);
 //#define CELL_WALL_MAX (CELL_SIZE-WALL_THICK)
 //#define CELL_WALL_MIN WALL_THICK
 
+bool cheatmode = false;
+
 // get cell using previous position, and collide using current position
 void mouse_update(PMOUSE* mouse, double t, float dt) {
+
+    if (key[KEY_0])
+        cheatmode = true;
 
     mouse->px = mouse->x;
     mouse->py = mouse->y;
@@ -206,8 +211,13 @@ void mouse_update(PMOUSE* mouse, double t, float dt) {
     mouse->px = mouse->x;
     mouse->py = mouse->y;
 
-    float dx = ((key[KEY_RIGHT] || key[KEY_D]) - (key[KEY_LEFT] || key[KEY_A])) * speed;
-    float dy = ((key[KEY_UP]    || key[KEY_W]) - (key[KEY_DOWN] || key[KEY_S])) * speed;
+    float dx, dy;
+    if (cheatmode) {
+        dx = ((key[KEY_RIGHT] || key[KEY_D]) - (key[KEY_LEFT] || key[KEY_A])) * speed;
+        dy = ((key[KEY_UP]    || key[KEY_W]) - (key[KEY_DOWN] || key[KEY_S])) * speed;
+    } else {
+        dx = dy = 0;
+    }
 
     float div = sqrt((dx*dx != 0.0) + (dy*dy != 0.0));
 
