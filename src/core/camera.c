@@ -101,6 +101,24 @@ void camera_update_actual(CAMERA* c) {
     glm_translate(c->viewmat, pos);
 }
 
+// TODO: get rid of this duck-tape function
+void camera_update_actual_flipx(CAMERA* c) {
+    camera_setup(c);
+
+
+    // rotate first, x, y, z axes in order
+    glm_rotate_x(c->viewmat, c->rot[0], c->viewmat);
+    glm_rotate_y(c->viewmat, c->rot[2], c->viewmat);
+    glm_rotate_z(c->viewmat, c->rot[1], c->viewmat);
+
+    glm_scale(c->viewmat, (vec3){-1,1,1});
+    
+    // translate second so that it rotates about the camera origin
+    vec3 pos;
+    glm_vec3_negate_to(c->pos, pos);
+    glm_translate(c->viewmat, pos);
+}
+
 
 
 // TODO: I change my mind. Create a function that will update a camera based off of 

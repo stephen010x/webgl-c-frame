@@ -16,6 +16,7 @@
 #include "core.h"
 #include "objects.h"
 #include "shaders/shaders.h"
+#include "helper.h"
 
 
 
@@ -73,6 +74,12 @@ CAMERA camera = {
     .type = CAMERA_ORTHOGRAPHIC,
 };
 
+CAMERA camera_static = {
+    .zoom = 1,
+    .pos = {0,0,-1},
+    .type = CAMERA_ORTHOGRAPHIC,
+};
+
 CAMERA camera_1 = {
     .pos = {0,0,-1},
     .rot = {0,0,0},
@@ -84,6 +91,15 @@ CAMERA camera_2 = {
     .pos = {0,0,0},
     .rot = {0,0,0},
     .fov = DEG_TO_RAD(46.62), //45,
+    .type = CAMERA_PERSPECTIVE,
+};
+
+// Man. I really wish I had made a "scene" class. It would make stuff like
+// mirrors so much easier and cleaner to make
+CAMERA camera_mirror = {
+    .pos = {0,0,0},
+    .rot = {0,0,0},
+    .fov = DEG_TO_RAD(90), //45,
     .type = CAMERA_PERSPECTIVE,
 };
 
@@ -135,6 +151,7 @@ GLuint poly3d_program;
 GLuint texplane_program;
 GLuint texplane_dither_program;
 GLuint maze_program;
+GLuint mirror_program;
 
 SHADER poly_shader;
 SHADER poly3d_shader;
@@ -142,18 +159,39 @@ SHADER maze_shader;
 SHADER point_shader;
 SHADER texplane_shader;
 SHADER texplane_dither_shader;
+SHADER mirror_shader;
 
 ASSET nyan_asset;
 ASSET rock_wall_tex_asset;
+ASSET rock_wall_tex_asset_512;
 ASSET rock_wall_norm_asset;
+ASSET rock_wall_norm_asset_512;
 ASSET test_norm_asset;
+ASSET torch_asset;
+ASSET cat_avatar_asset;
 TEXTURE nyan_texture;
+TEXTURE rock_wall_tex_512;
 TEXTURE rock_wall_tex;
 TEXTURE rock_wall_norm;
+TEXTURE rock_wall_norm_512;
 TEXTURE test_norm;
+TEXTURE torch_tex;
+TEXTURE cat_avatar_tex;
 
 MAZE maze;
 
+
+DRAWSURFACE mirror;
+
+
+// assume mirror always points (0, -1, 0)
+struct {
+    vec3 pos;
+    vec2 scale;
+} mirror_prop;
+
+
+void mirror_frame(DRAWSURFACE* surface, void* data, double t, float dt);
 
 
 //int swidth, sheight;
@@ -184,6 +222,7 @@ int __main(void) {
         SHADER_DESC_GEN( true,  &texplane_program, texture, texture ),
         SHADER_DESC_GEN( true,  &maze_program,     maze,    texture_lighting ),
         SHADER_DESC_GEN( true,  &texplane_dither_program, texture, texture_dither ),
+        SHADER_DESC_GEN( true,  &mirror_program,   texture, mirror),
     };
 
     compile_shaders(LENOF(sdesc), sdesc);
@@ -194,6 +233,7 @@ int __main(void) {
     shader_init(&texplane_shader, texplane_program, NULL, NULL);
     shader_init(&maze_shader,     maze_program,     NULL, NULL);
     shader_init(&texplane_dither_shader, texplane_dither_program, NULL, NULL);
+    shader_init(&mirror_shader, mirror_program, NULL, NULL);
 
     // TODO: enable clockwise vertex order here or whatever
     glEnable(GL_CULL_FACE);
@@ -210,11 +250,19 @@ int __main(void) {
     asset_load_img(&nyan_asset,           "crying-cat");
     asset_load_img(&rock_wall_tex_asset,  "rock-wall-white");
     asset_load_img(&rock_wall_norm_asset, "rock-wall-norm");
+    asset_load_img(&rock_wall_tex_asset_512,  "rock-wall-white-512");
+    asset_load_img(&rock_wall_norm_asset_512, "rock-wall-norm-512");
     asset_load_img(&test_norm_asset,      "test-norm");
+    asset_load_img(&torch_asset,          "torch");
+    asset_load_img(&cat_avatar_asset,     "cat-avatar");
     texture_init(&nyan_texture,   &nyan_asset,           TEX_NEAREST, TEX_DEFAULT);
     texture_init(&rock_wall_tex,  &rock_wall_tex_asset,  TEX_NEAREST, TEX_WRAP);
+    texture_init(&rock_wall_tex_512,  &rock_wall_tex_asset_512,  TEX_NEAREST, TEX_WRAP);
+    texture_init(&rock_wall_norm_512, &rock_wall_norm_asset_512, TEX_NEAREST, TEX_WRAP);
     texture_init(&rock_wall_norm, &rock_wall_norm_asset, TEX_NEAREST, TEX_WRAP);
     texture_init(&test_norm,      &test_norm_asset,      TEX_NEAREST, TEX_WRAP);
+    texture_init(&torch_tex,      &torch_asset,          TEX_NEAREST, TEX_DEFAULT);
+    texture_init(&cat_avatar_tex, &cat_avatar_asset,     TEX_NEAREST, TEX_DEFAULT);
 
     //glDisable(GL_CULL_FACE);
     //glDisable(GL_DEPTH_TEST);
@@ -222,6 +270,8 @@ int __main(void) {
     camera_init(&camera); // this one probably not neccissary
     camera_init(&camera_1);
     camera_init(&camera_2);
+    camera_init(&camera_static);
+    camera_init(&camera_mirror);
     //camera_init(&camera_3);
     input_init();
     shapes_init();
@@ -282,7 +332,10 @@ void init_scene(void) {
     maze.shader_trail = &texplane_shader;
     maze.shader_detailed = &maze_shader;
     maze.texture_wall = &rock_wall_tex;
+    maze.texture_wall2 = &rock_wall_tex_512;
+    //maze.texture_wall = &torch_tex;
     maze.texture_wall_norm = &rock_wall_norm;
+    maze.texture_wall_norm2 = &rock_wall_norm_512;
     //maze.texture_wall_norm = &test_norm;
     maze.color2 = COLOR_DIRT_GREY;
     maze.mode = MAZE_MODE_3D;
@@ -295,7 +348,28 @@ void init_scene(void) {
     //mouse_init(&pmouse, x, y, CELL_SIZE-WALL_THICK, COLOR_BLACK, &maze, &poly_shader);
     pmouse.pcolor = COLOR_BLUE_ALPHA;
     pmouse.shader3 = &poly3d_shader;
+    //pmouse.torch_tex = &torch_tex;
+
+    // to encourage user to unblock sound on certain browsers that
+    // block it by default
+    sound_play("silent-sound", false);
+
+    // init mirror
+    int swidth, sheight;
+    get_elementid_size("canvas", &swidth, &sheight);
+    drawsurface_init(&mirror, swidth, sheight, TEX_NEAREST, mirror_frame);
+
+    //mirror_prop.scale[0] = CELL_SIZE*20;
+    //mirror_prop.scale[1] = CELL_SIZE*20;
+    mirror_prop.scale[0] = CELL_SIZE/2;
+    mirror_prop.scale[1] = CELL_SIZE;
+    mirror_prop.pos[0] = maze.x + maze.cols * CELL_SIZE/2 - mirror_prop.scale[0]/2 - CELL_SIZE/2 + CELL_SIZE/8;
+    //mirror_prop.pos[0] = maze.x;
+    //mirror_prop.pos[1] = maze.y + CELL_SIZE*3;
+    mirror_prop.pos[1] = maze.y + maze.rows * CELL_SIZE - CELL_SIZE;
+    mirror_prop.pos[2] = CELL_SIZE/8;
 }
+
 
 
 
@@ -325,7 +399,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     static bool dither = false;
     static int frag_mode = 0;
     static bool debounce = true;
-    if (key[KEY_3]) {
+    if (key[KEY_3] && maze.mode != MAZE_MODE_DETAILED) {
         if (debounce) {
             debounce = false;
             dither = !dither;
@@ -334,20 +408,24 @@ EM_BOOL frame_loop(double _t, void *user_data) {
             else
                 maze.shader_trail = &texplane_shader;
         }
-    } else if (key[KEY_5]) {
+    } else if (key[KEY_5] && maze.mode == MAZE_MODE_DETAILED) {
         if (debounce) {
             debounce = false;
             frag_mode++;
-            if (frag_mode == 5) frag_mode += 2;
-            frag_mode %= 8;
-            printf("%d, %d, %d\n", frag_mode, frag_mode%4, frag_mode/4);
-            shader_set_int(&maze_shader, "u_f_mode", frag_mode%4);
-            switch (frag_mode/4) {
+            if (frag_mode == 8) frag_mode += 1;
+            if (frag_mode == 11) frag_mode += 2;
+            frag_mode %= 14;
+            //printf("%d, %d, %d\n", frag_mode, frag_mode%4, frag_mode/4);
+            printf("debug mode %d\n", frag_mode);
+            shader_set_int(&maze_shader, "u_f_mode", frag_mode%7);
+            switch (frag_mode/7) {
                 case 0:
                     maze.texture_wall_norm = &rock_wall_norm;
+                    maze.texture_wall_norm2 = &rock_wall_norm_512;
                     break;
                 case 1:
                     maze.texture_wall_norm = &test_norm;
+                    maze.texture_wall_norm2 = &test_norm;
                     break;
             }
         }
@@ -385,7 +463,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     printf("\n");*/
 
     // Some witchcraft happenin' here
-    vec3 off = (vec3){pmouse.scale/2, pmouse.scale/2, pmouse.scale/2};
+    vec3 off = (vec3){pmouse.scale*4/8, pmouse.scale/4, pmouse.scale/2};
     vec3 pos = (vec3){pmouse.x, pmouse.y, 0};
     //vec3 pos = (vec3){maze.x+maze.cols*CELL_SIZE/2, maze.y+CELL_SIZE, CELL_SIZE/4};
     glm_vec3_rotate(off, -pmouse.camera.rot[1]-MATH_PI, (vec3){0,0,1});
@@ -395,6 +473,72 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     shader_set_vec3(&maze_shader, "point_light_pos", pos);
     shader_set_float(&maze_shader, "point_light_int", 0.005);
     //shader_set_float(&maze_shader, "point_light_int", 0.0025);
+
+
+
+    // clear the scene
+    // note that with the new framebuffer draws, this is neccissary otherwise
+    // weird overlap is going to occur
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    //glClear(GL_DEPTH_BUFFER_BIT);
+
+
+    // draw torch here
+    if (maze.mode == MAZE_MODE_DETAILED) {
+
+        /*vec3 _wave;
+        static vec3 wave;
+        if (dx || dy) {
+            float k = t/1.5 * (key[KEY_SHIFT] ? 1.5 : 1);
+            _wave[0] = cos(k)/400.0/2/2 * (key[KEY_SHIFT] ? 2 : 1);
+            _wave[1] = (-cos(k*2.0) + 1.0) / 2.0 / 400.0/8;
+            _wave[2] = -(ABS(sin(k))-0.6)/400.0/2 * (key[KEY_SHIFT] ? 2 : 1);
+            glm_vec3_rotate(_wave, -m->camera.rot[Y], (vec3){0,0,1});
+        } else {
+            glm_vec3_zero(_wave);
+        }
+
+        for (int i = 0; i < 3; i++)
+            wave[i] = (m->wave[i]*15 + _wave[i]*4)/16;
+
+        glm_translate(m->camera.viewmat, m->wave);*/
+
+    
+        camera_update(&camera_static);
+        camera_apply(&camera_static, texplane_shader.program);
+        //texture_bind(&torch_tex, &poly_shader, "tex0", GL_TEXTURE0);
+        /*draw_texture_plane((vec3){-0.5, -0.5, -0.5}, (vec2){1,1}, NULL, 0, 
+            &torch_tex, &texplane_shader, false);*/
+        float x = camera_static.wmax[0]-1.6;
+        if (x > 0) x = 0;
+
+        vec3 wave;
+        glm_vec3_copy(pmouse.wave2, wave);
+        //glm_vec3_rotate(pmouse.wave, pmouse.camera.rot[1], (vec3){0,0,1});
+
+        vec3 off = {wave[0]*30, -wave[1]*100, 0};
+        //glm_vec3_rotate(off, -pmouse.camera.rot[1], (vec3){1,0,0});
+        
+        draw_texture_plane((vec3){x + off[0]/*1.6*/, -1 + off[1], 0}, (vec2){1.6,1.6}, (vec3){0,0,1}, 0, 
+            &torch_tex, &texplane_shader, true);
+
+        mouse.grabby = true;
+
+        // play sound here
+        if (mouse.first_interaction) {
+            sound_play2("tense-drone-sound", 1.0, 1.0, true, true);
+            sound_play2("somber-sound", 0.5, 1.0, true, true);
+            //sound_play2("intense-drone-sound", true);
+            //sound_play("somber-sound", true);
+        }
+    } else {
+        // pause sounds here
+        sound_pause("tense-drone-sound");
+        sound_pause("somber-sound");
+
+        mouse.grabby = false;
+    }
+    
     
 
     camera_apply(&camera, poly_program);
@@ -403,19 +547,16 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     camera_apply(&camera, texplane_program);
     camera_apply(&camera, texplane_dither_program);
     camera_apply(&camera, maze_program);
+    camera_apply(&camera, mirror_program);
 
-    // clear the scene
-    // note that with the new framebuffer draws, this is neccissary otherwise
-    // weird overlap is going to occur
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    //glClear(GL_DEPTH_BUFFER_BIT);
+    
 
     vec3 light_norm = (vec3){0, 0, 1};
     glm_vec3_rotate(light_norm, t/50, (vec3){0,1,0});
     shader_set_vec3(&maze_shader, "u_light_norm_debug", light_norm);
 
     if (maze.mode == MAZE_MODE_DETAILED) {
-        glm_vec3_add(pos, (vec3){-0.004, -0.004, -0.01}, pos);
+        //glm_vec3_add(pos, (vec3){-0.004, -0.004, -0.01}, pos);
         //draw_rect3(pos, (vec3){0.008,0.008,0.008}, NULL, 0, COLOR_WHITE, &poly3d_shader);
         /*draw_rect3((vec3){maze.x+CELL_SIZE*maze.cols/2, maze.y+CELL_SIZE, CELL_SIZE/2}, 
             (vec3){0.0008,0.0008,0.004}, light_norm, 0, COLOR_WHITE, &poly3d_shader);*/
@@ -435,14 +576,57 @@ EM_BOOL frame_loop(double _t, void *user_data) {
 
     //draw_rect3((vec3){-0.4,-0.4,-0.4}, (vec3){0.8,0.8,0.8}, (vec3){0,0,0}, 0, COLOR_ORANGE_ALPHA, &poly3d_shader);
 
+    if (maze.mode == MAZE_MODE_DETAILED) {
+        texture_bind(maze.texture_wall2, maze.shader_detailed, "tex0", GL_TEXTURE0);
+        draw_rect3(
+            (vec3){mirror_prop.pos[0]-0.01, mirror_prop.pos[1]+0.0001, 0}, 
+            (vec3){mirror_prop.scale[0]+0.02,0.01, CELL_SIZE*2},
+            (vec3){0,0,0}, 0,
+            COLOR_DIRT_GREY, maze.shader_detailed);
+    }
+        
+
     mouse_draw(&pmouse, t);
 
-    //draw_texture_plane((vec3){-0.5, -0.5, -0.5}, (vec2){1,1}, (vec3){1,1,1}, 0, &nyan_texture, &texplane_shader, false);
+    //draw_texture_plane((vec3){maze.x + maze.cols*CELL_SIZE/2, maze.y+CELL_SIZE, 0}, (vec2){CELL_SIZE/2*1.18,CELL_SIZE/2*1.18}, (vec3){0,-1,0}, MATH_PI, &cat_avatar_tex, &texplane_shader, true);
+
+    //draw_texture_plane((vec3){0, 0, 0}, (vec2){1,1}, (vec3){0,0,1}, 0, &nyan_texture, &texplane_shader, true);
+
+
+    if (maze.mode == MAZE_MODE_DETAILED) {
+        // draw mirror
+        drawsurface_draw(&mirror, t, dt);
+
+        // reapply some of the cameras because some of them got overriden by the mirror
+        camera_apply(&camera, poly_program);
+        camera_apply(&camera, poly3d_program);
+        //camera_apply(&camera, point_program);
+        camera_apply(&camera, texplane_program);
+        camera_apply(&camera, texplane_dither_program);
+        camera_apply(&camera, maze_program);
+        camera_apply(&camera, mirror_program);
+        // fix z buffer sampling
+        //glDepthFunc(GL_LESS);
+        glCullFace(GL_BACK);
+
+        shader_set_float(&mirror_shader, "u_swidth", mirror.asset.width);
+        shader_set_float(&mirror_shader, "u_sheight", mirror.asset.height);
+        
+        // draw mirror texture
+        draw_texture_plane(
+            mirror_prop.pos,
+            mirror_prop.scale, 
+            (vec3){0,1,0}, /*MATH_PI*/ 0, 
+            &mirror.texture, &mirror_shader, false);
+    }
+
+
 
     // TODO: this overrides some of the cameras for some shaders, which is why it is last
     // please fix this, yeah?
     // TODO: perhaps just create a separate draw function for the maze for the texture? Call it manually?
     maze_draw(&maze, t);
+    
     
     // requests frame buffer swap. Will actually render stuff to screen
     // this is neccissary because explicitSwapControl was set to GL_TRUE
@@ -452,6 +636,108 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     // return true to keep looping
     // return false to kill loop
     return EM_TRUE;
+}
+
+
+
+
+void mirror_frame(DRAWSURFACE* surface, void* data, double t, float dt) {
+
+    // clear scene
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    // for some reason the z-buffer is inverted for this, so...
+    //glDepthFunc(GL_MORE);
+    glCullFace(GL_FRONT);
+
+    // Adjust light sources
+    // probably not neccissary as they don't exactly get overwritten from earlier
+    /*
+    vec3 off = (vec3){pmouse.scale*4/8, pmouse.scale/4, pmouse.scale/2};
+    vec3 pos = (vec3){pmouse.x, pmouse.y, 0};
+    glm_vec3_rotate(off, -pmouse.camera.rot[1]-MATH_PI, (vec3){0,0,1});    
+    glm_vec3_add(off, pos, pos);
+    glm_vec3_add((vec3){pmouse.scale/2, pmouse.scale/2, pmouse.scale/2}, pos, pos);
+    shader_set_vec3(&maze_shader, "point_light_pos", pos);
+    shader_set_float(&maze_shader, "point_light_int", 0.005);*/
+
+    // Update mirror camera
+    //float dx = mirror_prop.pos[0] - pmouse.camera.pos[0];
+    //float dy = mirror_prop.pos[1] - pmouse.camera.pos[1];
+    //camera_mirror.pos[0] = mirror_prop.pos[0] + dx;
+    //camera_mirror.pos[1] = mirror_prop.pos[1] - dy;
+    //camera_mirror.pos[2] = pmouse.camera.pos[2];
+
+    //vec4 pos;
+    //glm_decompose(camera.viewmat, pos, NULL, NULL);
+    //printf("%f, %f, %f, %f\n", pos[0], pos[1], pos[2], pos[3]);
+    camera_mirror.pos[0] = pmouse._cpos[0];
+    camera_mirror.pos[1] = mirror_prop.pos[1] * 2 - pmouse._cpos[1];
+    camera_mirror.pos[2] = pmouse._cpos[2];
+    camera_mirror.fov = pmouse.camera.fov;
+    camera_mirror.rot[0] = pmouse.camera.rot[0];
+    camera_mirror.rot[1] = pmouse.camera.rot[1] + MATH_PI;
+    camera_mirror.rot[2] = pmouse.camera.rot[2];
+    //camera_mirror.rot[2] = MATH_PI/2;
+    ////
+    //camera_update_actual(&camera_mirror);
+    camera_update_actual_flipx(&camera_mirror);
+
+    /*mat4 reflection_matrix = {
+        {1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, -1.0f, 0.0f, 1.0f * mirror_prop.pos[1]},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f}
+    };*/
+    /*mat4 reflection_matrix = {
+        {-1.0f, 0.0f, 0.0f, 0.0f},
+        {0.0f, 1.0f, 0.0f, 0.0f},
+        {0.0f, 0.0f, 1.0f, 0.0f},
+        {0.0f, 0.0f, 0.0f, 1.0f}
+    };
+    glm_mat4_mul(reflection_matrix, camera_mirror.viewmat, camera_mirror.viewmat);*/
+
+    // apply camera
+    camera_apply(&camera_mirror, poly_program);
+    camera_apply(&camera_mirror, poly3d_program);
+    camera_apply(&camera_mirror, texplane_program);
+    camera_apply(&camera_mirror, texplane_dither_program);
+    camera_apply(&camera_mirror, maze_program);
+
+
+    // draw player cat avatar
+    /*draw_texture_plane(
+        (vec3){maze.x + maze.cols*CELL_SIZE/2, maze.y+CELL_SIZE, 0},
+        (vec2){CELL_SIZE/2*1.18,CELL_SIZE/2*1.18}, 
+        (vec3){0,-1,0}, MATH_PI, 
+        &cat_avatar_tex, &texplane_shader, true);*/
+
+    vec3 pos;
+    //glm_vec3_add(pmouse.camera.pos, pmouse._cpos, pos);
+    glm_vec3_copy(pmouse._cpos, pos);
+    pos[2] = 0;
+    pos[0] += CELL_SIZE/4;
+    vec3 rot = (vec3){0,-1,0};
+    //glm_vec3_rotate(rot, pmouse.camera.rot[1]+ MATH_PI, (vec3){0,0,1});
+    
+    draw_texture_plane(
+        pos,
+        (vec2){CELL_SIZE/2*1.18,CELL_SIZE/2*1.18}, 
+        rot, MATH_PI, 
+        &cat_avatar_tex, &texplane_shader, true);
+
+
+    //draw_rect3((vec3){maze.x + maze.cols*CELL_SIZE/2, maze.y + CELL_SIZE*3-0.01, 0}, (vec3){0.01,0.01,0.01}, NULL, 0, COLOR_RED, &poly3d_shader);
+
+    // draw maze
+    // REMEMBER DO THIS LAST, AS ITS PATH SCENE MESSES UP DRAW CALLS FOLLOWING IT!
+    maze.hide_upper_walls = true;
+    maze_draw(&maze, t);
+    maze.hide_upper_walls = false;
+    
+    //glClearDepth(1.0);
+    //glClear(GL_DEPTH_BUFFER_BIT);
+
 }
 
 
@@ -473,12 +759,14 @@ void update_cam(void) {
 
     if (key[KEY_1] && mode != MAZE_MODE_2D && cinter > 0.99) {
         lastmode = mode;
+        if (lastmode != MAZE_MODE_DETAILED)
+            inter = cinter = 0;
         mode = MAZE_MODE_2D;
-        inter = cinter = 0;
     } else if (key[KEY_2] && mode != MAZE_MODE_3D && cinter > 0.99) {
         lastmode = mode;
+        if (lastmode != MAZE_MODE_DETAILED)
+            inter = cinter = 0;
         mode = MAZE_MODE_3D;
-        inter = cinter = 0;
     } else if (key[KEY_4] && mode != MAZE_MODE_DETAILED) {
         lastmode = mode;
         mode = MAZE_MODE_DETAILED;

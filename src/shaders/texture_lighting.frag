@@ -70,6 +70,14 @@ void main() {
         return;
     }
 
+    if (u_f_mode == 1) {
+        if (abs(tnorm.z) > 0.5)
+            tnorm.z = -tnorm.z;
+        adj_norm = tnorm;
+        //gl_FragColor = norm_to_color(tnorm);
+        //return;
+    }
+
     vec3 light_vect = v_coords3.xyz - point_light_pos.xyz;
     // TODO: not sure why the Z needs to be inverted here. It might be because
     // the color_to_norm etc. functions reverse the z. So consider 
@@ -86,20 +94,28 @@ void main() {
     float l_dot = dot(adj_norm, light_norm);
     //*DEBUG*/ float l_dot = dot(tnorm, light_norm);
 
-    float mult = l_dot * intense;
+    float mult;
+    if (u_f_mode == 2)
+        mult = clamp(l_dot * intense, 0.08, 1000.0);
+    else
+        mult = clamp(l_dot * intense, 0.05, 1000.0);
+        //mult = l_dot * intense;
     //mult = log(1.0+mult*2.0)*1.3;
 
-    vec4 frag = clamp(tex * mult, 0.0, 1.0);
-    //*DEBUG*/ vec4 frag = clamp(tex * l_dot, 0.0, 1.0);
+    vec4 frag;
+    if (u_f_mode == 3)
+        /*DEBUG*/ frag = clamp(tex * l_dot, 0.0, 1.0);
+    else
+        frag = clamp(tex * mult, 0.0, 1.0);
 
-    if (u_f_mode == 0)
-        gl_FragColor = vec4(frag.rgb, 1.0);
-    else if (u_f_mode == 1)
+    if (u_f_mode == 4)
         gl_FragColor = tex;
-    else if (u_f_mode == 2)
+    else if (u_f_mode == 5)
         gl_FragColor = vec4(norm_to_color(light_norm).rgb * tex.rgb, 1.0);
-    else if (u_f_mode == 3)
+    else if (u_f_mode == 6)
         gl_FragColor = norm_to_color(adj_norm);
+    else
+        gl_FragColor = vec4(frag.rgb, 1.0);
 
     // FOR DEBUGGING
     //gl_FragColor = vec4(norm_to_color(light_norm).rgb * tex.rgb, 1.0);

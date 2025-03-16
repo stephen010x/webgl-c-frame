@@ -912,8 +912,8 @@ int draw_texture_plane(vec3 pos, vec2 scale, vec3 norm, float rot, TEXTURE* text
     MESH* mesh = (MESH*)&tex_square_mesh;
 
     if (flip) {
-        GLuint buff = tex_square_flipped_vert_buff;
-        MESH* mesh = (MESH*)&tex_square_flipped_mesh;
+        buff = tex_square_flipped_vert_buff;
+        mesh = (MESH*)&tex_square_flipped_mesh;
     }
 
     shader_use(shader);
@@ -921,6 +921,7 @@ int draw_texture_plane(vec3 pos, vec2 scale, vec3 norm, float rot, TEXTURE* text
     texture_bind(texture, shader, "tex0", GL_TEXTURE0);
 
     // I wonder if it is okay to bind this before binding shader?
+    // which I am not doing. But I do wonder.
     glBindBuffer(GL_ARRAY_BUFFER, buff);
 
     shape_setup_attributes(mesh->type, shader);

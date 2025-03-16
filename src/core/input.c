@@ -7,7 +7,6 @@
 
 
 
-
 bool key_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params);
 bool mouse_event_handler(int etype, const EmscriptenMouseEvent* event, void* params);
 bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* params);
@@ -142,8 +141,9 @@ bool mouse_event_handler(int etype, const EmscriptenMouseEvent *event, void *par
             mouse.dy += event->movementY; // gets reset every frame
             return true;
         case EMSCRIPTEN_EVENT_MOUSEDOWN:
+            mouse.first_interaction = true;
             mouse.button[event->button] = MOUSEDOWN;
-            if (!pointerlock.isActive)
+            if (mouse.grabby && !pointerlock.isActive)
                 emscripten_request_pointerlock("#" HTML_CANVAS_ID, EM_FALSE);
             return true;
         case EMSCRIPTEN_EVENT_MOUSEUP:
@@ -163,9 +163,11 @@ void input_refresh(void) {
     EmscriptenPointerlockChangeEvent pointerlock;
     emscripten_get_pointerlock_status(&pointerlock);
 
-    if (pointerlock.isActive)
+    if (pointerlock.isActive) {
         mouse.grabbed = true;
-    else
+        if (!mouse.grabby)
+            emscripten_exit_pointerlock();
+    } else
         mouse.grabbed = false;
 }
 

@@ -1,9 +1,12 @@
 #include <math.h>
+#include <cglm/cglm.h>
 
 #include "mouse.h"
 #include "../core/input.h"
 #include "../core/texture.h"
 #include "drawsurface.h"
+#include "../core/audio.h"
+
 
 
 
@@ -104,14 +107,17 @@ void mouse_draw(PMOUSE* mouse, double t) {
         mouse->scale, mouse->scale, 0, (vec2){mouse->px, mouse->py}, 
         mouse->pcolor, mouse->shader, 0);*/
 
-    if (mouse->shader3)
-        draw_rect3((vec3){mouse->x, mouse->y, 0}, (vec3){mouse->scale, mouse->scale, mouse->scale}, 
-        NULL, 0, mouse->color, mouse->shader3);
-    else
-        draw_rectangle(
-            //mouse->scale, mouse->scale, 0, (vec2){mouse->dx, mouse->dy},
-            mouse->scale, mouse->scale, 0, (vec2){mouse->x, mouse->y},
-            mouse->color /*DEBUG*//*(COLOR){0,1,0,1}*/, mouse->shader2, -1);
+    if (mouse->mode != MOUSE_FPS) {
+        if (mouse->shader3) {
+            draw_rect3((vec3){mouse->x, mouse->y, 0}, (vec3){mouse->scale, mouse->scale, mouse->scale}, 
+            NULL, 0, mouse->color, mouse->shader3);
+        } else {
+            draw_rectangle(
+                //mouse->scale, mouse->scale, 0, (vec2){mouse->dx, mouse->dy},
+                mouse->scale, mouse->scale, 0, (vec2){mouse->x, mouse->y},
+                mouse->color /*DEBUG*//*(COLOR){0,1,0,1}*/, mouse->shader2, -1);
+        }
+    }
 
     /*float pscale = (CELL_SIZE-WALL_THICK+mouse->scale/2)*1.25;
     float offset = (mouse->scale-pscale)/2;
@@ -254,14 +260,17 @@ void mouse_update(PMOUSE* mouse, double t, float dt) {
 #define Z 2
 
 void mouse_update_fps(PMOUSE* m, double t, float dt) {
-    if (!mouse.grabbed)
-        return;
 
     m->camera.pos[X] = m->x + m->scale/2;
     m->camera.pos[Y] = m->y + m->scale/2;
 
-    m->camera.rot[Y] +=  mouse.dx / 200.0;
-    m->camera.rot[X] +=  mouse.dy / 200.0;
+    if (!mouse.grabbed) {
+        camera_update_actual(&m->camera);
+        return;
+    }
+
+    m->camera.rot[Y] +=  mouse.dx / 200.0 / 2;
+    m->camera.rot[X] +=  mouse.dy / 200.0 / 2;
 
     //m->camera.rot[X] += 0.01;
 
@@ -273,17 +282,22 @@ void mouse_update_fps(PMOUSE* m, double t, float dt) {
 
     //printf("%d, %d, %f, %f\n", mouse.dx, mouse.dy, m->camera.rot[X], m->camera.rot[Y]);
 
-    camera_update_actual(&m->camera);
+    //camera_update_actual(&m->camera);
 
 
-
-    float speed = m->speed / 8;
+    float speed = m->speed / 16;
 
     if (key[KEY_SHIFT])
+        //speed *= 1.5;
         speed *= 2;
 
-    float dx = ((key[KEY_RIGHT] || key[KEY_D]) - (key[KEY_LEFT] || key[KEY_A])) * speed;
-    float dy = ((key[KEY_UP]    || key[KEY_W]) - (key[KEY_DOWN] || key[KEY_S])) * speed;
+    float _dx = ((key[KEY_RIGHT] || key[KEY_D]) - (key[KEY_LEFT] || key[KEY_A])) * speed;
+    float _dy = ((key[KEY_UP]    || key[KEY_W]) - (key[KEY_DOWN] || key[KEY_S])) * speed;
+
+    //float dx = m->dx = (m->dx*3 + _dx)/4;
+    //float dy = m->dy = (m->dy*3 + _dy)/4;
+    float dx = m->dx = _dx;
+    float dy = m->dy = _dy;
 
     float div = sqrt((dx*dx != 0.0) + (dy*dy != 0.0));
 
@@ -294,6 +308,69 @@ void mouse_update_fps(PMOUSE* m, double t, float dt) {
         m->x += delta[0];
         m->y += delta[1];
     }
+
+
+    static char* steps[] = {
+        "step0-sound", "step1-sound", "step2-sound", "step3-sound",
+        "step4-sound", "step5-sound", "step6-sound",
+    };
+
+    vec3 _wave;
+    vec3 _wave2;
+    if (dx || dy) {
+        m->is_moving = true;
+        float k = t/1.5 * (key[KEY_SHIFT] ? 1.5 : 1);
+        _wave[0] = cos(k)/400.0/2/2 * (key[KEY_SHIFT] ? 2 : 1);
+        _wave[1] = (-cos(k*2.0) + 1.0) / 2.0 / 400.0/8;
+        _wave[2] = -(ABS(sin(k))-0.6)/400.0/2 * (key[KEY_SHIFT] ? 2 : 1);
+        glm_vec3_copy(_wave, _wave2);
+
+        _wave2[0] = cos(k-0.7)/400.0/2/2 * (key[KEY_SHIFT] ? 2 : 1);
+        _wave2[1] = (-cos(k*2.0) + 1.0) / 2.0 / 400.0/8 * (key[KEY_SHIFT] ? 2 : 1);
+        
+        glm_vec3_rotate(_wave, -m->camera.rot[Y], (vec3){0,0,1});
+
+        /*if (_wave[1] < -0.000300)
+            printf("%f\n", _wave[1]);*/
+
+        // TODO this shouldn't be static, but a class member instead
+        /*static bool debounce = true;
+        if (_wave[1] < -0.000300) {
+            if (debounce)
+                sound_play_unsafe2(steps[rand()%7], 0.5, 1.0, true);
+            debounce = false;
+        } else
+            debounce = true;*/
+
+        static double last = 0;
+        double period = MATH_PI / ((key[KEY_SHIFT] ? 1.5 : 1)/1.5);
+        if (t > last + period) {
+            last = t;
+            sound_play_unsafe2(steps[rand()%7], 0.5, 1.0, true);
+        }
+    } else {
+        m->is_moving = false;
+        glm_vec3_zero(_wave);
+        glm_vec3_zero(_wave2);
+    }
+
+    for (int i = 0; i < 3; i++) {
+        //wave[i] = (wave[i]*3 + _wave[i])/4;
+        m->wave[i] = (m->wave[i]*15 + _wave[i]*4)/16;
+        //m->wave[i] = _wave[i];
+        m->wave2[i] = (m->wave2[i]*15 + _wave2[i]*4)/16;
+    }
+
+
+    //printf("%f, %f, %f\n", wave[0], wave[1], wave[2]);
+    //printf("%f, %f, %f\n", _wave[0], _wave[1], _wave[2]);
+
+    glm_vec3_sub(m->camera.pos, m->wave, m->_cpos);
+
+    camera_update_actual(&m->camera);
+    glm_translate(m->camera.viewmat, m->wave);
+    //glm_vec3_add(m->camera.pos, m->wave, m->camera.pos);
+
 
 
     int c, r;

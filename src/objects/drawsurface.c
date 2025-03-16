@@ -106,6 +106,19 @@ int drawsurface_init(DRAWSURFACE* s, int width, int height, int tex_mode, DRAWSU
     // bind texture to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture->id, 0);
 
+    // whoops. Forgot to bind z-buffer
+    glGenRenderbuffers(1, &s->depthbuffer);
+    glBindRenderbuffer(GL_RENDERBUFFER, s->depthbuffer);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, width, height);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, s->depthbuffer);
+
+    // not sure why the earlier one wasn't working, so I am just going to bind a texture for depth
+    /*glGenTextures(1, &s->depthbuffer);
+    glBindTexture(GL_TEXTURE_2D, s->depthbuffer);
+    printf("%d, %d\n", width, height);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, width, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, s->depthbuffer, 0);*/
+
     // restore framebuffer binding to screen
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -143,6 +156,12 @@ void drawsurface_free(DRAWSURFACE* s) {
 
 void drawsurface_draw(DRAWSURFACE* s, double t, float dt) {
 
+    // save last frame buffer and viewport
+    GLint last_frame_buffer;
+    GLint last_viewport[4];
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &last_frame_buffer);
+    glGetIntegerv(GL_VIEWPORT, last_viewport);
+
     // switch render context to draw to framebuffer for texture
     glBindFramebuffer(GL_FRAMEBUFFER, s->framebuffer);
     glViewport(0, 0, s->asset.width, s->asset.height);
@@ -163,12 +182,12 @@ void drawsurface_draw(DRAWSURFACE* s, double t, float dt) {
 
     //camera_apply(&s->camera, s->shader.program);
 
-    // reset framebuffer and viewport to screen
-    int width, height;
+    // restore framebuffer and viewport previous
+    //int width, height;
     //emscripten_get_canvas_element_size(/\*HTML_CANVAS_ID*\/ "canvas", &width, &height);
-    get_elementid_size(HTML_CANVAS_ID, &width, &height);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	glViewport(0, 0, width, height);
+    //get_elementid_size(HTML_CANVAS_ID, &width, &height);
+    glBindFramebuffer(GL_FRAMEBUFFER, last_frame_buffer);
+	glViewport(last_viewport[0], last_viewport[1], last_viewport[2], last_viewport[3]);
 
 	// I was going to just have this draw a rectangle. But then I realized 
 	// it would be better to just pass this surfaces texture to an externally called

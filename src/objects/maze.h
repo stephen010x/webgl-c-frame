@@ -103,7 +103,11 @@ typedef struct {
 
     DRAWSURFACE surface;
     TEXTURE* texture_wall;
+    TEXTURE* texture_wall2;
     TEXTURE* texture_wall_norm;
+    TEXTURE* texture_wall_norm2;
+
+    bool hide_upper_walls;
 } MAZE;
 
 

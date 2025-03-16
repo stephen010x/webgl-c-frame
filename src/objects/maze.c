@@ -351,15 +351,16 @@ MAZE* maze_draw(MAZE* maze, double t) {
     switch (maze->mode) {
         case MAZE_MODE_DETAILED:
             if (maze->texture_wall)
-                texture_bind(maze->texture_wall, maze->shader_detailed, "tex0", GL_TEXTURE0);
+                texture_bind(maze->texture_wall2, maze->shader_detailed, "tex0", GL_TEXTURE0);
                     /*texture_bind_scale(maze->texture_wall, maze->shader_detailed, 
                         "tex0", GL_TEXTURE0, "u_tex_scale", 6);*/
             if (maze->texture_wall_norm) {
-                texture_bind(maze->texture_wall_norm, maze->shader_detailed, "norm0", GL_TEXTURE1);
+                texture_bind(maze->texture_wall_norm2, maze->shader_detailed, "norm0", GL_TEXTURE1);
             }
 
             vec3 scale = (vec3){maze->cols*CELL_SIZE, maze->rows*CELL_SIZE, 1};
             shader_set_float(maze->shader_detailed, "u_tex_scale", 3);
+            //shader_set_float(maze->shader_detailed, "u_tex_scale", 6);
             shader_set_int(maze->shader_detailed, "u_mode", 1);
             {
                 vec3 pos = (vec3){maze->x, maze->y, WALL_HEIGHT*2};
@@ -372,6 +373,12 @@ MAZE* maze_draw(MAZE* maze, double t) {
 
             shader_set_float(maze->shader_detailed, "u_tex_scale", 6);
             shader_set_int(maze->shader_detailed, "u_mode", 0);
+
+            if (maze->texture_wall)
+                texture_bind(maze->texture_wall, maze->shader_detailed, "tex0", GL_TEXTURE0);
+            if (maze->texture_wall_norm) {
+                texture_bind(maze->texture_wall_norm, maze->shader_detailed, "norm0", GL_TEXTURE1);
+            }
             break;
     }
 
@@ -415,7 +422,7 @@ MAZE* maze_draw(MAZE* maze, double t) {
                     maze, (vec3){x + CELL_SIZE, y, 0}, 
                     (vec3){WALL_THICK, WALL_LENGTH, WALL_HEIGHT});
 
-            if (flags & WALL_UP)
+            if ((flags & WALL_UP) && (!maze->hide_upper_walls || (r != maze->rows-1)))
                 maze_draw_wall(
                     maze, (vec3){x, y + CELL_SIZE, 0}, 
                     (vec3){WALL_LENGTH, WALL_THICK, WALL_HEIGHT});
@@ -435,7 +442,7 @@ MAZE* maze_draw(MAZE* maze, double t) {
                 vec2 scale = (vec2){maze->cols*CELL_SIZE, maze->rows*CELL_SIZE};
                 vec3 pos = (vec3){maze->x, maze->y, -0.0001};
                 draw_texture_plane(pos, scale, NULL, 0, 
-                    &maze->surface.texture, maze->shader_trail, true);
+                    &maze->surface.texture, maze->shader_trail, false);
             }
             break;
     }

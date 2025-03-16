@@ -23,6 +23,8 @@ typedef struct {
     int dx;
     int dy;
     bool grabbed;
+    bool grabby;
+    bool first_interaction;
     char button[3];
 } MOUSE;
 

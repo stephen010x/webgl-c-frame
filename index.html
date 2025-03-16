@@ -45,7 +45,7 @@
                 top: 0;
                 left: 0;
                 width: 100%;
-                height: 600px;
+                height: 700px;
                 background-color: rgba(0, 0, 0, 0.8);
                 color: white;
                 text-align: left;
@@ -99,6 +99,10 @@
 <u>Others</u>
 
 &lt;h key&gt;       - show this help box
+
+
+P.S. There is a SECRET at the end of the maze in 
+     realism mode (the topmost room).
     	    </p>
     	</div>
     
@@ -115,12 +119,28 @@
             <img id="crying-cat" src="assets/crying-cat.jpg">
             <img id="rock-wall-tex" src="assets/rock_wall_tex.png">
             <img id="rock-wall-norm" src="assets/rock_wall_norm.png">
+            <img id="rock-wall-norm-512" src="assets/rock_wall_norm_512.png">
             <img id="rock-wall-white" src="assets/rock_wall_white.png">
+            <img id="rock-wall-white-512" src="assets/rock_wall_white_512.png">
             <!--img id="rock-wall-smooth" src="assets/rock_wall_smooth.png"-->
             <img id="test-norm" src="assets/test_norm.png">
+            <img id="torch" src="assets/torch.png">
+            <img id="cat-avatar" src="assets/cat_avatar.png">
 
             <audio id="nyan-cat-sound"> <source  src="assets/nyan_cat.mp3" type="audio/mpeg"> </audio>
             <audio id="silent-sound"> <source  src="assets/silence.mp3" type="audio/mpeg"> </audio>
+            <audio id="tense-drone-sound"> <source  src="assets/tense_drone.mp3" type="audio/mpeg">
+                credit: https://freesound.org/people/newlocknew/sounds/676931/
+            </audio>
+            <audio id="somber-sound"> <source  src="assets/somber.mp3" type="audio/mpeg"> </audio>
+            
+            <audio id="step0-sound"> <source  src="assets/steps/steps0.mp3" type="audio/mpeg"> </audio>
+            <audio id="step1-sound"> <source  src="assets/steps/steps1.mp3" type="audio/mpeg"> </audio>
+            <audio id="step2-sound"> <source  src="assets/steps/steps2.mp3" type="audio/mpeg"> </audio>
+            <audio id="step3-sound"> <source  src="assets/steps/steps3.mp3" type="audio/mpeg"> </audio>
+            <audio id="step4-sound"> <source  src="assets/steps/steps4.mp3" type="audio/mpeg"> </audio>
+            <audio id="step5-sound"> <source  src="assets/steps/steps5.mp3" type="audio/mpeg"> </audio>
+            <audio id="step6-sound"> <source  src="assets/steps/steps6.mp3" type="audio/mpeg"> </audio>
         </div>
 
         <script>
@@ -234,26 +254,35 @@
 
             let opacity = 1.0;
 
+            var fadeEffect;
+
+            function hidehelp() {
+                fadeEffect = setInterval(function () {
+                    var element = document.getElementById('controls');
+                    if (opacity <= 0.1) {
+                        clearInterval(fadeEffect);
+                        element.style.display = 'none';
+                    } else {
+                        element.style.opacity = opacity;
+                        opacity -= 0.1;
+                    }
+                }, 100);
+            }
+
             document.addEventListener('keydown', function(event) {
         	    if (event.key === 'h' || event.key === 'H') {
                     element.style.opacity = 1.0;
                     element.style.display = 'block';
                     opacity = 1.0;
+                    clearInterval(fadeEffect);
         	    } else {
-                    let fadeEffect = setInterval(function () {
-                        var element = document.getElementById('controls');
-                        if (opacity <= 0.1) {
-                            clearInterval(fadeEffect);
-                            element.style.display = 'none';
-                        } else {
-                            element.style.opacity = opacity;
-                            opacity -= 0.1;
-                        }
-                    }, 100);
+                    hidehelp();
         	    }
         	});
 
-
+            document.addEventListener("mousedown", function(event) {
+            	hidehelp();
+        	});
 
             
             /*

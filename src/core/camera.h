@@ -102,5 +102,6 @@ void camera_rotate_about(CAMERA* c, vec3 origin, vec3 rot, float radius);
 void camera_update(CAMERA* c);
 // TODO: get rid of this duck-tape function
 void camera_update_actual(CAMERA* c);
+void camera_update_actual_flipx(CAMERA* c);
 
 #endif

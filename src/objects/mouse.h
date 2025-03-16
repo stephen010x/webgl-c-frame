@@ -8,6 +8,7 @@
 
 
 
+
 #define DEG_TO_RAD(__n) ((__n)*MATH_PI/180.0)
 
 
@@ -22,8 +23,17 @@ typedef struct {
     int mode;
     float x, y;
     float px, py;
-    /*float dx, dy; /\* <-- to "visually" filter out collision jitter
-                         Because no better way to fix a problem than to simply hide it */
+
+    // for animations
+    float dx, dy;
+    vec3 wave;
+    vec3 wave2;
+    //vec3 _wave;
+
+    bool is_moving;
+
+    float sample[3];
+    
     float scale;
     float speed;
     COLOR color;
@@ -33,6 +43,8 @@ typedef struct {
     SHADER* shader3;
     CAMERA trail_camera;
     CAMERA camera;
+    
+    vec3 _cpos;
 } PMOUSE;
 
 

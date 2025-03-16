@@ -31,8 +31,13 @@ typedef struct _TEXTURE TEXTURE;
 
 
 struct _DRAWSURFACE;
+// TODO: I probably don't need to pass the surface object to a virtual rendering scene. 
+// so consider getting rid of the surface param and just have the user pass the surface through the
+// data param if they really need it
 typedef void (*DRAWSURFACE_CALLBACK)(struct _DRAWSURFACE* surface, void* data, double t, float dt);
 
+// I am really split on whether or not a drawsurface should have it's own camera.
+// I suppose it is more versatile this way.
 typedef struct _DRAWSURFACE {
     ASSET asset;
     TEXTURE texture;
@@ -41,6 +46,7 @@ typedef struct _DRAWSURFACE {
     DRAWSURFACE_CALLBACK callback;
     void* data;
     GLuint framebuffer;
+    GLuint depthbuffer;
     //bool preserve; // turns out I just misunderstood how framebuffers work
     /*vec3 pos;
     vec3 norm;
