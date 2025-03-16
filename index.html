@@ -257,6 +257,7 @@ P.S. There is a SECRET at the end of the maze in
             var fadeEffect;
 
             function hidehelp() {
+                clearInterval(fadeEffect);
                 fadeEffect = setInterval(function () {
                     var element = document.getElementById('controls');
                     if (opacity <= 0.1) {
