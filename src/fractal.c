@@ -56,23 +56,28 @@ FRACTAL* FRACTAL_init(FRACTAL* self, vec2 window[2], vec3 pos) {
 
 FRACTAL* FRACTAL_update(FRACTAL* self, double t, float dt) {
 
-    float speed = MOVE_SPEED/pow(ZOOM_BASE, self->zoom);
+    float speed = MOVE_SPEED /** 1e36*/ / pow(ZOOM_BASE, self->zoom) * (key[KEY_SHIFT] ? 2 : 1);
     float rx = 0;
     float ry = 0;
+
+    //if (key[KEY_SHIFT]) speed *= 4;
 
     if (key[KEY_D] == KEYDOWN) rx += speed;
     if (key[KEY_A] == KEYDOWN) rx -= speed;
     if (key[KEY_W] == KEYDOWN) ry += speed;
     if (key[KEY_S] == KEYDOWN) ry -= speed;
 
-    if (key[KEY_UP]    == KEYDOWN) self->zoom += ZOOM_SPEED;
-    if (key[KEY_DOWN]  == KEYDOWN) self->zoom -= ZOOM_SPEED;
+    if (key[KEY_UP]    == KEYDOWN) self->zoom += ZOOM_SPEED * (key[KEY_SHIFT] ? 4 : 1);
+    if (key[KEY_DOWN]  == KEYDOWN) self->zoom -= ZOOM_SPEED * (key[KEY_SHIFT] ? 4 : 1);
     if (key[KEY_RIGHT] == KEYDOWN) self->rot  += ROT_SPEED;
     if (key[KEY_LEFT]  == KEYDOWN) self->rot  -= ROT_SPEED;
+
 
     self->x += rx*cos(self->rot) + ry*sin(self->rot);
     self->y += rx*sin(self->rot) - ry*cos(self->rot);
 
+    printf("zoom %f, pos %f, %f\n", self->zoom, self->x, self->y);
+    
     MODEL_update(&self->model, t, dt);
 
     return self;

@@ -11,24 +11,30 @@ int mod(int x, int y);
 
 
 const int type = 1;
-
-
 const int ITTER = 100;
+//const float scale = 1e36;
+// const float scale = 1e1;
 
 
-int colors_length = 2;
-vec4 colors[2];
+//int colors_length = 2;
+//vec4 colors[2];
+int colors_length = 4;
+vec4 colors[4];
 
 
 void main() {
 
-    colors[0] = vec4(0.9, 0.7, 0.2, 1.0);
-    colors[1] = vec4(0.2, 0.3, 0.7, 1.0);
+    colors[0] = vec4(0.0, 0.0, 0.0, 1.0);
+    //colors[1] = vec4(0.9, 0.7, 0.2, 1.0);
+    //colors[2] = vec4(0.2, 0.3, 0.7, 1.0);
+    colors[1] = vec4(1.0, 1.0, 1.0, 1.0);
+    colors[2] = vec4(0.4, 0.5, 0.9, 1.0);
+    colors[3] = vec4(0.0, 0.0, 0.0, 1.0);
 
     //float color;
 
     //vec2 coord = gl_FragCoord.xy * u_scale / 200.0 + u_pos;
-    vec2 coord = (vec2(gl_FragCoord[0], gl_FragCoord[1]) - vec2(u_width/2.0, u_height/2.0)) * u_scale / 200.0;
+    vec2 coord = (vec2(gl_FragCoord[0], gl_FragCoord[1]) - vec2(u_width/2.0, u_height/2.0)) * /*scale **/ (u_scale) / 100.0;
 
     vec2 c;
 
@@ -38,13 +44,16 @@ void main() {
     c.y = coord.x * sin(u_rot) - coord.y * cos(u_rot);
 
     c += u_pos;
+    //c /= scale;
 
     vec2 Z = vec2(0,0);
+    //vec2 Z = c;
 
     int k = ITTER;
     for (int i = ITTER; (i > 0); i--) {
         Z = F(Z) + c;
-        if (length(Z) < 1.0) {
+        if (length(Z) < 4.0) {
+        //if (sqrt(Z[0]*Z[0] + Z[1]*Z[1]) < 1.0) {
             k--;
         }
     }
@@ -58,20 +67,23 @@ void main() {
 
         vec4 color;
 
-        if (k == 0)
-        //    color = vec4(0.0, 0.0, 0.0, 0.0);
-            ;
+        if (/*k == 0*/ false)
+            //color = vec4(0.0, 0.0, 0.0, 1.0);
+            color = colors[0];
         else {
         
-            float div = float(ITTER)/float(colors_length-1);
+            //float div = float(ITTER)/float(colors_length-1);
+            float div = float(ITTER)/float(colors_length-1)+1.0;
             int index = int(float(k)/div);
             float mixv = mod(float(k), div) / div;
 
             // good lord
             if (index == 0) color = mix(colors[0], colors[1], mixv);
-            //if (index == 1) vec4 color = mix(colors[1], colors[2], mixv);
-            //if (index == 2) vec4 color = mix(colors[2], colors[3], mixv);
-            //if (index == 3) vec4 color = mix(colors[3], colors[4], mixv);
+            else if (index == 1) color = mix(colors[1], colors[2], mixv);
+            else if (index == 2) color = mix(colors[2], colors[3], mixv);
+            //else if (index == 3) color = mix(colors[3], colors[4], mixv);
+
+            //if (k == 50) color = vec4(0.0, 1.0, 0.0, 1.0);
         }
 
         gl_FragColor = color;

@@ -1,8 +1,9 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 
-#include "input.h"
+#include <stdio.h>
 
+#include "input.h"
 
 
 
@@ -33,6 +34,10 @@ void input_init(void) {
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &mouse_event_handler);
     emscripten_set_mousemove_callback(
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &mouse_event_handler);
+    /*emscripten_set_mouseenter_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &mouse_event_handler);
+    emscripten_set_mouseleave_callback(
+        EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &mouse_event_handler);*/
 
     emscripten_set_touchstart_callback(
         EMSCRIPTEN_EVENT_TARGET_WINDOW, NULL, EM_FALSE, &touch_event_handler);
@@ -64,10 +69,12 @@ void input_pop_callback(EVENT_CALLBACK callback) {
 bool key_event_handler(int etype, const EmscriptenKeyboardEvent* event, void* params) {
     switch (etype) {
         case EMSCRIPTEN_EVENT_KEYDOWN:
+            //printf("keydown %d\n", event->keyCode);
             key[event->keyCode] = KEYDOWN;
             return false;
             //return true;                    // return that it was handled
         case EMSCRIPTEN_EVENT_KEYUP:
+            //printf("keyup %d\n", event->keyCode);
             key[event->keyCode] = KEYUP;
             return false;
             //return true;                    // return that it was handled
@@ -117,8 +124,20 @@ bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* par
 }
 
 
+//#include "main.h"
+#define HTML_CANVAS_ID "canvas"
 
 bool mouse_event_handler(int etype, const EmscriptenMouseEvent *event, void *params) {
+    //printf("%d, %d\n", etype, EMSCRIPTEN_EVENT_MOUSEENTER);
+
+    // these disable the dx dy accumulate, as they seem to misbehave
+    // with frame slowdowns
+    //mouse.dx = 0;
+    //mouse.dy = 0;
+
+    EmscriptenPointerlockChangeEvent pointerlock;
+    emscripten_get_pointerlock_status(&pointerlock);
+    
     switch (etype) {
         case EMSCRIPTEN_EVENT_MOUSEMOVE:
             mouse.x = event->canvasX;
@@ -128,7 +147,10 @@ bool mouse_event_handler(int etype, const EmscriptenMouseEvent *event, void *par
             mouse.dy += event->movementY; // gets reset every frame
             return true;
         case EMSCRIPTEN_EVENT_MOUSEDOWN:
+            mouse.first_interaction = true;
             mouse.button[event->button] = MOUSEDOWN;
+            if (mouse.grabby && !pointerlock.isActive)
+                emscripten_request_pointerlock("#" HTML_CANVAS_ID, EM_FALSE);
             return true;
         case EMSCRIPTEN_EVENT_MOUSEUP:
             mouse.button[event->button] = MOUSEUP;
@@ -138,3 +160,19 @@ bool mouse_event_handler(int etype, const EmscriptenMouseEvent *event, void *par
 }
 
 
+
+
+void input_refresh(void) {
+    mouse.dx = 0;
+    mouse.dy = 0;
+
+    EmscriptenPointerlockChangeEvent pointerlock;
+    emscripten_get_pointerlock_status(&pointerlock);
+
+    if (pointerlock.isActive) {
+        mouse.grabbed = true;
+        if (!mouse.grabby)
+            emscripten_exit_pointerlock();
+    } else
+        mouse.grabbed = false;
+}
