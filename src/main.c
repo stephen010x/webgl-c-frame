@@ -198,6 +198,36 @@ void mirror_frame(DRAWSURFACE* surface, void* data, double t, float dt);
 //int swidth, sheight;
 
 
+void _frame_loop(void);
+
+
+/*EM_JS(float, calcFPS, (int count){
+    var opts = {};
+    
+    var requestFrame = window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame;
+    if (!requestFrame) return true; // Check if "true" is returned; 
+                                    // pick default FPS, show error, etc...
+    function checker(){
+        if (index--) requestFrame(checker);
+        else {
+            // var result = 3*Math.round(count*1000/3/(performance.now()-start));
+            var result = count*1000/(performance.now()- start);
+            if (typeof opts.callback === "function") opts.callback(result);
+            //console.log("Calculated: "+result+" frames per second");
+            return result
+        }
+    }
+    //if (!opts) opts = {};
+    //var count = opts.count||60, index = count, start = performance.now();
+    var index = count, start = performance.now();
+    checker();
+}*/
+
+//static float refresh_rate;
+
+
 int __main(void) {
     // set starting random seed
     srand((unsigned int)time(NULL));
@@ -282,9 +312,20 @@ int __main(void) {
     // set frame callback
     // a while loop would stall the webpage, so this is neccissary
     printf("starting animation frame loop\n");
-    emscripten_request_animation_frame_loop(&frame_loop, NULL);
+    //emscripten_set_main_loop(&_frame_loop, 60, false);
+    emscripten_set_main_loop(&_frame_loop, 0, false);
+    //emscripten_set_main_loop(&_frame_loop, 1000, false);
+    //emscripten_request_animation_frame_loop(&frame_loop, NULL);
 
     return 0;
+}
+
+
+void _frame_loop(void) {
+    double _t = EM_ASM_DOUBLE({
+        return performance.now();
+    });
+    frame_loop(_t, NULL);
 }
 
 
@@ -303,12 +344,16 @@ void model_update_pipeline(double t, float dt);
 
 #define UPDATE_DIVISOR 1
 
-void update_frame_time(double _t, double* t, float* dt) {
+void update_frame_time(double _t, double* t, float* dt, float* fps) {
     static double t0;
     double _dt = _t - t0;
     t0 = _t;
     *t = _t/DT_DIVISOR;
     *dt = _dt/DT_DIVISOR;
+
+    static float _fps = 0;
+    _fps = (_fps*7 + 1000/(float)_dt)/8;
+    *fps = _fps;
 }
 
 
@@ -377,21 +422,42 @@ void init_scene(void) {
 
 void update_cam(void);
 
+int frame_div = 1;
+
 
 EM_BOOL frame_loop(double _t, void *user_data) {
     (void)user_data;
 
     double t;
     float dt;
+    float fps;
 
     // update frame times
-    update_frame_time(_t, &t, &dt);
+    update_frame_time(_t, &t, &dt, &fps);
+
+    static int fps_count = 0;
+    if ((fps_count++ % 60) == 0)
+        printf("fps: %f\n", fps);
 
     /////////////////////////////////////////////
     //// UPDATE HIDDEN FRAMEBUFFER DRAWS  //////
     ///////////////////////////////////////////
 
     // lol. Nevermind.
+
+    static bool bkey_debounce = true;
+    if (key[KEY_B]) {
+        if (bkey_debounce) {
+            bkey_debounce = false;
+            frame_div++;
+            frame_div %= 5;
+            if (frame_div == 0) frame_div = 1;
+            printf("frames divided by %d\n", frame_div);
+            emscripten_set_main_loop_timing(EM_TIMING_RAF, frame_div);
+        }
+    } else {
+        bkey_debounce = true;
+    }
     
     //////////////////////////
     //// UPDATE SCENE  //////
@@ -484,7 +550,6 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     //glClear(GL_DEPTH_BUFFER_BIT);
 
 
-    // draw torch here
     if (maze.mode == MAZE_MODE_DETAILED) {
 
         /*vec3 _wave;

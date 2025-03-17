@@ -212,7 +212,7 @@ void mouse_update(PMOUSE* mouse, double t, float dt) {
         //speed = mouse->speed / 4;
         return;
     } else {
-        speed = mouse->speed;
+        speed = mouse->speed * (dt/(10.0/60.0));
     }
 
     // these need to happen at the beginning rather than the end in order for
@@ -303,8 +303,8 @@ void mouse_update_fps(PMOUSE* m, double t, float dt) {
 
     //camera_update_actual(&m->camera);
 
-
-    float speed = m->speed / 16;
+    //printf("%f\n", dt/(10.0/60.0));
+    float speed = m->speed / 16.0 * (dt/(10.0/60.0));
 
     if (key[KEY_SHIFT])
         //speed *= 1.5;

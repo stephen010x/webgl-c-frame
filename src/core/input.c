@@ -129,6 +129,11 @@ bool touch_event_handler(int etype, const EmscriptenTouchEvent* event, void* par
 bool mouse_event_handler(int etype, const EmscriptenMouseEvent *event, void *params) {
     //printf("%d, %d\n", etype, EMSCRIPTEN_EVENT_MOUSEENTER);
 
+    // these disable the dx dy accumulate, as they seem to misbehave
+    // with frame slowdowns
+    //mouse.dx = 0;
+    //mouse.dy = 0;
+
     EmscriptenPointerlockChangeEvent pointerlock;
     emscripten_get_pointerlock_status(&pointerlock);
     
