@@ -445,6 +445,11 @@ EM_BOOL frame_loop(double _t, void *user_data) {
 
     // lol. Nevermind.
 
+    
+    // TODO: add a function that will test for screen refresh rate
+    // and then automatically adjust the frame divider using the current
+    // frame per second to prevent overbudget frames, which messes up
+    // stuff like player camera controls
     static bool bkey_debounce = true;
     if (key[KEY_B]) {
         if (bkey_debounce) {

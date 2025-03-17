@@ -88,7 +88,7 @@ release: _release $(BINTARG).$(TEXTEN)
 
 
 -include $(DEPS)
-#-include shaders
+-include shaders
 
 
 #shaders: $(GENDIR)/shaders.h
