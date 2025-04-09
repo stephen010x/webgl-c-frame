@@ -259,7 +259,7 @@ P.S. There is a SECRET at the end of the maze in
             function hidehelp() {
                 clearInterval(fadeEffect);
                 fadeEffect = setInterval(function () {
-                    var element = document.getElementById('controls');
+                    let element = document.getElementById('controls');
                     if (opacity <= 0.1) {
                         clearInterval(fadeEffect);
                         element.style.display = 'none';
@@ -269,6 +269,10 @@ P.S. There is a SECRET at the end of the maze in
                     }
                 }, 100);
             }
+
+            let elementx = document.getElementById('controls');
+            elementx.style.display = 'none';
+            
 
             document.addEventListener('keydown', function(event) {
         	    if (event.key === 'h' || event.key === 'H') {

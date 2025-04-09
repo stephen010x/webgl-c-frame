@@ -2,6 +2,7 @@
 #define CAMERA_H
 
 #include <cglm/cglm.h>
+//#include "model.h"
 
 
 
@@ -58,29 +59,38 @@ extern CAMERA camera;
 
 typedef struct {
     vec3 norm;
-    vec2 range;
-} DIR_LIGHTSOURCE;
+    float amb, bright;
+    
+} LIGHTSOURCE_DIR;
 
 typedef struct {
     vec3 pos;
-    vec2 range;
-} POINT_LIGHTSOURCE;
+    float amb, bright;
+} LIGHTSOURCE_POINT;
+
+/*typedef struct {
+    vec3 pos;
+    float amb, spec, bright;
+} LIGHTSOURCE_SPEC;*/
 
 
 typedef struct {
     int type;
     union {
-        DIR_LIGHTSOURCE dir;
-        POINT_LIGHTSOURCE point;
+        LIGHTSOURCE_DIR dir;
+        LIGHTSOURCE_POINT point;
     };
 } LIGHTSOURCE;
+
+
 
 
 enum lightsource_type {
     LIGHTSOURCE_TYPE_NONE = 0,
     LIGHTSOURCE_TYPE_DIR,
     LIGHTSOURCE_TYPE_POINT,
-    LIGHTSOURCE_TYPE_AMBIENT,
+    //LIGHTSOURCE_TYPE_AMBIENT,
+    //LIGHTSOURCE_TYPE_SPECTRAL,
 };
 
 
@@ -103,5 +113,13 @@ void camera_update(CAMERA* c);
 // TODO: get rid of this duck-tape function
 void camera_update_actual(CAMERA* c);
 void camera_update_actual_flipx(CAMERA* c);
+
+
+
+
+int lightsource_apply(LIGHTSOURCE* light, unsigned int shader_program);
+int lightsource_apply_spectral(LIGHTSOURCE* light, unsigned int shader_program, CAMERA* camera, float spec_bright, float spec_pow);
+
+
 
 #endif

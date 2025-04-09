@@ -258,3 +258,101 @@ void camera_interpolate(CAMERA* c, CAMERA* a, CAMERA* b, float n) {
     }
     //return c;
 }
+
+
+
+
+
+int lightsource_apply(LIGHTSOURCE* light, unsigned int shader_program) {
+    // TODO: make this a DEBUG_ASSERT, that only asserts in debug mode
+    ASSERT(shader_program > 0, -1, "ERROR: invalid shader program\n");
+    glUseProgram(shader_program);
+
+    GLint u_light_amb_loc    = glGetUniformLocation(shader_program, "u_light_amb");
+    GLint u_light_bright_loc = glGetUniformLocation(shader_program, "u_light_bright");
+
+    if (u_light_amb_loc > 0)
+        glUniform1fv(u_light_amb_loc, 1, (GLfloat*)&light->dir.amb);
+
+    if (u_light_bright_loc > 0)
+        glUniform1fv(u_light_bright_loc, 1, (GLfloat*)&light->dir.bright);
+
+
+    switch (light->type) {
+        case LIGHTSOURCE_TYPE_DIR: {
+            GLint u_light_norm_loc = 
+                glGetUniformLocation(shader_program, "u_light_norm");
+
+            if (u_light_norm_loc > 0)
+                glUniform3fv(u_light_norm_loc, 1, (GLfloat*)light->dir.norm);
+
+        } break;
+
+        case LIGHTSOURCE_TYPE_POINT: {
+            GLint u_light_pos_loc = 
+                glGetUniformLocation(shader_program, "u_light_pos");
+
+            if (u_light_pos_loc > 0)
+                glUniform3fv(u_light_pos_loc, 1, (GLfloat*)light->point.pos);
+
+        } break;
+    }
+
+    return 0;
+}
+
+
+
+
+
+// TODO: this only works if the camera is using it's pos vector to 
+// set it's view matrix
+int lightsource_apply_spectral(LIGHTSOURCE* light, unsigned int shader_program, CAMERA* camera, float spec_bright, float spec_pow) {
+    // TODO: make this a DEBUG_ASSERT, that only asserts in debug mode
+    ASSERT(shader_program > 0, -1, "ERROR: invalid shader program\n");
+    glUseProgram(shader_program);
+
+    GLint u_light_amb_loc    = glGetUniformLocation(shader_program, "u_light_amb");
+    GLint u_light_bright_loc = glGetUniformLocation(shader_program, "u_light_bright");
+    GLint u_cam_pos_loc      = glGetUniformLocation(shader_program, "u_cam_pos");
+    GLint u_light_spec_bright_loc = glGetUniformLocation(shader_program, "u_light_spec_bright");
+    GLint u_light_spec_pow_loc    = glGetUniformLocation(shader_program, "u_light_spec_pow");
+
+    if (u_light_amb_loc > 0)
+        glUniform1fv(u_light_amb_loc, 1, (GLfloat*)&light->dir.amb);
+
+    if (u_light_bright_loc > 0)
+        glUniform1fv(u_light_bright_loc, 1, (GLfloat*)&light->dir.bright);
+
+    if (u_cam_pos_loc > 0 && camera != NULL)
+        glUniform3fv(u_cam_pos_loc, 1, (GLfloat*)camera->pos);
+
+    if (u_light_spec_bright_loc > 0)
+        glUniform1fv(u_light_spec_bright_loc, 1, (GLfloat*)&spec_bright);
+
+    if (u_light_spec_pow_loc > 0)
+        glUniform1fv(u_light_spec_pow_loc, 1, (GLfloat*)&spec_pow);
+
+
+    switch (light->type) {
+        case LIGHTSOURCE_TYPE_DIR: {
+            GLint u_light_norm_loc = 
+                glGetUniformLocation(shader_program, "u_light_norm");
+
+            if (u_light_norm_loc > 0)
+                glUniform3fv(u_light_norm_loc, 1, (GLfloat*)light->dir.norm);
+
+        } break;
+
+        case LIGHTSOURCE_TYPE_POINT: {
+            GLint u_light_pos_loc = 
+                glGetUniformLocation(shader_program, "u_light_pos");
+
+            if (u_light_pos_loc > 0)
+                glUniform3fv(u_light_pos_loc, 1, (GLfloat*)light->point.pos);
+
+        } break;
+    }
+
+    return 0;
+}

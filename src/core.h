@@ -7,6 +7,7 @@
 #include "core/physics.h"
 #include "core/texture.h"
 #include "core/audio.h"
+#include "core/shader.h"
 //#include "core/linear.h"
 
 #endif

@@ -129,6 +129,13 @@
         (n-i1)*(o2-o1)/(i2-i1)+o1;  \
     })
 
+#define CLAMP(__n, __min, __max) ({             \
+        register typeof(__n) n = (__n);         \
+        register typeof(__min) nmin = (__min);  \
+        register typeof(__max) nmax = (__max);  \
+        n = (n > nmax) ? (nmax) : (n);          \
+        (n < nmin) ? (nmin) : (n);              \
+    })
 
 
 

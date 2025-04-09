@@ -10,9 +10,15 @@
 #include "../main.h"
 
 
+
 // I should really get my macro library working and just put these in there.
 #define __FORCE_INLINE__ inline __attribute__((always_inline))
 
+
+struct _SHADER;
+struct _TEXTURE;
+typedef struct _SHADER SHADER;
+typedef struct _TEXTURE TEXTURE;
 
 
 //#define LENOF(__n) (sizeof(__n)/sizeof((__n)[0]))
@@ -137,29 +143,38 @@ typedef struct {
     //int drawtype; // probably not needed for now
     //int type;
     GLenum gl_usage;
+    // TODO: get rid of these, and have this be more like a derived class
+    // where the classes that inherit this call the draw call of this
+    // rather than the other way around
     UPDATE_CALLBACK update_call;
     DRAW_CALLBACK draw_call;
-    GLuint shader_prog;
+    //GLuint shader_prog;
     mat4 view_mat;
+
+    TEXTURE* texture;
 
     // background items
     // TODO: these really need to be put into a shader class.
     // TODO: The vert buff specifically should go into a mesh class
     GLuint vert_buff;
-    GLint u_mod_mat_loc;
+    /*GLint u_mod_mat_loc;
     GLint u_color_loc;
     GLint vert_pos_loc;
+    GLint vert_norm_loc;
     GLint u_light_norm_loc;
-    GLint u_light_map_loc;
+    GLint u_light_map_loc;*/
 } MODEL;
 
 
-// expects the user set items to be populated
-MODEL* MODEL_easy(MODEL* model, MESH* mesh, void* data, GLuint shader, bool stream);
-MODEL* MODEL_init(MODEL* model);
-int MODEL_draw(MODEL* model, double t);
 
-__FORCE_INLINE__ void MODEL_update(MODEL* model, double t, float dt) {
+// got rid of shader stuff, as the model should act independant of shader
+int model_init(MODEL* model, MESH* mesh, TEXTURE* texture, bool stream);
+// expects the user set items to be populated
+//int model_init(MODEL* model);
+// NOTICE!  only call this within a shader draw callback
+int model_draw(MODEL* model, double t);
+
+__FORCE_INLINE__ void model_update(MODEL* model, double t, float dt) {
     if (model->update_call != NULL)
         return model->update_call(model, t, dt);
 }

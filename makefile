@@ -16,7 +16,7 @@ GENDIR := src/shaders/gen
 CC := emcc
 CFLAGS := -Wno-gnu-variable-sized-type-not-at-end
 CFLAGS := $(CFLAGS)
-LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT -sASYNCIFY --use-preload-plugins
+LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT -sASYNCIFY --use-preload-plugins -sALLOW_MEMORY_GROWTH
 # --proxy-to-worker  -sFETCH -pthread -sPTHREAD_POOL_SIZE=4
 #LFLAGS := $(LFLAGS) -sINVOKE_RUN=0 -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
 LFLAGS := $(LFLAGS)
