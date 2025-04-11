@@ -8,72 +8,76 @@ uniform mat4 u_mod_mat;
 uniform mat3 u_norm_mat;
 uniform vec4 u_color;
 
-uniform vec3 u_light_norm;
-uniform float u_light_amb;
-uniform float u_light_bright;
-uniform float u_light_spec_bright;
-uniform float u_light_spec_pow;
-uniform vec3 u_cam_pos;
+uniform float u_tex_scale;
 
-varying vec4 color;
-varying float depth;
+varying vec4 v_color;
+varying vec2 v_norm_coord;  // interpolated per vertex norm image coords
+varying vec3 v_coords3;     // interpolated fragment 3d coords
+varying float v_depth;
+
+varying vec3 T;
+varying vec3 B;
+varying vec3 N;
 
 
-
-vec3 color_to_norm(vec4 color);
-vec4 norm_to_color(vec3 norm);
 
 
 void main() {
+    ////////////////////////////
+    // vertex and normal translations
+    
+    // pass 3d coords to fragment shader
+    vec4 coords3 = u_mod_mat * vec4(vert_pos, 1.0);
+    v_coords3 = coords3.xyz / coords3.w;
+    
     // translate vertex for rasterization
-    gl_Position = u_proj_mat * u_mod_mat * vec4(vert_pos, 1.0);
-
-    // calculate vertex position
-    vec4 vertpos = u_mod_mat * vec4(vert_pos, 1.0);
-    vec3 vertex = vec3(vertpos) / vertpos.w;
-
-    // rotate normal according to model matrix
-    vec3 norm = normalize(u_norm_mat * vert_norm);
+    vec4 pos = u_proj_mat * coords3;
 
 
-    vec3 light_norm = normalize(u_light_norm);
 
 
-    // calculate diffuse light
-    float diffuse = max(dot(norm, light_norm), 0.0); 
-    
-    // calculate specular light
-    float specular = 0.0;
-    if (diffuse > 0.0) {
-        vec3 half_norm = normalize(light_norm + normalize(-vertex+u_cam_pos));
-        float spec_angle = max(dot(half_norm, norm), 0.0);
-        specular = pow(spec_angle, u_light_spec_pow);
-    }
-    
-    // calculate final color value
-    //color = norm_to_color(norm);
-    color = u_color;
-    //color = norm_to_color(normalize(u_cam_pos));
-    color = vec4(u_light_bright * (color.rgb * diffuse * u_light_bright + specular*u_light_spec_bright) + u_light_amb, color.a);
-    color = clamp(color, 0.0, 1.0);
-    
+    ////////////////////////////
+    // set gl_Position
 
     // set depth to be logrithmic
     //gl_Position.z = 1.0/gl_Position.z;
-    gl_Position.z = log2(gl_Position.z);
+    gl_Position = vec4(pos.xy, log2(pos.z), pos.w);
+    //gl_Position = pos;
+
+
+
+
+    ////////////////////////////
+    // calculate TBN matrix
+
+    // set normal
+    // rotate normal according to model matrix
+    N = normalize(u_norm_mat * vert_norm);
+
+    // select temporary fake tangent
+    // avoid colinearity
+    T = vec3(1.0, 0.0, 0.0);
+    if (abs(N.x) > 0.999)
+        T = vec3(0.0, 1.0, 0.0);
+
+    // set bitangent vector
+    B = normalize(cross(N, T));
+
+    // set real tangent
+    T = normalize(cross(B, N));
+
+
+
+
+    ////////////////////////////
+    // calculate normal coords and per-vertex color
+    
+    v_norm_coord = v_coords3.xy / u_tex_scale;
+    v_color = u_color;
+    v_depth = pos.z;
 }
 
 
 
 
-vec3 color_to_norm(vec4 color) {
-    //return normalize((color.rgb - 0.5) * 2.0);
-    vec3 norm = normalize(color.rgb * 2.0 - 1.0);
-    return vec3(norm.x, norm.y, -norm.z);
-}
 
-
-vec4 norm_to_color(vec3 norm) {
-    vec3 _norm = vec3(norm.x, norm.y, -norm.z);
-    return vec4(clamp((_norm + 1.0) / 2.0, 0.0, 1.0), 1.0);
-}

@@ -108,6 +108,16 @@ typedef union {
     GLfloat raw[4];
 } COLOR;
 
+typedef union {
+    struct {
+        unsigned char r;
+        unsigned char g;
+        unsigned char b;
+        unsigned char w;
+    };
+    unsigned char raw[4];
+} ICOLOR;
+
 
 
 #define MODEL_DRAWVOID 0

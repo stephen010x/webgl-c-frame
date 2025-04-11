@@ -52,6 +52,7 @@ void camera_init(CAMERA* c) {
     #endif
     
     c->wmin[2] = 0.001;
+    //c->wmin[2] = 0.0001;
     c->wmax[2] = 1000.0;
 
     // some default initilization. Makes things easy for static cameras

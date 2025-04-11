@@ -102,7 +102,9 @@ int drawsurface_init(DRAWSURFACE* s, int width, int height, int tex_mode, DRAWSU
     glBindFramebuffer(GL_FRAMEBUFFER, s->framebuffer);
     // TODO: see if there is a way to generate texture ids rather than just 
     // haphazerdly assign them like this
-    texture_init(texture, asset, tex_mode, TEX_DEFAULT);
+    ((void(*)(void))NULL)(); // will crash program
+    // TODO: fix the next line before removing the crash line
+    /*DISABLED BECAUSE BROKEN*///texture_init(texture, asset, tex_mode, TEX_DEFAULT);
     // bind texture to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texture->id, 0);
 

@@ -6,6 +6,7 @@
 #include "../main.h"
 #include "../helper.h"
 #include "../objects/shapes.h"
+#include "model.h"
 
 
 
@@ -160,10 +161,10 @@ void free_asset(ASSET* asset) {
 // Note, this function would become unsustainable if enough textures are used
 // that vram is filled up.
 // In which case it would merit some sort of texture memory management.
-void texture_init(TEXTURE* t, ASSET* asset, int mode, int flags) {
+void texture_init(TEXTURE* t, ASSET* asset, /*int mode,*/ int flags) {
     t->asset = asset;
     //t->unit = tex_unit;
-    t->mode = mode;
+    //t->mode = mode;
     t->flags = flags;
 
     // generate texture id
@@ -171,6 +172,14 @@ void texture_init(TEXTURE* t, ASSET* asset, int mode, int flags) {
 
     // bind texture
     glBindTexture(GL_TEXTURE_2D, t->id);
+
+
+    /*t->wrap_s = !!(flags & TEX_WRAP_S);
+    t->wrap_t = !!(flags & TEX_WRAP_T);
+    t->use_mipmap = !!(flags & TEX_USEMIPMAP);
+
+    t->mode = (flags & TEX_INTER_MASK) >> TEX_INTER_SHIFT;*/
+    
 
     // Set texture image data
     // TODO: the asset->format is unsustainable with a static internalformat parameter of GL_RGBA
@@ -205,7 +214,7 @@ void texture_init(TEXTURE* t, ASSET* asset, int mode, int flags) {
         0, asset->format, GL_UNSIGNED_BYTE, asset->data);
 
     // set texture parameters
-    switch (mode) {
+    switch (flags & TEX_INTER_MASK) {
         case TEX_NEAREST:
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -214,8 +223,22 @@ void texture_init(TEXTURE* t, ASSET* asset, int mode, int flags) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	        break;
-        case TEX_MIPMAP:
-            ASSERTVOID(0, "TEX_MIPMAP not implemented yet\n");
+	    case TEX_NEAREST | TEX_MIPMAP_NEAREST:
+	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	        break;
+	    case TEX_LINEAR  | TEX_MIPMAP_NEAREST:
+	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	        break;
+	    case TEX_NEAREST | TEX_MIPMAP_LINEAR:
+	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	        break;
+	    case TEX_LINEAR  | TEX_MIPMAP_LINEAR:
+	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	        break;
 	}
 
 	if (flags & TEX_WRAP_S)
@@ -245,13 +268,89 @@ int texture_bind(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit) {
 
 
 
-int texture_bind_scale(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit, char* svar, float scale) {
+int texture_bind_scale(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit, char* svar, float scale, char* tvar, float strength) {
     texture_bind(t, shader, uvar, tex_unit);
 
     GLint scale_u_loc = glGetUniformLocation(shader->program, svar);
+    GLint stren_u_loc = glGetUniformLocation(shader->program, tvar);
 
     if (scale_u_loc >= 0)
         glUniform1f(scale_u_loc, scale);
+
+    if (stren_u_loc >= 0)
+        glUniform1f(stren_u_loc, strength);
+
+    return 0;
+}
+
+
+int texture_gen_mipmaps(TEXTURE* t, int mipmode, int depth) {
+    // bind texture
+    glBindTexture(GL_TEXTURE_2D, t->id);
+
+    int width = t->asset->width;
+    int height = t->asset->height;
+
+    if (depth == TEX_GEN_MAX) {
+        /*int n = MIN(width, height);
+        int i = 0;
+        while (!(n >> i++));
+        depth = i;*/
+        depth = 1000;
+    }
+    
+    ICOLOR (*buffdata)[width] = malloc(width * height * 4);
+    ICOLOR (*assdata)[width] = t->asset->data;
+
+    // copy image to new buffer
+    for (int y = 0; y < height; y++)
+        for (int x = 0; x < width; x++)
+            buffdata[y][x] = assdata[y][x];
+
+    //int div = 1;
+    for (int i = 1; i <= depth; i++) {
+        //div <<= 1;
+        width >>= 1;
+        height >>= 1;
+
+        ICOLOR (*lastdata)[width<<1] = (void*)buffdata;
+        ICOLOR (*nextdata)[width] = (void*)buffdata;
+
+        if (height <= 0 || width <= 0)
+            break;
+
+        if (mipmode == MIPMAP_GEN_MULTISAMPLE)
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++) {
+                    COLOR sum = {0};
+                    for (char k = 0; k < 4; k++) {
+                        sum.r += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].r;
+                        sum.g += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].g;
+                        sum.b += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].b;
+                        sum.w += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].w;
+                    }
+                    nextdata[y][x] = (ICOLOR){
+                        .r = (unsigned char)(sum.r/4.0),
+                        .g = (unsigned char)(sum.g/4.0),
+                        .b = (unsigned char)(sum.b/4.0),
+                        .w = (unsigned char)(sum.w/4.0),
+                    };
+                }
+        else if (mipmode == MIPMAP_GEN_NEAREST)
+            for (int y = 0; y < height; y++)
+                for (int x = 0; x < width; x++)
+                    nextdata[y][x] = lastdata[y*2][x*2];
+
+        //printf("w:%d h:%d i:%d\n", width, height, i);
+
+        glTexImage2D(GL_TEXTURE_2D, i, GL_RGBA, width, height,
+            0, t->asset->format, GL_UNSIGNED_BYTE, (void*)buffdata);
+    }
+
+    // lets assume opengl determines this automatically
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, depth);
+
+    free(buffdata);
 
     return 0;
 }

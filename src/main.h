@@ -101,7 +101,7 @@
 #endif
 
 
-#define MAX(__a, __b) ({        \
+/*#define MAX(__a, __b) ({        \
         typeof(__a) a = (__a);  \
         typeof(__b) b = (__b);  \
         a > b ? a : b;          \
@@ -111,7 +111,7 @@
         typeof(__a) a = (__a);  \
         typeof(__b) b = (__b);  \
         a <= b ? a : b;         \
-    })
+    })*/
 
 
 //#define LENOF(__n) (sizeof(__n)/sizeof(*(__n)))
@@ -135,6 +135,18 @@
         register typeof(__max) nmax = (__max);  \
         n = (n > nmax) ? (nmax) : (n);          \
         (n < nmin) ? (nmin) : (n);              \
+    })
+
+#define MIN(__a, __b) ({                \
+        register typeof(__a) a = (__a); \
+        register typeof(__b) b = (__b); \
+        (a < b) ? (a) : (b);            \
+    })
+
+#define MAX(__a, __b) ({                \
+        register typeof(__a) a = (__a); \
+        register typeof(__b) b = (__b); \
+        (a >= b) ? (a) : (b);           \
     })
 
 

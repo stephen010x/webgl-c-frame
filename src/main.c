@@ -39,7 +39,9 @@
 #define COLOR_DIRT_GREY  ((COLOR){68.0/256.0*2, 55.0/256.0*2, 40.0/256.0*2, 1.0})
 #define COLOR_GREY  ((COLOR){0.8, 0.8, 0.8, 1.0})
 #define COLOR_GREEN  ((COLOR){0.20, 0.3, 0.15, 1.0})
-#define COLOR_BLUE  ((COLOR){0.15, 0.1, 0.3, 1.0})
+// #define COLOR_BLUE  ((COLOR){0.15, 0.1, 0.3, 1.0})
+// #define COLOR_BLUE  ((COLOR){0.1, 0.2, 0.35, 1.0})
+#define COLOR_BLUE  ((COLOR){0.05, 0.15, 0.25, 1.0})
 
 
 
@@ -85,7 +87,7 @@ WORLD world = {
         .dir = {
             .norm = {0.8, 1, 2},
             .amb = 0.2,
-            .bright = 1.4,
+            .bright = 1.96,
         },
     },
 };
@@ -188,6 +190,11 @@ MAZE maze;
 
 DRAWSURFACE mirror;*/
 
+ASSET grass_norm_asset;
+ASSET water_norm_asset;
+TEXTURE grass_norm;
+TEXTURE water_norm;
+
 
 SHADER terrain_shader;
 SHADER water_shader;
@@ -279,7 +286,7 @@ int __main(void) {
     //shader_init(&mirror_shader, mirror_program, NULL, NULL);
     //shader_init(&terrain_shader, terrain_program, NULL, NULL);
 
-    SHADER_DESCRIPTOR descriptor = SHADER_DESC_GEN(true, NULL,  terrain, simple);
+    SHADER_DESCRIPTOR descriptor = SHADER_DESC_GEN(true, NULL,  terrain, terrain);
     shader_init(&terrain_shader, &descriptor, terrain_draw_frame, 
         NULL, MESHTYPE_3D_VERT_NORM);
 
@@ -319,6 +326,14 @@ int __main(void) {
 
     //glDisable(GL_CULL_FACE);
     //glDisable(GL_DEPTH_TEST);
+
+    asset_load_img(&grass_norm_asset,  "stylized-grass-norm");
+    asset_load_img(&water_norm_asset,  "water-norm-1024");
+    texture_init(&grass_norm, &grass_norm_asset, TEX_NEAREST | TEX_MIPMAP_NEAREST | TEX_WRAP);
+    texture_init(&water_norm, &water_norm_asset, TEX_NEAREST | TEX_MIPMAP_NEAREST | TEX_WRAP);
+    texture_gen_mipmaps(&grass_norm, MIPMAP_GEN_NEAREST, TEX_GEN_MAX);
+    texture_gen_mipmaps(&water_norm, MIPMAP_GEN_NEAREST, TEX_GEN_MAX);
+    // MIPMAP_GEN_MULTISAMPLE, MIPMAP_GEN_NEAREST
 
     camera_init(&camera);
     //camera_init(&camera_1);
@@ -387,13 +402,16 @@ void init_scene(void) {
     // set background color
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
+    float height_mul = 0.1;
+
     gen_model = (GEN_MODEL){
+        //.scale = 2.0,
         .scale = 2.0,
         .rows = 500,//50,
         .cols = 500,//50,
         .x_off = -250,
         .y_off = -250,
-        .sincount = 6,
+        .sincount = 8,
     };
 
     gen_model.sindata[0] = (GEN_SINDATA){
@@ -417,7 +435,7 @@ void init_scene(void) {
     }; gen_model.sindata[3] = (GEN_SINDATA){
         .period = 32,
         .height = 50,
-        .power = 8,
+        .power = 16,
         .damp_enable = true,
         .damp_period = 100,
     }; gen_model.sindata[4] = (GEN_SINDATA){
@@ -432,14 +450,24 @@ void init_scene(void) {
         .power = 1,
         .damp_enable = true,
         .damp_period = 140,
+    }; gen_model.sindata[6] = (GEN_SINDATA){
+        .period = 100,
+        .height = 200,
+        .power = 1,
+        .damp_enable = false,
+    }; gen_model.sindata[7] = (GEN_SINDATA){
+        .period = 200,
+        .height = 300,
+        .power = 1,
+        .damp_enable = false,
     };
 
-    terrain_init(&terrain, (vec3){-250,-250,0}, (vec3){1,1,0.1},
+    terrain_init(&terrain, (vec3){-250,-250,0}, (vec3){1,1,height_mul*gen_model.scale/2.0},
         &gen_model, COLOR_GREEN, &terrain_shader);
 
     mouse.grabby = true;
 
-    camera.pos[1] = 40;
+    camera.pos[1] = 100;
 
     static GEN_MODEL water_model = (GEN_MODEL){
         .scale = 1.0,
@@ -447,7 +475,7 @@ void init_scene(void) {
         .cols = 500,
     };
 
-    terrain_init(&water, (vec3){-250,-250,-5}, (vec3){1,1,1},
+    terrain_init(&water, (vec3){-250,-250,-20}, (vec3){1,1,1},
         &water_model, COLOR_BLUE, &terrain_shader);
 }
 
@@ -529,7 +557,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
 
     float tx = (key[KEY_RIGHT] || key[KEY_D]) - (key[KEY_LEFT] || key[KEY_A]);
     float ty = (key[KEY_UP]    || key[KEY_W]) - (key[KEY_DOWN] || key[KEY_S]);
-    float tz = key[KEY_SPACE] - key[KEY_CTRL];
+    float tz = key[KEY_SPACE];// - key[KEY_CTRL];
     //float pythag = sqrt(tx*tx + ty*ty + tz*tz);
     //float mul = (key[KEY_SHIFT] ? (5) : (1)) / 10.0 / pythag;
 
@@ -627,10 +655,14 @@ void terrain_draw_frame(SHADER* shader, double t, void* data) {
     camera_apply(&camera, shader->program);
     // apply lightsource
     //lightsource_apply(&world.light, shader->program);
-    lightsource_apply_spectral(&world.light, shader->program, &camera, 0.2, 10.0);
+    lightsource_apply_spectral(&world.light, shader->program, &camera, 0.28, 10.0);
+    texture_bind_scale(&grass_norm, shader, "u_norm0", GL_TEXTURE0, "u_tex_scale", 16.0,
+        "u_tex_strength", 1.0);
     terrain_draw(&terrain, t);
     
-    lightsource_apply_spectral(&world.light, shader->program, &camera, 1.0, 1000.0);
+    lightsource_apply_spectral(&world.light, shader->program, &camera, 1.4, 1000.0);
+    texture_bind_scale(&water_norm, shader, "u_norm0", GL_TEXTURE0, "u_tex_scale", 4.0*16.0,
+        "u_tex_strength", 1.0/4.0);
     terrain_draw(&water, t);
 }
 
