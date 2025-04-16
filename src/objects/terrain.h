@@ -12,8 +12,16 @@
 //#define CHUNK_SCALE 0.01
 //#define TERRAIN_DEPTH 0.10
 
+#define GENMODE_GEN  1
+#define GENMODE_LOAD 2
+
 
 #define GEN_MODEL(__n) struct { \
+    int mode;                   \
+                                \
+    void* loaddata;             \
+    int loadbytes;              \
+                                \
     float scale;                \
     float x_off, y_off;         \
     int rows, cols;             \
@@ -58,6 +66,7 @@ void terrain_destroy(TERRAIN* t);
 void terrain_draw(TERRAIN* t, double _t);
 void terrain_update(TERRAIN* t, double _, float dt);
 
+float terrain_get_height(TERRAIN* t, float x, float y);
 
 
 #endif

@@ -19,7 +19,11 @@ CFLAGS := $(CFLAGS)
 LFLAGS := -sOFFSCREEN_FRAMEBUFFER -sOFFSCREENCANVAS_SUPPORT -sASYNCIFY --use-preload-plugins -sALLOW_MEMORY_GROWTH
 # --proxy-to-worker  -sFETCH -pthread -sPTHREAD_POOL_SIZE=4
 #LFLAGS := $(LFLAGS) -sINVOKE_RUN=0 -sEXPORTED_RUNTIME_METHODS=ccall,cwrap
-LFLAGS := $(LFLAGS)
+#LFLAGS := $(LFLAGS) -sFULL_ES2
+#LFLAGS := $(LFLAGS) -sFULL_ES2 -sFULL_ES3 -lidbfs.js
+#LFLAGS := $(LFLAGS) -sFULL_ES2 -lidbfs.js
+#LFLAGS := $(LFLAGS) -sFULL_ES2 -lidbfs.js -sMAX_WEBGL_VERSION=1
+LFLAGS := $(LFLAGS) -lidbfs.js -sFULL_ES3
 BFLAGS := -Wall -Wextra -Wpedantic -Wconversion -Wundef
 BFLAGS := $(BFLAGS) -Wno-language-extension-token -Wno-gnu -std=gnu2x
 BFLAGS := -Wno-format-security

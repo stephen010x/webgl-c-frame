@@ -177,3 +177,36 @@ enum {
 
 
 #endif
+
+
+
+
+
+
+
+
+/*EM_JS(float, calcFPS, (int count){
+    var opts = {};
+    
+    var requestFrame = window.requestAnimationFrame ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame;
+    if (!requestFrame) return true; // Check if "true" is returned; 
+                                    // pick default FPS, show error, etc...
+    function checker(){
+        if (index--) requestFrame(checker);
+        else {
+            // var result = 3*Math.round(count*1000/3/(performance.now()-start));
+            var result = count*1000/(performance.now()- start);
+            if (typeof opts.callback === "function") opts.callback(result);
+            //console.log("Calculated: "+result+" frames per second");
+            return result
+        }
+    }
+    //if (!opts) opts = {};
+    //var count = opts.count||60, index = count, start = performance.now();
+    var index = count, start = performance.now();
+    checker();
+}*/
+
+//static float refresh_rate;

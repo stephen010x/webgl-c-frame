@@ -353,7 +353,7 @@ void init_circle(void) {
     glBindBuffer(GL_ARRAY_BUFFER, circle_vert_buff);
     glBufferData(
         GL_ARRAY_BUFFER, 
-        (GLsizeiptr)MESH_sizeof(&circle_mesh),
+        (GLsizeiptr)mesh_data_sizeof((MESH*)&circle_mesh),
         circle_mesh.data,
         GL_STATIC_DRAW
     );
@@ -401,7 +401,7 @@ void init_sphere(void) {
     glBindBuffer(GL_ARRAY_BUFFER, sphere_vert_buff);
     glBufferData(
         GL_ARRAY_BUFFER, 
-        (GLsizeiptr)MESH_sizeof(&sphere_mesh),
+        (GLsizeiptr)mesh_data_sizeof((MESH*)&sphere_mesh),
         sphere_mesh.data,
         GL_STATIC_DRAW
     );
@@ -430,7 +430,7 @@ void init_square(void) {
     glBindBuffer(GL_ARRAY_BUFFER, square_vert_buff);
     glBufferData(
         GL_ARRAY_BUFFER,
-        (GLsizeiptr)MESH_sizeof((void*)&square_mesh), // why the heck am I getting a warning here?
+        (GLsizeiptr)mesh_data_sizeof((void*)&square_mesh), // why the heck am I getting a warning here?
         square_mesh.data,                            // I specifically made this void to avoid this!
         GL_STATIC_DRAW
     );
@@ -448,7 +448,7 @@ void init_tex_square(void) {
     glBindBuffer(GL_ARRAY_BUFFER, tex_square_vert_buff);
     glBufferData(
         GL_ARRAY_BUFFER,
-        (GLsizeiptr)MESH_sizeof((void*)&tex_square_mesh),
+        (GLsizeiptr)mesh_data_sizeof((void*)&tex_square_mesh),
         tex_square_mesh.data,
         GL_STATIC_DRAW
     );
@@ -462,7 +462,7 @@ void init_tex_square(void) {
     glBindBuffer(GL_ARRAY_BUFFER, tex_square_flipped_vert_buff);
     glBufferData(
         GL_ARRAY_BUFFER,
-        (GLsizeiptr)MESH_sizeof((void*)&tex_square_flipped_mesh),
+        (GLsizeiptr)mesh_data_sizeof((void*)&tex_square_flipped_mesh),
         tex_square_flipped_mesh.data,
         GL_STATIC_DRAW
     );
@@ -481,7 +481,7 @@ void init_cube(void) {
     glBindBuffer(GL_ARRAY_BUFFER, cube_vert_buff);
     glBufferData(
         GL_ARRAY_BUFFER,
-        (GLsizeiptr)MESH_sizeof((void*)&cube_mesh),
+        (GLsizeiptr)mesh_data_sizeof((void*)&cube_mesh),
         cube_mesh.data,
         //sphere_mesh.data,
         GL_STATIC_DRAW

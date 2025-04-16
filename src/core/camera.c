@@ -51,8 +51,10 @@ void camera_init(CAMERA* c) {
     
     #endif
     
-    c->wmin[2] = 0.001;
+    //c->wmin[2] = 0.001;
     //c->wmin[2] = 0.0001;
+    //c->wmax[2] = 1000.0;
+    c->wmin[2] = 0.1;
     c->wmax[2] = 1000.0;
 
     // some default initilization. Makes things easy for static cameras
@@ -122,12 +124,30 @@ void camera_update_actual_flipx(CAMERA* c) {
 
 
 
+void camera_update_skybox(CAMERA* c) {
+    camera_setup(c);
+
+    // rotate first, x, y, z axes in order
+    glm_rotate_x(c->viewmat, c->rot[0], c->viewmat);
+    glm_rotate_y(c->viewmat, c->rot[2], c->viewmat);
+    glm_rotate_z(c->viewmat, c->rot[1], c->viewmat);
+
+    // translate second so that it rotates about the camera origin
+    vec3 pos;
+    glm_vec3_negate_to(c->pos, pos);
+    pos[2] = 0;
+    glm_translate(c->viewmat, pos);
+}
+
+
+
 // TODO: I change my mind. Create a function that will update a camera based off of 
 // position, rotation, etc attributes to be optionally used.
 void camera_setup(CAMERA* c) {
     switch (c->type) {
         case CAMERA_ORTHOGRAPHIC:
-            // TODO: figure out how to get the other ortho function working that uses vectors
+            // TODO: figure out how to get the other ortho 
+            //       function working that uses vectors
             glm_ortho(
                 c->wmin[0]*c->zoom, c->wmax[0]*c->zoom,
                 c->wmin[1]*c->zoom, c->wmax[1]*c->zoom,
@@ -233,6 +253,17 @@ void camera_rotate_about(CAMERA* c, vec3 origin, vec3 rot, float radius) {
 
 
 
+void camera_get_direction(CAMERA* c, vec3 _forward, vec3 cam_dir) {
+    vec4 temp;
+    vec4 forward = (vec4){_forward[0], _forward[1], _forward[2]};
+    
+    glm_mat4_mulv(c->viewmat, forward, temp);
+    glm_vec3_negate(temp);
+    glm_vec3_normalize_to(temp, cam_dir);
+}
+
+
+
 
 
 // TODO: This is honestly rather inefficient. In a future version, 
@@ -271,12 +302,20 @@ int lightsource_apply(LIGHTSOURCE* light, unsigned int shader_program) {
 
     GLint u_light_amb_loc    = glGetUniformLocation(shader_program, "u_light_amb");
     GLint u_light_bright_loc = glGetUniformLocation(shader_program, "u_light_bright");
+    GLint u_light_diff_color_loc = glGetUniformLocation(shader_program, "u_light_diff_color");
+    GLint u_light_amb_color_loc  = glGetUniformLocation(shader_program, "u_light_amb_color");
 
     if (u_light_amb_loc > 0)
         glUniform1fv(u_light_amb_loc, 1, (GLfloat*)&light->dir.amb);
 
     if (u_light_bright_loc > 0)
         glUniform1fv(u_light_bright_loc, 1, (GLfloat*)&light->dir.bright);
+
+    if (u_light_diff_color_loc > 0)
+        glUniform4fv(u_light_diff_color_loc, 1, light->dir.diff_color.raw);
+
+    if (u_light_amb_color_loc > 0)
+        glUniform4fv(u_light_amb_color_loc, 1, light->dir.amb_color.raw);
 
 
     switch (light->type) {
@@ -309,21 +348,11 @@ int lightsource_apply(LIGHTSOURCE* light, unsigned int shader_program) {
 // TODO: this only works if the camera is using it's pos vector to 
 // set it's view matrix
 int lightsource_apply_spectral(LIGHTSOURCE* light, unsigned int shader_program, CAMERA* camera, float spec_bright, float spec_pow) {
-    // TODO: make this a DEBUG_ASSERT, that only asserts in debug mode
-    ASSERT(shader_program > 0, -1, "ERROR: invalid shader program\n");
-    glUseProgram(shader_program);
-
-    GLint u_light_amb_loc    = glGetUniformLocation(shader_program, "u_light_amb");
-    GLint u_light_bright_loc = glGetUniformLocation(shader_program, "u_light_bright");
+    lightsource_apply(light, shader_program);
+    
     GLint u_cam_pos_loc      = glGetUniformLocation(shader_program, "u_cam_pos");
     GLint u_light_spec_bright_loc = glGetUniformLocation(shader_program, "u_light_spec_bright");
     GLint u_light_spec_pow_loc    = glGetUniformLocation(shader_program, "u_light_spec_pow");
-
-    if (u_light_amb_loc > 0)
-        glUniform1fv(u_light_amb_loc, 1, (GLfloat*)&light->dir.amb);
-
-    if (u_light_bright_loc > 0)
-        glUniform1fv(u_light_bright_loc, 1, (GLfloat*)&light->dir.bright);
 
     if (u_cam_pos_loc > 0 && camera != NULL)
         glUniform3fv(u_cam_pos_loc, 1, (GLfloat*)camera->pos);
@@ -334,26 +363,6 @@ int lightsource_apply_spectral(LIGHTSOURCE* light, unsigned int shader_program, 
     if (u_light_spec_pow_loc > 0)
         glUniform1fv(u_light_spec_pow_loc, 1, (GLfloat*)&spec_pow);
 
-
-    switch (light->type) {
-        case LIGHTSOURCE_TYPE_DIR: {
-            GLint u_light_norm_loc = 
-                glGetUniformLocation(shader_program, "u_light_norm");
-
-            if (u_light_norm_loc > 0)
-                glUniform3fv(u_light_norm_loc, 1, (GLfloat*)light->dir.norm);
-
-        } break;
-
-        case LIGHTSOURCE_TYPE_POINT: {
-            GLint u_light_pos_loc = 
-                glGetUniformLocation(shader_program, "u_light_pos");
-
-            if (u_light_pos_loc > 0)
-                glUniform3fv(u_light_pos_loc, 1, (GLfloat*)light->point.pos);
-
-        } break;
-    }
 
     return 0;
 }

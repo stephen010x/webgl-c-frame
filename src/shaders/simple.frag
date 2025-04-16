@@ -1,9 +1,12 @@
+#version 300 es
 precision mediump float;
 
-varying vec4 color;
+in vec4 v_color;
 //varying float depth;
 
+out vec4 out_color;
+
 void main() {
-    gl_FragColor = color;
+    out_color = v_color;
     //gl_FragDepth = depth;
 }

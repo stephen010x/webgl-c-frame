@@ -5,6 +5,7 @@
 #include "../core/model.h"
 #include "maze.h"
 #include "shapes.h"
+#include "../core/camera.h"
 
 
 

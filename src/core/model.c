@@ -118,7 +118,7 @@ int _model_init(MODEL* model) {
     glBindBuffer(GL_ARRAY_BUFFER, model->vert_buff);
     glBufferData(
         GL_ARRAY_BUFFER,
-        (GLsizeiptr)MESH_sizeof(model->mesh),
+        (GLsizeiptr)mesh_data_sizeof(model->mesh),
         model->mesh->data,
         model->gl_usage /*data_usage*/
     );
@@ -151,7 +151,7 @@ int model_draw(MODEL* model, double t){
             glBufferSubData(
                 GL_ARRAY_BUFFER,
                 0,
-                (GLsizeiptr)MESH_sizeof(model->mesh),
+                (GLsizeiptr)mesh_data_sizeof(model->mesh),
                 model->mesh->data
             );
         break;
@@ -190,7 +190,17 @@ int model_draw(MODEL* model, double t){
         texture_bind(model->texture, current_shader, "tex0", GL_TEXTURE0);
     
     // send draw to queue
-    glDrawArrays(model->mesh->mode, 0, model->mesh->verts);
+    switch (current_shader->drawtype) {
+        case SHADER_DRAW_DEFAULT:
+            glDrawArrays(model->mesh->mode, 0, model->mesh->verts);
+            break;
+        case SHADER_DRAW_WIREFRAME:
+            glDrawArrays(GL_LINES, 0, model->mesh->verts);
+            break;
+        case SHADER_DRAW_POINTS:
+            glDrawArrays(GL_POINTS, 0, model->mesh->verts);
+            break;
+    }
 
     return 0;
 }

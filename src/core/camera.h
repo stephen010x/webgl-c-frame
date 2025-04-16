@@ -2,7 +2,7 @@
 #define CAMERA_H
 
 #include <cglm/cglm.h>
-//#include "model.h"
+#include "model.h"
 
 
 
@@ -60,12 +60,13 @@ extern CAMERA camera;
 typedef struct {
     vec3 norm;
     float amb, bright;
-    
+    COLOR diff_color, amb_color;
 } LIGHTSOURCE_DIR;
 
 typedef struct {
     vec3 pos;
     float amb, bright;
+    COLOR diff_color, amb_color;
 } LIGHTSOURCE_POINT;
 
 /*typedef struct {
@@ -113,12 +114,66 @@ void camera_update(CAMERA* c);
 // TODO: get rid of this duck-tape function
 void camera_update_actual(CAMERA* c);
 void camera_update_actual_flipx(CAMERA* c);
+void camera_update_skybox(CAMERA* c);
+//void camera_get_direction(CAMERA* c, vec3 forward, float (*cam_dir)[3]);
+void camera_get_direction(CAMERA* c, vec3 forward, vec3 cam_dir);
 
 
 
 
 int lightsource_apply(LIGHTSOURCE* light, unsigned int shader_program);
 int lightsource_apply_spectral(LIGHTSOURCE* light, unsigned int shader_program, CAMERA* camera, float spec_bright, float spec_pow);
+
+
+
+
+
+
+
+
+__FORCE_INLINE__ COLOR color_add(COLOR c1, COLOR c2) {
+    return (COLOR){
+        .r = c1.r + c2.r,
+        .g = c1.g + c2.g,
+        .b = c1.b + c2.b,
+        .a = c1.a + c2.a
+    };
+}
+
+
+__FORCE_INLINE__ COLOR color_mul(COLOR c1, float n) {
+    return (COLOR){
+        .r = c1.r * n,
+        .g = c1.g * n,
+        .b = c1.b * n,
+        .a = c1.a * n
+    };
+}
+
+
+#define to_color(__color) ({                \
+        typeof(__color) color = __color;    \
+        (COLOR){                            \
+            .r = color.r,                   \
+            .g = color.g,                   \
+            .b = color.b,                   \
+            .a = color.a,                   \
+        };                                  \
+    })
+
+
+#define to_icolor(__color) ({               \
+        typeof(__color) color = __color;    \
+        (ICOLOR){                           \
+            .r = color.r,                   \
+            .g = color.g,                   \
+            .b = color.b,                   \
+            .a = color.a,                   \
+        };                                  \
+    })
+
+
+
 
 
 

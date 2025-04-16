@@ -181,6 +181,10 @@ int shader_set_vec4(SHADER* shader, char* vname, vec4 val) {
     return -1;
 }
 
+int shader_set_bool(SHADER* shader, char* vname, bool val) {
+    return shader_set_int(shader, vname, (int)val);
+}
+
 
 
 
@@ -267,4 +271,16 @@ void shader_setup_attributes(SHADER* shader) {
         );
         glEnableVertexAttribArray(attrib_loc[i]);
     }
+}
+
+
+
+
+
+bool shader_var_exists(SHADER* shader, char* vname) {
+    glUseProgram(shader->program);
+    GLint u_loc = glGetUniformLocation(shader->program, vname);
+    if (u_loc > 0)
+        return true;
+    return false;
 }

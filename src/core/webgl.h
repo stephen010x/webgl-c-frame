@@ -2,9 +2,15 @@
 #define WEBGL_H
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <GLES2/gl2.h>
+#include <emscripten/html5.h>
 
 
+extern int GL_R32F;
+extern int GL_RED;
+extern int GL_COMPRESSED_RGBA;
+extern int GL_COMPRESSED_RED;
 
 typedef struct {
     bool active;
@@ -34,6 +40,18 @@ GLuint shader_program(const char* progname, const char* vertname, const char* ve
 
 
 void compile_shaders(int len, SHADER_DESCRIPTOR* descs);
+
+
+// TODO: create a more robust api for this
+#define update_overlay_text(...) do {                       \
+    char buffer[256];                                       \
+    snprintf(buffer, 256, __VA_ARGS__);                     \
+    EM_ASM({                                                \
+        let string = UTF8ToString($0);                      \
+        let overlay = document.getElementById("overlay");   \
+        overlay.textContent = string;                       \
+    }, buffer);                                                     \
+} while(0)
 
 
 #endif

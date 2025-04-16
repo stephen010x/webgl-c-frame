@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <string.h>
+
 #include <emscripten.h>
 #include <emscripten/html5.h>
 
@@ -113,7 +115,7 @@ int asset_load_img(ASSET* asset, const char* id) {
 
     // draw image to hidden canvas
     ASSERT(!load_image_to_canvas(HIDDEN_CANVAS_ID, id), -1,
-        "Error: Failed to draw resource to hidden canvas\n");
+        "Error: Failed to draw resource \"%s\" to hidden canvas\n", id);
 
     // get canvas width and height
     int width, height, size;
@@ -209,9 +211,27 @@ void texture_init(TEXTURE* t, ASSET* asset, /*int mode,*/ int flags) {
     /*printf("%p, %d, %d\n", asset->data, asset->width, asset->height);
     /\*DEBUG*\/ if (asset->data == NULL)
         asset->data = calloc(asset->width * asset->height, 4);*/
+    switch (flags & TEX_DEPTH_MASK) {
+        case 0:
+            glTexImage2D(GL_TEXTURE_2D, 0, 1 ? GL_RGBA : GL_COMPRESSED_RGBA, asset->width, asset->height,
+                0, asset->format, GL_UNSIGNED_BYTE, asset->data);
+            break;
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, asset->width, asset->height,
-        0, asset->format, GL_UNSIGNED_BYTE, asset->data);
+        case TEX_DEPTH16:
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, asset->width, asset->height,
+                0, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, NULL);
+            break;
+            
+        case TEX_DEPTH32:
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, asset->width, asset->height,
+                0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+            break;
+
+        case TEX_MONO_FLOAT:
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F /*GL_COMPRESSED_RED*/, asset->width, asset->height,
+                0, GL_RED, GL_FLOAT, NULL);
+            break;
+    }
 
     // set texture parameters
     switch (flags & TEX_INTER_MASK) {
@@ -252,6 +272,8 @@ void texture_init(TEXTURE* t, ASSET* asset, /*int mode,*/ int flags) {
 
 
 int texture_bind(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit) {
+    // TODO: I suppose this shouldn't be needed. The shader should already be bound
+    // before this is called
     glUseProgram(shader->program);
 
     // set active texture unit, and then bind texture to it
@@ -274,10 +296,10 @@ int texture_bind_scale(TEXTURE* t, SHADER* shader, char* uvar, GLenum tex_unit, 
     GLint scale_u_loc = glGetUniformLocation(shader->program, svar);
     GLint stren_u_loc = glGetUniformLocation(shader->program, tvar);
 
-    if (scale_u_loc >= 0)
+    if (scale_u_loc >= 0 && svar != NULL)
         glUniform1f(scale_u_loc, scale);
 
-    if (stren_u_loc >= 0)
+    if (stren_u_loc >= 0 && tvar != NULL)
         glUniform1f(stren_u_loc, strength);
 
     return 0;
@@ -319,7 +341,7 @@ int texture_gen_mipmaps(TEXTURE* t, int mipmode, int depth) {
         if (height <= 0 || width <= 0)
             break;
 
-        if (mipmode == MIPMAP_GEN_MULTISAMPLE)
+        if (mipmode == MIPMAP_GEN_MULTISAMPLE || (mipmode >= MIPMAP_GEN_MIX_1_3 && mipmode <= MIPMAP_GEN_MIX_3_1))
             for (int y = 0; y < height; y++)
                 for (int x = 0; x < width; x++) {
                     COLOR sum = {0};
@@ -327,14 +349,31 @@ int texture_gen_mipmaps(TEXTURE* t, int mipmode, int depth) {
                         sum.r += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].r;
                         sum.g += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].g;
                         sum.b += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].b;
-                        sum.w += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].w;
+                        sum.a += (float)lastdata[y*2+((k>>1)&0b1)][x*2+(k&0b1)].a;
                     }
                     nextdata[y][x] = (ICOLOR){
                         .r = (unsigned char)(sum.r/4.0),
                         .g = (unsigned char)(sum.g/4.0),
                         .b = (unsigned char)(sum.b/4.0),
-                        .w = (unsigned char)(sum.w/4.0),
+                        .a = (unsigned char)(sum.a/4.0),
                     };
+                    switch (mipmode) {
+                        case MIPMAP_GEN_MIX_1_3:
+                            nextdata[y][x] = to_icolor(color_mul(color_add(
+                                                    to_color(lastdata[y*2][x*2]), 
+                                                    color_mul(to_color(nextdata[y][x]), 3)), 0.25));
+                            break;
+                        case MIPMAP_GEN_MIX_2_2:
+                            nextdata[y][x] = to_icolor(color_mul(color_add(
+                                                    to_color(lastdata[y*2][x*2]), 
+                                                    to_color(nextdata[y][x])),0.5));
+                            break;
+                        case MIPMAP_GEN_MIX_3_1:
+                            nextdata[y][x] = to_icolor(color_mul(color_add(
+                                                    color_mul(to_color(lastdata[y*2][x*2]), 3),
+                                                    to_color(nextdata[y][x])),0.25));
+                            break;
+                    }
                 }
         else if (mipmode == MIPMAP_GEN_NEAREST)
             for (int y = 0; y < height; y++)
@@ -351,6 +390,97 @@ int texture_gen_mipmaps(TEXTURE* t, int mipmode, int depth) {
     //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_LEVEL, depth);
 
     free(buffdata);
+
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+int asset_pack_load(ASSET_PACK* pack, char* (*id)[ASSET_TYPE_COUNT], unsigned int flags) {
+    int reterr = 0;
+    for (int i = 0; i < ASSET_TYPE_COUNT; i++)
+        if ((flags & (1<<i)) && (id[0][i][0] != '\0')) {
+            int err = asset_load_img(&pack->index[i], id[0][i]);
+            if (err) {
+                reterr = err;
+                continue;
+            }
+            pack->flags |= 1<<i;
+        }
+    return reterr;
+}
+
+
+
+
+
+void texture_pack_init(TEXTURE_PACK* tp, ASSET_PACK* assets, int flags, float scale, float strength) {
+    tp->assets = assets;
+    tp->scale = scale;
+    tp->strength = strength;
+    for (int i = 0; i < ASSET_TYPE_COUNT; i++)
+        if (assets->flags & (1<<i))
+            texture_init(&tp->index[i], &assets->index[i], flags);
+}
+
+
+
+
+
+int texture_pack_gen_mipmaps(TEXTURE_PACK* tp, int mipmode, int depth) {
+    int reterr = 0;
+    for (int i = 0; i < ASSET_TYPE_COUNT; i++)
+        if (tp->assets->flags & (1<<i)) {
+            int err = texture_gen_mipmaps(&tp->index[i], mipmode, depth);
+            if (err) reterr = err;
+        }
+    return reterr;
+}
+
+
+
+
+
+__FORCE_INLINE__ void concat_string(char* buff, char* str1, char* str2) {
+    strcpy(buff, str1);
+    strcat(buff, str2);
+}
+
+
+
+
+
+static char* svar_postfix[] = ASSET_POSTFIXES;
+
+
+int texture_pack_bind(TEXTURE_PACK* tp, SHADER* shader, char* svar_prefix, GLenum tex_unit_start) {
+    char svar[64];
+
+    ASSERT(strlen(svar_prefix) < 48, -1, "ERROR: texture_pack_bind svar_prefix exceeds 48 characters\n");
+
+    //snprintf(svar, 64, "%s%s", svar_prefix, "_scale");
+    concat_string(svar, svar_prefix, "_scale");
+    shader_set_float(shader, svar, tp->scale);
+
+    concat_string(svar, svar_prefix, "_strength");
+    shader_set_float(shader, svar, tp->strength);
+    
+
+    for (int i = 0; i < ASSET_TYPE_COUNT; i++)
+        if (tp->assets->flags & (1<<i)) {
+            // set active texture unit, and then bind texture to it
+            glActiveTexture(tex_unit_start+i);
+            glBindTexture(GL_TEXTURE_2D, tp->index[i].id);
+
+            concat_string(svar, svar_prefix, svar_postfix[i]);
+            shader_set_int(shader, svar, tex_unit_start+i-GL_TEXTURE0);
+        }
 
     return 0;
 }

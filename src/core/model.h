@@ -7,7 +7,11 @@
 #include <cglm/types.h>
 // for the LENOF macro
 // TODO: move the LENOF macro to a more general file instead of main.h
-#include "../main.h"
+//#include "../main.h"
+
+#ifndef LENOF
+#define LENOF(__n) (sizeof(__n)/sizeof((__n)[0]))
+#endif
 
 
 
@@ -66,10 +70,7 @@ typedef MESH() MESH;
 
 
 
-// TODO: replace this with MESH_sizeof once you
-// make the drawmode in mesh instead of model
-// Since the return value is unsigned, maybe I should return 0
-__FORCE_INLINE__ size_t MESH_sizeof(void* m) {
+__FORCE_INLINE__ size_t mesh_data_sizeof(MESH* m) {
     MESH* mesh = (MESH*)m;
 
     switch (mesh->type) {
@@ -88,6 +89,10 @@ __FORCE_INLINE__ size_t MESH_sizeof(void* m) {
     return -1;
 }
 
+__FORCE_INLINE__ size_t mesh_sizeof(MESH* m) {
+    return mesh_data_sizeof(m) + sizeof(MESH);
+}
+
 
 
 
@@ -103,7 +108,7 @@ typedef union {
         GLfloat r;
         GLfloat g;
         GLfloat b;
-        GLfloat w;
+        GLfloat a;
     };
     GLfloat raw[4];
 } COLOR;
@@ -113,7 +118,7 @@ typedef union {
         unsigned char r;
         unsigned char g;
         unsigned char b;
-        unsigned char w;
+        unsigned char a;
     };
     unsigned char raw[4];
 } ICOLOR;

@@ -6,6 +6,7 @@
 #include "../core/texture.h"
 #include "drawsurface.h"
 #include "../core/audio.h"
+#include "../main.h"
 
 
 

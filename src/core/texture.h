@@ -37,6 +37,9 @@ enum mipmap_gen_modes {
     MIPMAP_GEN_NULL = 0,
     MIPMAP_GEN_NEAREST,
     MIPMAP_GEN_MULTISAMPLE,
+    MIPMAP_GEN_MIX_1_3,
+    MIPMAP_GEN_MIX_2_2,
+    MIPMAP_GEN_MIX_3_1,
 };
 
 
@@ -56,7 +59,7 @@ enum mipmap_gen_modes {
 #define TEX_WRAP_T (1<<1)
 #define TEX_WRAP   (TEX_WRAP_S | TEX_WRAP_T)
 
-#define TEX_INTER_SHIFT 2
+//#define TEX_INTER_SHIFT 2
 #define TEX_INTER_MASK (0b111<<2)
 #define TEX_NEAREST (0<<2)
 #define TEX_LINEAR  (1<<2)
@@ -66,7 +69,18 @@ enum mipmap_gen_modes {
 
 //#define TEX_USEMIPMAP (1<<5)
 
+#define TEX_DEPTH_MASK (0b11<<5)
+#define TEX_DEPTH16 (1<<5)
+#define TEX_DEPTH32 (2<<5)
+#define TEX_MONO_FLOAT (3<<5)
+
+
 #define TEX_GEN_MAX (-1)
+
+
+#define TEX_SINGLE_ASSET (0<<7)
+#define TEX_ASSET_PACK   (1<<7)
+
 
 
 
@@ -82,12 +96,60 @@ typedef struct _ASSET {
 
 
 
+
+// NOTE: These need to be in-line with their indexes as they appear in the ASSET_PACK struct
+#define ASSET_TEX  (1<<0)
+#define ASSET_NORM (1<<1)
+#define ASSET_DISP (1<<2)
+#define ASSET_OCCL (1<<3)
+
+#define ASSET_ALL (ASSET_TEX | ASSET_NORM | ASSET_DISP | ASSET_OCCL)
+
+#define ASSET_TYPE_COUNT 4
+
+
+#define ASSET_POSTFIXES {   \
+    "_tex",                 \
+    "_norm",                \
+    "_disp",                \
+    "_occl",                \
+}
+
+
+#define GEN_ASSET_NAMES(__name, __size) (ASSET_GEN_TYPE){   \
+    __name "-tex-"  #__size,        \
+    __name "-norm-" #__size,        \
+    __name "-disp-" #__size,        \
+    __name "-occl-" #__size,        \
+}
+
+
+
+typedef struct _ASSET_PACK {
+    unsigned int flags;
+    union {
+        ASSET index[ASSET_TYPE_COUNT];
+        struct {
+            ASSET tex;
+            ASSET norm;
+            ASSET disp;
+            ASSET occl;
+        };
+    };
+} ASSET_PACK;
+
+
+
+
 typedef struct _TEXTURE {
     GLuint id;
     //GLenum unit;
     int mode;
     int flags;
-    ASSET* asset;
+    union {
+        ASSET* asset;
+        ASSET_PACK* assets;
+    };
     //mat3 view; // unneccissary in light of how texture mapping works
 
     /*bool wrap_s;
@@ -95,6 +157,29 @@ typedef struct _TEXTURE {
     bool use_mipmap;*/
     
 } TEXTURE;
+
+
+
+
+typedef struct _TEXTURE_PACK {
+    float scale;
+    float strength;
+    ASSET_PACK* assets;
+    union {
+        TEXTURE index[ASSET_TYPE_COUNT];
+        struct {
+            TEXTURE tex;
+            TEXTURE norm;
+            TEXTURE disp;
+            TEXTURE occl;
+        };
+    };
+} TEXTURE_PACK;
+
+
+
+
+typedef char* ASSET_GEN_TYPE[ASSET_TYPE_COUNT];
 
 
 
@@ -122,5 +207,18 @@ int texture_gen_mipmaps(TEXTURE* t, int mipmode, int depth);
 
 
 bool is_page_loaded(void);
+
+
+
+
+int asset_pack_load(ASSET_PACK* pack, char* (*id)[ASSET_TYPE_COUNT], unsigned int flags);
+
+void texture_pack_init(TEXTURE_PACK* tp, ASSET_PACK* assets, int flags, float scale, float strength);
+int texture_pack_gen_mipmaps(TEXTURE_PACK* tp, int mipmode, int depth);
+// note, all variables passed to shader are prefixed with tvar_prefix
+// postfixes include: tex, norm, disp, occl, strength, scale,
+// will take up 4 tex units past tex_unit_start
+int texture_pack_bind(TEXTURE_PACK* tp, SHADER* shader, char* svar_prefix, GLenum tex_unit_start);
+
 
 #endif

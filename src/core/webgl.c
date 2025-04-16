@@ -6,6 +6,12 @@
 #include <stdio.h>
 
 
+int GL_R32F;
+int GL_RED;
+int GL_COMPRESSED_RGBA;
+int GL_COMPRESSED_RED;
+
+
 
 //int fetch_file(const char* url, char* data, uint64_t max, uint64_t* bytes);
 //static GLuint compile_shader(GLenum shader_type, const char* url);
@@ -58,9 +64,11 @@ int init_webgl(const char* canvas_id) {
     gl_attrib.alpha = EM_FALSE;
     gl_attrib.depth = EM_TRUE;
     gl_attrib.antialias = EM_FALSE;
-    gl_attrib.powerPreference = EM_WEBGL_POWER_PREFERENCE_LOW_POWER;
+    //gl_attrib.powerPreference = EM_WEBGL_POWER_PREFERENCE_LOW_POWER;
+    gl_attrib.powerPreference = EM_WEBGL_POWER_PREFERENCE_HIGH_PERFORMANCE;
     gl_attrib.majorVersion = 2; // might be less compatible with browsers
-    gl_attrib.enableExtensionsByDefault = EM_TRUE; // consider setting to false
+    //gl_attrib.enableExtensionsByDefault = EM_TRUE; // consider setting to false
+    gl_attrib.enableExtensionsByDefault = EM_FALSE; // consider setting to false
     gl_attrib.explicitSwapControl = EM_TRUE;
     gl_attrib.renderViaOffscreenBackBuffer = EM_TRUE;
 
@@ -72,6 +80,61 @@ int init_webgl(const char* canvas_id) {
     ASSERT(emscripten_webgl_make_context_current(gl_context) == 
         EMSCRIPTEN_RESULT_SUCCESS, -1,
         "Error: Failed to make webgl context current\n");
+
+
+    //static const char* extensions[] = {"WEBGL_depth_texture", /*"EXT_frag_depth"*/};
+    static const char* extensions[] = {
+        //"WEBGL_depth_texture",
+        //"OES_texture_float",
+        "EXT_color_buffer_float",
+        "EXT_float_blend"
+        //"WEBGL_color_buffer_float",
+        //"OES_standard_derivatives",
+        //"EXT_shader_texture_lod",
+    };
+
+
+    // enable extensions
+    for (int i = 0; i < LENOF(extensions); i++) {
+        if(!emscripten_webgl_enable_extension(gl_context, extensions[i])) {
+            //printf("ERROR: This context does not support the \"%s\" extension\n", extensions[i]);
+            printf("WARNING: This context does not support the \"%s\" extension\n", extensions[i]);
+            //return -1;
+        }
+    }
+
+    EM_ASM({
+        let canvas = document.createElement("canvas");
+        canvas.id = "dummy-canvas";
+        canvas.style.display = "none";
+        document.body.appendChild(canvas);
+    });
+    
+    GL_RED = EM_ASM_INT({
+        let canvas = document.getElementById("dummy-canvas");
+        let gl = canvas.getContext("webgl2");
+        if (!gl) gl = canvas.getContext("webgl1");
+        return gl.RED;
+    });
+    
+    GL_R32F = EM_ASM_INT({
+        let canvas = document.getElementById("dummy-canvas");
+        let gl = canvas.getContext("webgl2");
+        if (!gl) gl = canvas.getContext("webgl1");
+        return gl.R32F;
+    });
+    GL_COMPRESSED_RGBA = EM_ASM_INT({
+        let canvas = document.getElementById("dummy-canvas");
+        let gl = canvas.getContext("webgl2");
+        if (!gl) gl = canvas.getContext("webgl1");
+        return gl.COMPRESSED_RGBA;
+    });
+    GL_COMPRESSED_RED = EM_ASM_INT({
+        let canvas = document.getElementById("dummy-canvas");
+        let gl = canvas.getContext("webgl2");
+        if (!gl) gl = canvas.getContext("webgl1");
+        return gl.COMPRESSED_RED;
+    });
 
     return 0;
 }
