@@ -23,6 +23,9 @@ varying vec4 v_coords3;     // interpolated fragment 3d coords
 void main() {
     // translate vertex for rasterization
     vec4 abs_pos = u_mod_mat * vec4(vert_pos, 1.0);
+    // align vertices to 256x256 grid
+    //gl_Position = floor((u_proj_mat * abs_pos)*256.0)/256.0;
+    //gl_Position = u_proj_mat * floor((abs_pos)*256.0)/256.0;
     gl_Position = u_proj_mat * abs_pos;
 
     // rotate normal according to normal matrix

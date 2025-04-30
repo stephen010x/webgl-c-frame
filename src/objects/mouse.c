@@ -301,6 +301,16 @@ void mouse_update_fps(PMOUSE* m, double t, float dt) {
 
     //printf("%d, %d, %f, %f\n", mouse.dx, mouse.dy, m->camera.rot[X], m->camera.rot[Y]);
 
+    static bool rkey_debounce = true;
+    if (key[KEY_R]) {
+        if (rkey_debounce) {
+            m->camera.rot[Y] += MATH_PI;
+            rkey_debounce = false;
+        }
+    } else
+        rkey_debounce = true;
+    
+
     //camera_update_actual(&m->camera);
 
     //printf("%f\n", dt/(10.0/60.0));

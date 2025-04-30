@@ -360,6 +360,7 @@ void update_frame_time(double _t, double* t, float* dt, float* fps) {
 
 
 
+void reset_scene(int width, int height);
 
 void init_scene(void) {
     // set background color
@@ -371,9 +372,21 @@ void init_scene(void) {
             {wmax[0], wmax[1]},
         }, (vec3){0,0,0});*/
 
-    maze_init(&maze, 20, 40, COLOR_WHITE, &poly_shader);
-    maze.x = -CELL_SIZE*10;
-    maze.y = -CELL_SIZE*20;
+    // to encourage user to unblock sound on certain browsers that
+    // block it by default
+    sound_play("silent-sound", false);
+
+    reset_scene(20, 40);
+}
+
+
+
+void reset_scene(int width, int height) {
+    maze_destroy(&maze);
+    
+    maze_init(&maze, width, height, COLOR_WHITE, &poly_shader);
+    maze.x = -CELL_SIZE*width/2;
+    maze.y = -CELL_SIZE*height/2;
     maze.shader_3d = &poly3d_shader;
     maze.shader_trail = &texplane_shader;
     maze.shader_detailed = &maze_shader;
@@ -387,7 +400,7 @@ void init_scene(void) {
     maze.mode = MAZE_MODE_3D;
 
     float x, y;
-    maze_getpos(&maze, 10, 1, &x, &y);
+    maze_getpos(&maze, width/2, 1, &x, &y);
     
     //mouse_init(&pmouse, x, y, 0.03, COLOR_PURPLE, &maze, &poly_shader);
     mouse_init(&pmouse, x, y, 0.03, COLOR_BLACK, &maze, &poly_shader);
@@ -396,9 +409,6 @@ void init_scene(void) {
     pmouse.shader3 = &poly3d_shader;
     //pmouse.torch_tex = &torch_tex;
 
-    // to encourage user to unblock sound on certain browsers that
-    // block it by default
-    sound_play("silent-sound", false);
 
     // init mirror
     int swidth, sheight;
@@ -463,6 +473,50 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     } else {
         bkey_debounce = true;
     }
+
+
+    static bool ijkl_key_debounce = true;
+    static bool rebuild_scene = false;
+    static int width = 20;
+    static int height = 40;
+
+    if (key[KEY_I]) {
+        if (ijkl_key_debounce) {
+            ijkl_key_debounce = false;
+            height += 1;
+            rebuild_scene = true;
+        }
+    } else if (key[KEY_K]) {
+        if (ijkl_key_debounce) {
+            ijkl_key_debounce = false;
+            height -= 1;
+            rebuild_scene = true;
+        }
+    } else if (key[KEY_L]) {
+        if (ijkl_key_debounce) {
+            ijkl_key_debounce = false;
+            width += 1;
+            rebuild_scene = true;
+        }
+    } else if (key[KEY_J]) {
+        if (ijkl_key_debounce) {
+            ijkl_key_debounce = false;
+            width -= 1;
+            rebuild_scene = true;
+        }
+    } else {
+        ijkl_key_debounce = true;
+    }
+
+    if (rebuild_scene) {
+        if (width < 10)
+            width = 10;
+        if (height < 10)
+            height = 10;
+        rebuild_scene = false;
+        reset_scene(width, height);
+    }
+        
     
     //////////////////////////
     //// UPDATE SCENE  //////
@@ -854,8 +908,21 @@ void update_cam(void) {
 
     //printf("pmode %d; mode %d; %f; keys %d%d%d\n", lastmode, mode, inter, key[KEY_1], key[KEY_2], key[KEY_3]);
 
+    static bool rkey_debounce = true;
+    static bool flipcam = false;
+    if (key[KEY_R]) {
+        if (rkey_debounce) {
+            flipcam = !flipcam;
+            rkey_debounce = false;
+        }
+    } else
+        rkey_debounce = true;
+    
+
     cx = (cx*15 + pmouse.x)/16;
+    //cy = (cy*15 + ((flipcam) ? -pmouse.y : pmouse.y))/16;
     cy = (cy*15 + pmouse.y)/16;
+    //cy = flipcam ? -cy : cy;
     cinter = (cinter*15 + inter)/16;
 
     cinter = (cinter > 0.9999) ? (1) : (cinter);
@@ -865,12 +932,12 @@ void update_cam(void) {
 
     if (mode == MAZE_MODE_2D) {
 
-        camera_rotate_about(&camera_1, (vec3){0,0,0}, (vec3){0, 0, 0}, 3.0);
+        camera_rotate_about(&camera_1, (vec3){0,0,0}, (vec3){0, 0, flipcam ? MATH_PI : 0}, 3.0);
         pmouse.mode = MOUSE_TOP;
     
     } else if (mode == MAZE_MODE_3D) {
 
-        camera_rotate_about(&camera_2, (vec3){0,0,2}, (vec3){cy/3, -cx/3, 0}, 3.5);
+        camera_rotate_about(&camera_2, (vec3){0,0,2}, (vec3){(flipcam ? -cy : cy)/3, -cx/3, flipcam ? MATH_PI : 0}, 3.5);
         pmouse.mode = MOUSE_TOP;
 
     } else if (mode == MAZE_MODE_DETAILED) {
