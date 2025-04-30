@@ -122,7 +122,7 @@ int load_obj_web(const char* url, OBJDATA *objdata, char* group) {
             return -1;
         }
 
-        printf("%d %d %d %d %s %s %d\n", shapes[i].face_offset, shapes[i].length, attrib.num_faces, num_shapes, shapes[i].name, group, i);
+        //printf("%d %d %d %d %s %s %d\n", shapes[i].face_offset, shapes[i].length, attrib.num_faces, num_shapes, shapes[i].name, group, i);
         
         *objdata = (OBJDATA){
             .num_indices   = shapes[i].length*3,
