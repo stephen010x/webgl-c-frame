@@ -8,5 +8,6 @@
 #include "objects/mouse.h"
 #include "objects/drawsurface.h"
 #include "objects/terrain.h"
+#include "objects/chess.h"
 
 #endif

@@ -4,7 +4,7 @@ TEXTEN := wasm
 TMPDIR := tmp
 SRCDIR := src
 BINDIR := bin
-LIBDIR := lib
+LIBDIR := src/lib
 GENDIR := src/shaders/gen
 
 # TODO: create a phony target that preprocesses every
@@ -29,7 +29,7 @@ BFLAGS := $(BFLAGS) -Wno-language-extension-token -Wno-gnu -std=gnu2x
 BFLAGS := -Wno-format-security
 #-sWASM=2
 
-INCLUDE := -I$(LIBDIR)/cglm/include
+INCLUDE := -I$(LIBDIR)/cglm/include -I$(LIBDIR)
 
 
 DEFAULT := fast
@@ -125,15 +125,15 @@ _optimize:
 
 
 $(BINTARG).$(TEXTEN): $(OBJS)
-	mkdir -p $(BINDIR)
+	@mkdir -p $(BINDIR)
 	$(CC) $(BFLAGS) $(LFLAGS) -o $@ -o $(basename $@).js $^
 
 $(TMPDIR)/$(GOAL)/%.o: %.c $(TMPDIR)/$(GOAL)/%.d
-	mkdir -p $(dir $@)
+	@mkdir -p $(dir $@)
 	$(CC) $(INCLUDE) $(BFLAGS) $(CFLAGS) -c $< -o $@
 
 $(TMPDIR)/$(GOAL)/%.d: %.c
-	mkdir -p $(dir $@)
+	@mkdir -p $(dir $@)
 	$(CC) $(INCLUDE) -MM -MT $(patsubst %.d,%.o,$@) -MF $@ $<
 
 

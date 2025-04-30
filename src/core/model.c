@@ -3,7 +3,8 @@
 #include "model.h"
 #include "shader.h"
 #include "texture.h"
-
+#include "files.h"
+#include "../main.h"
 
 
 
@@ -81,6 +82,27 @@ int model_init(MODEL* model, MESH* mesh, TEXTURE* texture, bool stream) {
     return 0;
 }
 
+int model_newinit(MODEL* model, NEWMESH* mesh) {
+
+    *model = (MODEL){
+        .color = (COLOR){1.0f, 1.0f, 1.0f, 1.0f},
+        .newmesh = mesh,
+        .id = 0,
+        .data = NULL,
+        .visable = true,
+        .gl_usage = GL_STATIC_DRAW,
+        .update_call = NULL,
+        .draw_call = NULL,
+        .view_mat = GLM_MAT4_IDENTITY_INIT,
+        .texture = NULL,
+        .use_newmesh = true,
+    };
+
+    _model_init(model);
+        
+    return 0;
+}
+
 
 int _model_init(MODEL* model) {
     // select shader program to use
@@ -88,6 +110,7 @@ int _model_init(MODEL* model) {
     
     // create buffer
     glGenBuffers(1, &model->vert_buff);
+    glGenBuffers(1, &model->index_buff);
 
     // store locations for values
     // T/ODO: this is the sort of thing to be stored in a shader object
@@ -115,13 +138,43 @@ int _model_init(MODEL* model) {
             break;
     }*/
 
-    glBindBuffer(GL_ARRAY_BUFFER, model->vert_buff);
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        (GLsizeiptr)mesh_data_sizeof(model->mesh),
-        model->mesh->data,
-        model->gl_usage /*data_usage*/
-    );
+    if (model->use_newmesh) {
+
+
+        //printf("%d\n", (int)newmesh_index_sizeof(model->newmesh));
+        //printf("%d %d %d\n", (int)model->newmesh->index_count, (int)newmesh_index_sizeof(model->newmesh), (int)newmesh_data_sizeof(model->newmesh));
+
+        glBindBuffer(GL_ARRAY_BUFFER, model->vert_buff);
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            (GLsizeiptr)newmesh_data_sizeof(model->newmesh),
+            model->newmesh->data,
+            model->gl_usage
+        );
+        
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->index_buff);
+        glBufferData(
+            GL_ELEMENT_ARRAY_BUFFER,
+            (GLsizeiptr)newmesh_index_sizeof(model->newmesh),
+            model->newmesh->indices,
+            model->gl_usage
+        );
+
+        /*GLint bufferSize;
+    	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->index_buff);
+    	glGetBufferParameteriv(GL_ELEMENT_ARRAY_BUFFER, GL_BUFFER_SIZE, &bufferSize);
+    	printf("size %d\n", bufferSize);*/
+
+    } else {
+
+        glBindBuffer(GL_ARRAY_BUFFER, model->vert_buff);
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            (GLsizeiptr)mesh_data_sizeof(model->mesh),
+            model->mesh->data,
+            model->gl_usage /*data_usage*/
+        );
+    }
     
     return 0;
 }
@@ -136,6 +189,11 @@ int model_draw(MODEL* model, double t){
         return 0;
 
     glBindBuffer(GL_ARRAY_BUFFER, model->vert_buff);
+
+    if (model->use_newmesh)
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, model->index_buff);
+
+    //printf("%d\n", model->index_buff);
     
     shader_setup_attributes(current_shader);
 
@@ -190,7 +248,7 @@ int model_draw(MODEL* model, double t){
         texture_bind(model->texture, current_shader, "tex0", GL_TEXTURE0);
     
     // send draw to queue
-    switch (current_shader->drawtype) {
+    /*switch (current_shader->drawtype) {
         case SHADER_DRAW_DEFAULT:
             glDrawArrays(model->mesh->mode, 0, model->mesh->verts);
             break;
@@ -200,6 +258,36 @@ int model_draw(MODEL* model, double t){
         case SHADER_DRAW_POINTS:
             glDrawArrays(GL_POINTS, 0, model->mesh->verts);
             break;
+    }*/
+
+    /*printf("%d %d %p\n", model->newmesh->mode, model->newmesh->index_count,	
+            (void*)model->newmesh->indices);*/
+
+    //static int printcount = 0;
+
+    //printf("i %d\n", model->index_buff);
+
+    if (model->use_newmesh) {
+        //if (printcount++ < 8)
+        //printf("::%d %d\n", (int)model->newmesh->index_count, (int)newmesh_index_sizeof(model->newmesh));
+        
+        glDrawElements(model->newmesh->mode, model->newmesh->index_count,	
+            GL_UNSIGNED_SHORT, (void*)0); //(void*)model->newmesh->indices);
+
+        //glDrawArrays(model->newmesh->mode, 0, model->newmesh->vert_count);
+        
+    } else {
+        switch (current_shader->drawtype) {
+            case SHADER_DRAW_DEFAULT:
+                glDrawArrays(model->mesh->mode, 0, model->mesh->verts);
+                break;
+            case SHADER_DRAW_WIREFRAME:
+                glDrawArrays(GL_LINES, 0, model->mesh->verts);
+                break;
+            case SHADER_DRAW_POINTS:
+                glDrawArrays(GL_POINTS, 0, model->mesh->verts);
+                break;
+        }
     }
 
     return 0;
@@ -232,3 +320,92 @@ int model_draw(MODEL* model, double t){
 
 
 
+int newmesh_load(NEWMESH* mesh, char* url, char* group) {
+    OBJDATA objdata;
+    int err;
+    int type;
+    
+    err = load_obj_web(url, &objdata, group);
+    if (err) return err;
+
+    switch ((objdata.num_normals > 0) | ((objdata.num_texcoords > 0)<<1)) {
+        case 0:
+            type = NEWMESHTYPE_VERT3_PACKED;
+            break;
+        case 1:
+            type = NEWMESHTYPE_VERT3_NORM3;
+            break;
+        case 2:
+            ASSERT(false, -1, "ERROR: newmesh_load has not implemented verts with texcoords without norms\n");
+            break;
+        case 3:
+            type = NEWMESHTYPE_VERT3_NORM3_TEX2;
+            break;
+        default:
+            type = MESHTYPE_NONE;     
+    }
+
+    *mesh = (NEWMESH){
+        .type = type,
+        .mode = GL_TRIANGLES,
+        //.vert_count = objdata.num_vertices,
+        //.index_count = objdata.num_indices,
+        .vert_count = objdata.num_indices,
+        .index_count = objdata.num_indices,
+    };
+
+    /*mesh->data = malloc(newmesh_data_sizeof(mesh));
+    mesh->indices = malloc(newmesh_index_sizeof(mesh));
+
+    for (int i = 0; i < objdata.num_indices; i++) {
+        float* vertoff = (float*)&objdata.vertices3[objdata.indices[i].vert];
+        float* normoff = (float*)&objdata.normals3[objdata.indices[i].norm];
+        float* texcoff = (float*)&objdata.texcoords2[objdata.indices[i].tex];
+        int vert_index = objdata.indices[i].vert;
+        mesh->v3n3t2[vert_index] = (V3N3T2){
+            .vert = {vertoff[0], vertoff[1], vertoff[2]},
+            .norm = {normoff[0], normoff[1], normoff[2]},
+            .tex = {texcoff[0], texcoff[1]},
+        };
+        mesh->indices[i] = objdata.indices[i].vert;
+    }
+
+    // calculate norms manually because objs are misbehaving
+    for (int i = 0; i < objdata.num_indices / 3 - 5; i++) {
+        vec3 *v[3], *n[3], t1, t2, norm;
+        unsigned short *index = &mesh->indices[i*3];
+        v[0] = &mesh->v3n3t2[(int)index].vert;
+        for (int j = 0; j < 3; j++) {
+            v[j] = &mesh->v3n3t2[index[j+3]].vert;
+            n[j] = &mesh->v3n3t2[index[j+3]].norm;
+        }
+        glm_vec3_sub(*v[0], *v[1], t1);
+        glm_vec3_sub(*v[1], *v[2], t2);
+        glm_vec3_crossn(t1, t2, norm);
+        /\*for (int j = 0; j < 3; j++)
+            glm_vec3_copy(norm, *n[j]);
+            //glm_vec3_copy((vec3){0.0, 0.0, 1.0}, *n[j]);*\/
+        glm_vec3_copy((vec3){i%3==0, i%3==1, i%3==2}, *n[0]);
+        glm_vec3_copy((vec3){i%3==0, i%3==1, i%3==2}, *n[1]);
+        glm_vec3_copy((vec3){i%3==0, i%3==1, i%3==2}, *n[2]);
+    }*/
+
+    mesh->data = malloc(newmesh_data_sizeof(mesh));
+    mesh->indices = malloc(newmesh_index_sizeof(mesh));
+
+    for (int i = 0; i < objdata.num_indices; i++) {
+        float* vertoff = (float*)&objdata.vertices3[objdata.indices[i].vert];
+        float* normoff = (float*)&objdata.normals3[objdata.indices[i].norm];
+        float* texcoff = (float*)&objdata.texcoords2[objdata.indices[i].tex];
+        mesh->v3n3t2[i] = (V3N3T2){
+            .vert = {vertoff[0], vertoff[1], vertoff[2]},
+            .norm = {normoff[0], normoff[1], normoff[2]},
+            .tex = {texcoff[0], texcoff[1]},
+        };
+        mesh->indices[i] = i;
+    }
+
+    objdata_free(&objdata);
+
+    return 0;
+}

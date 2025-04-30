@@ -47,17 +47,17 @@
 //#define COLOR_DIRT_GREY  ((COLOR){64.0/256.0, 59.0/256.0, 53.0/256.0, 1.0})
 //#define COLOR_DIRT_GREY  ((COLOR){64.0/256.0*2, 59.0/256.0*2, 53.0/256.0*2, 1.0})
 #define COLOR_DIRT_GREY  ((COLOR){68.0/256.0*2, 55.0/256.0*2, 40.0/256.0*2, 1.0})
-#define COLOR_GREY  ((COLOR){0.8, 0.8, 0.8, 1.0})
+#define COLOR_GREY  ((COLOR){0.1, 0.1, 0.1, 1.0})
 #define COLOR_GREEN  ((COLOR){0.20*2, 0.3*2*0.75, 0.15*2, 1.0})
 //#define COLOR_GREEN  ((COLOR){0.20, 0.4, 0.15, 1.0})
 // #define COLOR_BLUE  ((COLOR){0.15, 0.1, 0.3, 1.0})
 // #define COLOR_BLUE  ((COLOR){0.1, 0.2, 0.35, 1.0})
 #define COLOR_BLUE  ((COLOR){0.05*2, 0.15*2, 0.25*2, 1.0})
 
-#define COLOR_LIGHT_WARM  ((COLOR){1.0, 0.84+0.1, 0.78+0.1, 1.0})
+#define COLOR_LIGHT_WARM  ((COLOR){1.0, 0.84*0.99, 0.78*0.8, 1.0})
 //#define COLOR_LIGHT_WARM  ((COLOR){0.98, 0.5, 0.5, 1.0})
 //#define COLOR_LIGHT_COOL  ((COLOR){0.65, 0.75, 1.0, 1.0})
-#define COLOR_LIGHT_COOL  ((COLOR){0.55/1.5, 0.65/1.5, 1.0, 1.0})
+#define COLOR_LIGHT_COOL  ((COLOR){0.55/1.0, 0.65/1.0, 1.0, 1.0})
 
 
 //#define COLOR_WATER  ((COLOR){0.01*1.5, 0.03*1.5, 0.1*1.5, 1.0})
@@ -65,7 +65,20 @@
 //#define COLOR_GRASS  ((COLOR){0.20*2, 0.3*1.75, 0.15*2, 1.0})
 #define COLOR_GRASS  ((COLOR){0.20*4, 0.3*4, 0.15*4, 1.0})
 
+
 //#define COLOR_WATER2  ((COLOR){COLOR_WATER.r/2, COLOR_WATER.g/2, COLOR_WATER.b/2, 1.0})
+
+
+//#define COLOR_CHESS_BLACK ((COLOR){0.2, 0.2, 0.2, 1.0})
+//#define COLOR_CHESS_WHITE COLOR_WHITE
+//#define COLOR_CHESS_BLACK ((COLOR){0.3, 0.2, 0.1, 1.0})
+//#define COLOR_CHESS_WHITE ((COLOR){1.0, 0.9, 0.8, 1.0})
+//#define COLOR_CHESS_BLACK ((COLOR){0.25, 0.2, 0.15, 1.0})
+//#define COLOR_CHESS_WHITE ((COLOR){1.0, 0.95, 0.9, 1.0})
+#define COLOR_CHESS_BLACK ((COLOR){0.225, 0.2, 0.175, 1.0})
+#define COLOR_CHESS_WHITE ((COLOR){1.0, 0.95, 0.9, 1.0})
+//#define COLOR_CHESS_BORDER ((COLOR){0.36, 0.27, 0.13, 1.0})
+#define COLOR_CHESS_BORDER ((COLOR){0.4, 0.33, 0.24, 1.0})
 
 
 
@@ -88,10 +101,11 @@ WORLD world = {
     .light = {
         .type = LIGHTSOURCE_TYPE_DIR,
         .dir = {
-            .norm = {0.8, 1, 2},
-            .amb = 0.2*2*2,
+            //.norm = {0.8, 1, 2},
+            .norm = {0.8, -1, 2},
+            .amb = 0.2*2*1,
             //.amb = 0.4,
-            .bright = 1.96/2*1.5,
+            .bright = 1.96/2*0.8,
             .diff_color = COLOR_LIGHT_WARM,
             .amb_color = COLOR_LIGHT_COOL,
         },
@@ -170,8 +184,15 @@ SHADER water_shader;
 SHADER depth_shader;
 SHADER skybox_shader;
 SHADER underwater_shader;
-SHADER wireframe_shader;
 SHADER simple_shader;
+
+SHADER wireframe_shader;
+SHADER chess_shader;
+
+
+
+//NEWMESH meshes[LENOF(objlist)];
+//MODEL models[LENOF(objlist)];
 
 
 
@@ -185,8 +206,10 @@ void water_draw_frame(SHADER* shader, double t, void* data);
 void depth_draw_frame(SHADER* shader, double t, void* data);
 void sky_draw_frame(SHADER* shader, double t, void* data);
 void underwater_draw_frame(SHADER* shader, double t, void* data);
-void wire_draw_frame(SHADER* shader, double t, void* data);
 void simple_draw_frame(SHADER* shader, double t, void* data);
+
+void wire_draw_frame(SHADER* shader, double t, void* data);
+void chess_draw_frame(SHADER* shader, double t, void* data);
 
 GLuint zbuffer;
 //GLuint ztexture;
@@ -211,15 +234,17 @@ int __main(void) {
     ASSERT(err == 0, -1, "init_webgl failed\n");
 
 
-    SHADER_DESCRIPTOR terrain_desc    = SHADER_DESC_GEN(true, NULL,  terrain, terrain);
-    SHADER_DESCRIPTOR water_desc      = SHADER_DESC_GEN(true, NULL,  terrain, water);
-    SHADER_DESCRIPTOR depth_desc      = SHADER_DESC_GEN(true, NULL,  depth, depth);
-    SHADER_DESCRIPTOR skybox_desc     = SHADER_DESC_GEN(true, NULL,  simple3d, skybox);
-    SHADER_DESCRIPTOR underwater_desc = SHADER_DESC_GEN(true, NULL,  terrain, underwater);
+    SHADER_DESCRIPTOR terrain_desc    = SHADER_DESC_GEN(false, NULL,  terrain, terrain);
+    SHADER_DESCRIPTOR water_desc      = SHADER_DESC_GEN(false, NULL,  terrain, water);
+    SHADER_DESCRIPTOR depth_desc      = SHADER_DESC_GEN(false, NULL,  depth, depth);
+    SHADER_DESCRIPTOR skybox_desc     = SHADER_DESC_GEN(false, NULL,  simple3d, skybox);
+    SHADER_DESCRIPTOR underwater_desc = SHADER_DESC_GEN(false, NULL,  terrain, underwater);
+    SHADER_DESCRIPTOR simple_desc     = SHADER_DESC_GEN(false, NULL,  simple3d, simple);
+
     SHADER_DESCRIPTOR wireframe_desc  = SHADER_DESC_GEN(true, NULL,  simple3d, wireframe);
-    SHADER_DESCRIPTOR simple_desc     = SHADER_DESC_GEN(true, NULL,  simple3d, simple);
+    SHADER_DESCRIPTOR chess_desc      = SHADER_DESC_GEN(true, NULL,  model, model);
     
-    shader_init(&terrain_shader, &terrain_desc, terrain_draw_frame, 
+    /*shader_init(&terrain_shader, &terrain_desc, terrain_draw_frame, 
         NULL, MESHTYPE_3D_VERT_NORM);
     shader_init(&water_shader, &water_desc, water_draw_frame, 
         NULL, MESHTYPE_3D_VERT_NORM);
@@ -232,7 +257,12 @@ int __main(void) {
     shader_init(&wireframe_shader, &wireframe_desc, wire_draw_frame, 
         NULL, MESHTYPE_3D_VERT_NORM);
     shader_init(&simple_shader, &simple_desc, simple_draw_frame, 
+        NULL, MESHTYPE_3D_VERT_NORM);*/
+
+    shader_init(&wireframe_shader, &wireframe_desc, wire_draw_frame, 
         NULL, MESHTYPE_3D_VERT_NORM);
+    shader_init(&chess_shader, &chess_desc, chess_draw_frame, 
+        NULL, MESHTYPE_3D_VERT_NORM_TEX2);
 
     wireframe_shader.drawtype = SHADER_DRAW_WIREFRAME;
     
@@ -298,7 +328,7 @@ int __main(void) {
     asset_load_img(&water_norm_asset, "water-norm-1024");*/
 
 
-    asset_pack_load(&grass_assets,   &GEN_ASSET_NAMES("moss",    1024), ASSET_ALL);
+    /*asset_pack_load(&grass_assets,   &GEN_ASSET_NAMES("moss",    1024), ASSET_ALL);
     asset_pack_load(&water_assets,   &GEN_ASSET_NAMES("water",   1024), ASSET_ALL);
     asset_pack_load(&cliff_assets,   &GEN_ASSET_NAMES("cliffs",  512),  ASSET_ALL);
     asset_pack_load(&sand_assets,    &GEN_ASSET_NAMES("sand",    256),  ASSET_ALL);
@@ -310,18 +340,18 @@ int __main(void) {
     texture_pack_init(&water_textures,   &water_assets,   GENERIC_TEXFLAGS, 40.0, 0.125);
     texture_pack_init(&cliff_textures,   &cliff_assets,   GENERIC_TEXFLAGS, 20.0, 1.0);
     texture_pack_init(&sand_textures,    &sand_assets,    GENERIC_TEXFLAGS, 10.0, 1.0);
-    texture_pack_init(&wetrock_textures, &wetrock_assets, GENERIC_TEXFLAGS, 10.0, 1.0);
+    texture_pack_init(&wetrock_textures, &wetrock_assets, GENERIC_TEXFLAGS, 10.0, 1.0);*/
     
     /*texture_gen_mipmaps(&grass_textures.tex,  MIPMAP_GEN_MIX_2_2, TEX_GEN_MAX);
     texture_gen_mipmaps(&grass_textures.norm, MIPMAP_GEN_MIX_2_2, TEX_GEN_MAX);
     texture_gen_mipmaps(&grass_textures.disp, MIPMAP_GEN_MIX_2_2, TEX_GEN_MAX);
     texture_gen_mipmaps(&grass_textures.occl, MIPMAP_GEN_MIX_2_2, TEX_GEN_MAX);*/
     
-    texture_pack_gen_mipmaps(&grass_textures, MIPMAP_GEN_MIX_3_1, TEX_GEN_MAX);
+    /*texture_pack_gen_mipmaps(&grass_textures, MIPMAP_GEN_MIX_3_1, TEX_GEN_MAX);
     texture_pack_gen_mipmaps(&water_textures, MIPMAP_GEN_NEAREST, TEX_GEN_MAX);
     texture_pack_gen_mipmaps(&cliff_textures, MIPMAP_GEN_MIX_3_1, TEX_GEN_MAX);
     texture_pack_gen_mipmaps(&sand_textures,  MIPMAP_GEN_MIX_3_1, TEX_GEN_MAX);
-    texture_pack_gen_mipmaps(&wetrock_textures, MIPMAP_GEN_MIX_3_1, TEX_GEN_MAX);
+    texture_pack_gen_mipmaps(&wetrock_textures, MIPMAP_GEN_MIX_3_1, TEX_GEN_MAX);*/
     
 
 
@@ -419,11 +449,47 @@ char* uniquekey_filename = "key";
 
 unsigned int uniquekey = UNIQUE_KEY;
 
+
+NEWMESH chess_meshes[9];
+CHESS_PIECE chess_pieces[32];
+CHESS_BOARD chess_board;
+
+
 void init_scene(void) {
     // set background color
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
-    float height_mul = 0.1/2.0;
+
+    CHESS_GEN_DESC chess_desc = (CHESS_GEN_DESC){
+        .padding = 1.0,
+        .scale = 6.4*4,
+        .height = 2.0,
+        .rootpath = "/assets/models/",
+        .board_path = "board.obj",
+        .pawn_path = "pawn.obj",
+        .rook_path = "rook.obj",
+        .knight_path = "knight.obj",
+        .bishop_path = "bishop.obj",
+        .king_path = "king.obj",
+        .queen_path = "queen.obj",
+        .color_white = COLOR_CHESS_WHITE,
+        .color_black = COLOR_CHESS_BLACK,
+        .color_border = COLOR_CHESS_BORDER,
+    };
+
+    chess_set_gen(&chess_pieces, &chess_meshes, &chess_board, &chess_desc);
+
+
+    /*for (int i = 0; i < LENOF(models); i++) {
+        char buff[64] = "/assets/models/";
+        strcat(buff, objlist[i]);
+        newmesh_load(meshes+i, buff);
+        model_newinit(models+i, meshes+i);
+        models[i].color = COLOR_CHESS_BLACK;
+    }*/
+    
+
+    /*float height_mul = 0.1/2.0;
 
     unsigned int oldkey = 0;
     
@@ -530,11 +596,12 @@ void init_scene(void) {
 
         write_file(terrain_filename, terrain.mesh->data, mesh_data_sizeof(terrain.mesh));
         int err = write_file(uniquekey_filename, &uniquekey, sizeof(unsigned int));
-    }
+    }*/
 
     mouse.grabby = true;
 
-    camera.pos[1] = 100;
+    //camera.pos[1] = 10;
+    camera.pos[2] = 5;
 
     static GEN_MODEL water_model = (GEN_MODEL){
         .mode = GENMODE_GEN,
@@ -543,7 +610,7 @@ void init_scene(void) {
         .cols = 250,
     };
 
-    terrain_init(&water, (vec3){-250,-250,-20}, (vec3){2,2,1},
+    terrain_init(&water, (vec3){-125,-125,0}, (vec3){1,1,1},
         &water_model, COLOR_WATER, &terrain_shader);
 
 
@@ -567,9 +634,10 @@ void init_scene(void) {
 
     shader_set_float(&terrain_shader, "u_ditherscale", 1.0/16.0);
     
-    shader_set_float(&wireframe_shader, "u_wire_range", 200);
+    shader_set_float(&wireframe_shader, "u_wire_range", 50);
 
     camera_setup(&screencam);
+
 }
 
 
@@ -580,6 +648,8 @@ void init_scene(void) {
 
 int frame_div = 1;
 bool wireframe_enable = false;
+
+//void chess_update(MODEL* model, double t, float dt, int id);
 
 
 EM_BOOL frame_loop(double _t, void *user_data) {
@@ -673,7 +743,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     vel[2] += tz;
 
     float mul = (key[KEY_SHIFT] ? (5.0) : (1.0)) / 10.0 / glm_vec3_norm(vel);
-    mul *= dt*6;
+    mul *= dt*3;
 
     glm_vec3_scale(vel, mul, vel);
 
@@ -682,18 +752,27 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     if (!(isnan(vel[0]) || isnan(vel[1]) || isnan(vel[2])))
         glm_vec3_add(camera.pos, vel, camera.pos);
 
-    camera.pos[0] = CLAMP(camera.pos[0], -250.0+0.5, 250.0-0.5);
+    /*camera.pos[0] = CLAMP(camera.pos[0], -250.0+0.5, 250.0-0.5);
     camera.pos[1] = CLAMP(camera.pos[1], -250.0+0.5, 250.0-0.5);
 
     float theight = terrain_get_height(&terrain, camera.pos[0], camera.pos[1]);
     if (camera.pos[2] < theight + 2.0)
-        camera.pos[2] = theight + 2.0;
+        camera.pos[2] = theight + 2.0;*/
     
     // final camera update;
     camera_update_actual(&camera);
 
     terrain_update(&terrain, t, dt);
     terrain_update(&water, t, dt);
+
+
+
+    for (int i = 0; i < LENOF(chess_pieces); i++) {
+        //chess_update(models+i, t, dt, i);
+        chess_piece_update(chess_pieces+i, t, dt);
+    }
+    chess_board_update(&chess_board, t, dt);
+
 
     //glm_vec3_rotate(world.light.dir.norm, 0.01, (vec3){0,1,0});
 
@@ -711,7 +790,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     
     //shader_draw(&simple_shader, t);
 
-    shader_draw(&skybox_shader, t);
+    /*shader_draw(&skybox_shader, t);
     if (!wireframe_enable) {
         shader_draw(&depth_shader, t);
         shader_draw(&terrain_shader, t);
@@ -722,7 +801,10 @@ EM_BOOL frame_loop(double _t, void *user_data) {
         }
     } else {
         shader_draw(&wireframe_shader, t);
-    }
+    }*/
+
+    shader_draw(&wireframe_shader, t);
+    shader_draw(&chess_shader, t);
 
     //draw_rect2((vec3){-250,-250,-5}, (vec3){500,500}, NULL, 0, COLOR_BLUE, &terrain_shader);
 
@@ -756,6 +838,37 @@ EM_BOOL frame_loop(double _t, void *user_data) {
 
 
 
+void chess_draw_frame(SHADER* shader, double t, void* data) {
+    camera_apply(&camera, shader->program);
+    shader_set_bool(shader, "u_enable_texture", false);
+    shader_set_float(shader, "u_tex0_strength", 1.0);
+    //lightsource_apply_spectral(&world.light, shader->program, &camera, 0.28, 10.0);
+    lightsource_apply_spectral(&world.light, shader->program, &camera, 1, 50);
+
+    for (int i = 0; i < LENOF(chess_pieces); i++) {
+    //for (int i = 0; i < 1; i++) {
+        //model_draw(models+i, t);
+        chess_piece_draw(chess_pieces+i, t);
+    }
+    chess_board_draw(&chess_board, t, 0);
+    chess_board_draw(&chess_board, t, 1);
+    
+    lightsource_apply_spectral(&world.light, shader->program, &camera, 0.25, 10);
+    chess_board_draw(&chess_board, t, 2);
+}
+
+
+
+/*void chess_update(MODEL* model, double t, float dt, int id) {
+    glm_mat4_identity(model->view_mat);
+    glm_translate(model->view_mat, (vec3){id*8, 0, 0});
+    glm_scale(model->view_mat, (vec3){16,16,16});
+}*/
+
+
+
+
+
 void terrain_draw_frame(SHADER* shader, double t, void* data) {
     
     camera_apply(&camera, shader->program);
@@ -764,6 +877,7 @@ void terrain_draw_frame(SHADER* shader, double t, void* data) {
     terrain.model.color = COLOR_WHITE;
     
     lightsource_apply_spectral(&world.light, shader->program, &camera, 0.28, 10.0);
+    //lightsource_apply_spectral(&world.light, shader->program, &camera, 1.4*2, 300.0);
     
     /*texture_bind_scale(&grass_norm, shader, "u_norm0", GL_TEXTURE0, "u_tex_scale", 16.0,
         "u_tex_strength", 1.0);
@@ -909,9 +1023,9 @@ void wire_draw_frame(SHADER* shader, double t, void* data) {
     
     camera_apply(&camera, shader->program);
 
-    shader_set_vec4(shader, "u_wire_color", COLOR_WHITE.raw);
+    shader_set_vec4(shader, "u_wire_color", COLOR_GREY.raw);
     
-    terrain_draw(&terrain, t);
+    //terrain_draw(&terrain, t);
     terrain_draw(&water, t);
 
     //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
