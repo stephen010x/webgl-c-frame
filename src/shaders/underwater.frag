@@ -20,6 +20,8 @@ uniform float u_swidth;
 uniform float u_sheight;
 uniform mat4 u_dithermat;
 
+uniform float u_water_height;
+
 uniform vec4 u_fog_color;
 
 uniform int u_mode;
@@ -80,7 +82,7 @@ void main() {
     //o_color = vec4(vec3(1.0/depth), 1.0);
     //return;
 
-    if (depth != v_depth || v_coords3.z > -20.0) discard;
+    if (depth != v_depth || v_coords3.z > u_water_height) discard;
     
 
 

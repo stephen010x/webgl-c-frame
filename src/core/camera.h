@@ -123,6 +123,7 @@ void camera_get_direction(CAMERA* c, vec3 forward, vec3 cam_dir);
 
 int lightsource_apply(LIGHTSOURCE* light, unsigned int shader_program);
 int lightsource_apply_spectral(LIGHTSOURCE* light, unsigned int shader_program, CAMERA* camera, float spec_bright, float spec_pow);
+int lightsource_apply_spectral2(LIGHTSOURCE* light, unsigned int shader_program, CAMERA* camera, float spec_bright, float spec_pow);
 
 
 

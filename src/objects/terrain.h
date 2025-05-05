@@ -23,7 +23,7 @@
     int loadbytes;              \
                                 \
     float scale;                \
-    float x_off, y_off;         \
+    float x_off, y_off, z_off;  \
     int rows, cols;             \
     int sincount;               \
     struct {                    \
@@ -67,6 +67,7 @@ void terrain_draw(TERRAIN* t, double _t);
 void terrain_update(TERRAIN* t, double _, float dt);
 
 float terrain_get_height(TERRAIN* t, float x, float y);
+void terrain_get_flat_norm(TERRAIN* t, float x, float y, vec3 norm);
 
 
 #endif

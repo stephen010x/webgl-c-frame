@@ -171,7 +171,7 @@ float terrain_gen_height_raw(TERRAIN* t, int x, int y) {
         height += h*(powf(a, n) + powf(b, n)) * damp;
     }
     
-    return height;
+    return height + t->gen_model->z_off;
 }
 
 
@@ -254,7 +254,7 @@ float terrain_get_height(TERRAIN* t, float x, float y) {
     // suppose to range from 0 to 1
     float nx = (x - t->pos[0]) / t->scale[0] - cx;
     float ny = (y - t->pos[1]) / t->scale[1] - cy;
-    float h_off = t->pos[2];
+    //float h_off = t->pos[2];
 
     //     xy
     float h00 = data[cy][cx][0][2];
@@ -277,6 +277,38 @@ float terrain_get_height(TERRAIN* t, float x, float y) {
     //printf("%d %d; %f %f; %f\n", cx, cy, nx, ny, (h00 + dhdx*nx + dhdy*ny) * t->scale[2] + t->pos[2]);
 
     return (h00 + dhdx*nx + dhdy*ny) * t->scale[2] + t->pos[2];
+}
+
+
+void terrain_get_flat_norm(TERRAIN* t, float x, float y, vec3 norm) {
+    int cols = t->gen_model->cols;
+    vec3 (*data)[cols][12] = (void*)t->mesh->data;
+
+    int cx = (x - t->pos[0]) / t->scale[0];
+    int cy = (y - t->pos[1]) / t->scale[1];
+    // suppose to range from 0 to 1
+    float nx = (x - t->pos[0]) / t->scale[0] - cx;
+    float ny = (y - t->pos[1]) / t->scale[1] - cy;
+
+    //    xy   xy   xy   xy
+    vec3 n00, n01, n10, n11;
+    glm_vec3_copy(data[cy][cx][1], n00);
+    glm_vec3_copy(data[cy][cx][9], n01);
+    glm_vec3_copy(data[cy][cx][3], n10);
+    glm_vec3_copy(data[cy][cx][5], n11);
+    n00[2] /= t->scale[2];
+    n01[2] /= t->scale[2];
+    n10[2] /= t->scale[2];
+    n11[2] /= t->scale[2];
+    
+    glm_vec3_zero(norm);
+
+    glm_vec3_add(norm, n00, norm);
+    glm_vec3_add(norm, n11, norm);
+    glm_vec3_add(norm, (ny < nx) ? (n10) : (n01), norm);
+    
+    //glm_vec3_scale(norm, 1.0 / 3.0, norm);
+    glm_vec3_normalize(norm);
 }
 
 

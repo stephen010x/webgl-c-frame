@@ -11,6 +11,10 @@ uniform mat4 u_mod_mat;
 uniform mat3 u_norm_mat;
 uniform vec4 u_color;
 
+uniform bool u_swap_norm;
+
+uniform float u_water_height;
+
 //uniform float u_tex0_scale;
 
 out vec4 v_color;
@@ -71,6 +75,9 @@ void main() {
     // rotate normal according to model matrix
     N = normalize(u_norm_mat * newnorm);
 
+    //N.z = u_swap_norm ? -N.z : N.z;
+    N = u_swap_norm ? -N : N;
+
     // select temporary fake tangent
     // avoid colinearity
     T = vec3(1.0, 0.0, 0.0);
@@ -102,7 +109,8 @@ void main() {
 
     v_texmap = vec4(0.0);
     
-    if (v_coords3.z < -25.0 + wiggle)
+    //if (v_coords3.z < -25.0 + wiggle)
+    if (v_coords3.z < u_water_height -5.0 + wiggle)
         if (N.z > 0.8)
             v_texmap[2] = 1.0;
         else
@@ -110,7 +118,7 @@ void main() {
     else {
         if (N.z > 0.6 + wiggle/100.0)
             //if (v_coords3.z < -15.0 && N.z > 0.7 || v_coords3.z < -21.0)
-            if (v_coords3.z < -15.0 + wiggle) //&& N.z > 0.65)
+            if (v_coords3.z < u_water_height + 5.0 + wiggle) //&& N.z > 0.65)
                 v_texmap[2] = 1.0;
             else
                 v_texmap[0] = 1.0;

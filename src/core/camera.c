@@ -133,10 +133,10 @@ void camera_update_skybox(CAMERA* c) {
     glm_rotate_z(c->viewmat, c->rot[1], c->viewmat);
 
     // translate second so that it rotates about the camera origin
-    vec3 pos;
+    /*vec3 pos;
     glm_vec3_negate_to(c->pos, pos);
     pos[2] = 0;
-    glm_translate(c->viewmat, pos);
+    glm_translate(c->viewmat, pos);*/
 }
 
 
@@ -353,6 +353,27 @@ int lightsource_apply_spectral(LIGHTSOURCE* light, unsigned int shader_program, 
     GLint u_cam_pos_loc      = glGetUniformLocation(shader_program, "u_cam_pos");
     GLint u_light_spec_bright_loc = glGetUniformLocation(shader_program, "u_light_spec_bright");
     GLint u_light_spec_pow_loc    = glGetUniformLocation(shader_program, "u_light_spec_pow");
+
+    if (u_cam_pos_loc > 0 && camera != NULL)
+        glUniform3fv(u_cam_pos_loc, 1, (GLfloat*)camera->pos);
+
+    if (u_light_spec_bright_loc > 0)
+        glUniform1fv(u_light_spec_bright_loc, 1, (GLfloat*)&spec_bright);
+
+    if (u_light_spec_pow_loc > 0)
+        glUniform1fv(u_light_spec_pow_loc, 1, (GLfloat*)&spec_pow);
+
+
+    return 0;
+}
+
+
+int lightsource_apply_spectral2(LIGHTSOURCE* light, unsigned int shader_program, CAMERA* camera, float spec_bright, float spec_pow) {
+    lightsource_apply(light, shader_program);
+    
+    GLint u_cam_pos_loc      = glGetUniformLocation(shader_program, "u_cam_pos");
+    GLint u_light_spec_bright_loc = glGetUniformLocation(shader_program, "u_light_spec_bright2");
+    GLint u_light_spec_pow_loc    = glGetUniformLocation(shader_program, "u_light_spec_pow2");
 
     if (u_cam_pos_loc > 0 && camera != NULL)
         glUniform3fv(u_cam_pos_loc, 1, (GLfloat*)camera->pos);

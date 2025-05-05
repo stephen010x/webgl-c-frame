@@ -232,7 +232,7 @@ void main() {
 
     ////////////////////////////
     // translate normal vector to model space
-    
+
     mat3 TBN = mat3(normalize(T), normalize(B), normalize(N));
     //vec4 norm_color = texture2D(u_norm0, vfloor(v_tex_coord/v_depth/1000.0)*v_depth);
     
@@ -242,6 +242,7 @@ void main() {
         
     //vec4 norm_color = texture2DLod(u_norm0, v_tex_coord/100.0, 1);
     vec3 prenorm = color_to_norm(norm_color);
+    prenorm = -vec3(prenorm.xy, -prenorm.z);
     vec3 norm = normalize(TBN * normalize(vec3(prenorm.xy, prenorm.z / tex_strength)));
     //norm = vec3(norm.zy, norm.z * u_tex_scale);
     //norm = N;

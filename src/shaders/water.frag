@@ -6,6 +6,8 @@ uniform float u_light_amb;
 uniform float u_light_bright;
 uniform float u_light_spec_bright;
 uniform float u_light_spec_pow;
+uniform float u_light_spec_bright2;
+uniform float u_light_spec_pow2;
 uniform vec4 u_light_diff_color;
 uniform vec4 u_light_amb_color;
 uniform vec3 u_cam_pos;
@@ -99,7 +101,8 @@ void main() {
     if (diffuse.x > 0.0 || diffuse.y > 0.0 || diffuse.z > 0.0) {
         vec3 half_norm = normalize(light_norm + normalize(-v_coords3+u_cam_pos));
         float spec_angle = max(dot(half_norm, norm), 0.0);
-        specular = pow(spec_angle, u_light_spec_pow) * u_light_spec_bright * u_light_diff_color.rgb;
+        specular = pow(spec_angle, u_light_spec_pow) * u_light_spec_bright * u_light_diff_color.rgb +
+                   pow(spec_angle, u_light_spec_pow2) * u_light_spec_bright2 * u_light_diff_color.rgb;
     }
 
     // calculate ambience

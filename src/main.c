@@ -415,7 +415,7 @@ void update_frame_time(double _t, double* t, float* dt, float* fps) {
 char* terrain_filename = "terrain.mesh";
 char* uniquekey_filename = "key";
 
-#define UNIQUE_KEY 0xABCD012D
+#define UNIQUE_KEY 0xABCD0134
 
 unsigned int uniquekey = UNIQUE_KEY;
 
@@ -474,6 +474,7 @@ void init_scene(void) {
             .cols = 250,//500,
             .x_off = -125,
             .y_off = -125,
+            .z_off = 20 * 8.0 * 0,
             .sincount = 8,
         };
 
@@ -525,7 +526,7 @@ void init_scene(void) {
             .damp_enable = false,
         };
 
-        terrain_init(&terrain, (vec3){-250,-250,0}, (vec3){2,2,height_mul*gen_model.scale/2.0},
+        terrain_init(&terrain, (vec3){-250,-250,20}, (vec3){2,2,height_mul*gen_model.scale/2.0},
             &gen_model, COLOR_GRASS, &terrain_shader);
 
         write_file(terrain_filename, terrain.mesh->data, mesh_data_sizeof(terrain.mesh));
@@ -535,6 +536,7 @@ void init_scene(void) {
     mouse.grabby = true;
 
     camera.pos[1] = 100;
+    camera.pos[2] = 40;
 
     static GEN_MODEL water_model = (GEN_MODEL){
         .mode = GENMODE_GEN,
@@ -543,7 +545,7 @@ void init_scene(void) {
         .cols = 250,
     };
 
-    terrain_init(&water, (vec3){-250,-250,-20}, (vec3){2,2,1},
+    terrain_init(&water, (vec3){-250,-250,0}, (vec3){2,2,1},
         &water_model, COLOR_WATER, &terrain_shader);
 
 
@@ -632,6 +634,25 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     } else {
         vkey_debounce = true;
     }
+
+
+
+    if (key[KEY_R]) {
+        terrain.scale[2] += 0.001;
+    }
+    if (key[KEY_F]) {
+        terrain.scale[2] -= 0.001;
+        
+    }
+    if (key[KEY_T]) {
+        water.pos[2] += 0.2;
+    }
+    if (key[KEY_G]) {
+        water.pos[2] -= 0.2;
+    }
+
+
+    
     
     //////////////////////////
     //// UPDATE SCENE  //////
@@ -658,7 +679,7 @@ EM_BOOL frame_loop(double _t, void *user_data) {
 
     float tx = (key[KEY_RIGHT] || key[KEY_D]) - (key[KEY_LEFT] || key[KEY_A]);
     float ty = (key[KEY_UP]    || key[KEY_W]) - (key[KEY_DOWN] || key[KEY_S]);
-    float tz = key[KEY_SPACE];// - key[KEY_CTRL];
+    float tz = key[KEY_SPACE] - key[KEY_ALT];
     //float pythag = sqrt(tx*tx + ty*ty + tz*tz);
     //float mul = (key[KEY_SHIFT] ? (5) : (1)) / 10.0 / pythag;
 
@@ -673,21 +694,84 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     vel[2] += tz;
 
     float mul = (key[KEY_SHIFT] ? (5.0) : (1.0)) / 10.0 / glm_vec3_norm(vel);
+    //float mul = (5.0) / 10.0 / glm_vec3_norm(vel);
     mul *= dt*6;
 
     glm_vec3_scale(vel, mul, vel);
 
     //printf("%f %f\n", camera.rot[0], camera.rot[1]);
 
-    if (!(isnan(vel[0]) || isnan(vel[1]) || isnan(vel[2])))
-        glm_vec3_add(camera.pos, vel, camera.pos);
+    if (isnan(vel[0]) || isnan(vel[1]) || isnan(vel[2]))
+        glm_vec3_zero(vel);
+
+    float theight = terrain_get_height(&terrain, camera.pos[0], camera.pos[1]);
+    
+    vec3 tnorm;
+    terrain_get_flat_norm(&terrain, camera.pos[0], camera.pos[1], tnorm);
+
+    //printf("%f %f %f\n", tnorm[0], tnorm[1], tnorm[2]);
+    
+    vec3 dir;
+    glm_vec3_normalize_to(vel, dir);
+    float dot = glm_vec3_dot(tnorm, dir);
+    
+    if (camera.pos[2] < theight + 2.0 /*&& dot < 0*/) {
+        //camera.pos[2] = theight + 2.0;
+
+        //printf("%f\n", dot);
+
+        /*printf("\n\nnewstart\n");
+        for (int i = 0; i < 10; i++) {
+            vec3 maybepos;
+            glm_vec3_add(camera.pos, vel, maybepos);
+            float theight = terrain_get_height(&terrain, maybepos[0], maybepos[1]);
+            float hdiff = theight + 2.0 - maybepos[2];
+            vec3 push;
+            //glm_vec3_scale(tnorm, -dot, push);
+            glm_vec3_scale(tnorm, hdiff, push);
+            glm_vec3_add(vel, push, vel);
+            printf("hdiff %f\n", hdiff);
+        }
+        vec3 maybepos;
+        glm_vec3_add(camera.pos, vel, maybepos);
+        float hdiff = theight + 2.0 - maybepos[2];
+        vel[2] += hdiff;*/
+
+        /*printf("\n\nnewstart\n");
+        vec3 lastvel = (vec3){0};
+        for (int i = 0; i < 100; i++) {
+            vec3 maybepos;
+            glm_vec3_add(camera.pos, lastvel, maybepos);
+            float theight = terrain_get_height(&terrain, maybepos[0], maybepos[1]);
+            float hdiff = theight + 2.0 - maybepos[2];
+            vec3 push;
+            //glm_vec3_scale(tnorm, -dot, push);
+            glm_vec3_scale(tnorm, hdiff/sqrt(i+1), push);
+            glm_vec3_add(vel, push, vel);
+            glm_vec3_copy(vel, lastvel);
+            printf("hdiff %f\n", hdiff);
+        }
+        vec3 maybepos;
+        glm_vec3_add(camera.pos, vel, maybepos);
+        float hdiff = theight + 2.0 - maybepos[2];
+        vel[2] += hdiff;*/
+
+        /*vec3 maybepos;
+        glm_vec3_add(camera.pos, vel, maybepos);
+        //float theight = terrain_get_height(&terrain, maybepos[0], maybepos[1]);
+        //float hdiff = theight + 2.0 - maybepos[2];
+        float hdiff = theight + 2.0 - camera.pos[2];
+        vel[2] += hdiff;*/
+    }
+
+    glm_vec3_add(camera.pos, vel, camera.pos);
+
+    if (camera.pos[2] < theight + 2.0) {
+        camera.pos[2] = theight + 2.0;
+    }
 
     camera.pos[0] = CLAMP(camera.pos[0], -250.0+0.5, 250.0-0.5);
     camera.pos[1] = CLAMP(camera.pos[1], -250.0+0.5, 250.0-0.5);
-
-    float theight = terrain_get_height(&terrain, camera.pos[0], camera.pos[1]);
-    if (camera.pos[2] < theight + 2.0)
-        camera.pos[2] = theight + 2.0;
     
     // final camera update;
     camera_update_actual(&camera);
@@ -709,10 +793,10 @@ EM_BOOL frame_loop(double _t, void *user_data) {
     //glClear(GL_DEPTH_BUFFER_BIT);
 
     
-    //shader_draw(&simple_shader, t);
 
-    shader_draw(&skybox_shader, t);
     if (!wireframe_enable) {
+        shader_draw(&simple_shader, t);
+        shader_draw(&skybox_shader, t);
         shader_draw(&depth_shader, t);
         shader_draw(&terrain_shader, t);
         if (camera.pos[2] > water.pos[2] + 0.5) {
@@ -755,6 +839,17 @@ EM_BOOL frame_loop(double _t, void *user_data) {
 
 
 
+void draw_border(SHADER* shader, double t) {
+    float h = water.pos[2];
+    float s = 200 * ABS(terrain.scale[2]) / 0.1 + h;
+    draw_rect2((vec3){250,   250, h}, (vec2){500, s}, (vec3){0,1,0},  DEG_TO_RAD(180), COLOR_WATER, shader);
+    draw_rect2((vec3){250,  -250, h}, (vec2){500, s}, (vec3){1,0,0},  DEG_TO_RAD(90),  COLOR_WATER, shader);
+    draw_rect2((vec3){-250, -250, h}, (vec2){500, s}, (vec3){0,-1,0}, DEG_TO_RAD(0),   COLOR_WATER, shader);
+    draw_rect2((vec3){-250,  250, h}, (vec2){500, s}, (vec3){-1,0,0}, DEG_TO_RAD(-90), COLOR_WATER, shader);
+}
+
+
+
 
 void terrain_draw_frame(SHADER* shader, double t, void* data) {
     
@@ -774,7 +869,12 @@ void terrain_draw_frame(SHADER* shader, double t, void* data) {
     texture_pack_bind(&sand_textures,    shader, "u_tex2", GL_TEXTURE8);
     texture_pack_bind(&wetrock_textures, shader, "u_tex3", GL_TEXTURE12);
     
+    shader_set_float(shader, "u_water_height", water.pos[2]);
+
+    shader_set_bool(shader, "u_swap_norm", terrain.scale[2] <= 0);
+    
     terrain_draw(&terrain, t);
+
 
     /*draw_rect2((vec3){-swidth/2, 0, -10}, (vec2){swidth, sheight}, (vec3){0,0,1}, 0, COLOR_WHITE, shader);
     draw_rect2((vec3){-swidth/2, 0, -10}, (vec2){swidth, sheight}, (vec3){0,0,0}, 0, COLOR_WHITE, shader);*/
@@ -791,7 +891,10 @@ void water_draw_frame(SHADER* shader, double t, void* data) {
 
     //shader_set_bool(shader, "u_enable_texture", false);
     //lightsource_apply_spectral(&world.light, shader->program, &camera, 1.4*2, 1000.0);
-    lightsource_apply_spectral(&world.light, shader->program, &camera, 1.4*2, 300.0);
+
+    lightsource_apply_spectral(&world.light, shader->program, &camera, 1.4*2, 1000.0);
+    lightsource_apply_spectral2(&world.light, shader->program, &camera, 0.5, 30.0);
+
     //lightsource_apply_spectral(&world.light, shader->program, &camera, 1.4*2*100, 20.0);
     /*texture_bind_scale(&water_norm, shader, "u_norm0", GL_TEXTURE0, "u_tex_scale", 4.0*16.0,
         "u_tex_strength", 1.0/4.0);*/
@@ -829,21 +932,29 @@ void depth_draw_frame(SHADER* shader, double t, void* data) {
     draw_rect2((vec3){-250, -250, -20}, (vec2){500, 100}, (vec3){0,-1,0}, DEG_TO_RAD(0),   COLOR_WATER, shader);
     draw_rect2((vec3){-250,  250, -20}, (vec2){500, 100}, (vec3){-1,0,0}, DEG_TO_RAD(-90), COLOR_WATER, shader);
     */
-    /*
-    draw_rect2((vec3){250,   250, -20}, (vec2){500, 100}, (vec3){0,1,0},  DEG_TO_RAD(180), COLOR_WATER, shader);
+    
+    /*draw_rect2((vec3){250,   250, -20}, (vec2){500, 100}, (vec3){0,1,0},  DEG_TO_RAD(180), COLOR_WATER, shader);
     draw_rect2((vec3){250,  -250, -20}, (vec2){500, 100}, (vec3){1,0,0},  DEG_TO_RAD(90),  COLOR_WATER, shader);
     draw_rect2((vec3){-250, -250, -20}, (vec2){500, 100}, (vec3){0,-1,0}, DEG_TO_RAD(0),   COLOR_WATER, shader);
     draw_rect2((vec3){-250,  250, -20}, (vec2){500, 100}, (vec3){-1,0,0}, DEG_TO_RAD(-90), COLOR_WATER, shader);
     */
+
+    draw_border(shader, t);
+    
+
+    shader_set_float(shader, "u_water_height", water.pos[2]);
+    
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 
 void sky_draw_frame(SHADER* shader, double t, void* data) {
     CAMERA skycam = camera;
-    //camera_update_skybox(&skycam);
+    glm_vec3_zero(skycam.pos);
+    camera_update_skybox(&skycam);
     //camera_apply(&skycam, shader->program);
-    camera_apply(&camera, shader->program);
+    camera_apply(&skycam, shader->program);
+    //camera_apply(&camera, shader->program);
     
     //glCullFace(GL_FRONT);
     /*glDisable(GL_CULL_FACE);
@@ -853,15 +964,20 @@ void sky_draw_frame(SHADER* shader, double t, void* data) {
 
     vec2 size = (vec2){1000, 900};
 
-    vec3 cam_dir;
+    /*vec3 cam_dir;
     camera_get_direction(&camera, (vec3){0,0,1}, cam_dir);
     shader_set_vec3(shader, "u_cam_dir", cam_dir);
-    shader_set_vec3(shader, "u_cam_pos", camera.pos);
+    shader_set_vec3(shader, "u_cam_pos", camera.pos);*/
 
-    draw_rect2((vec3){-500, 500, 50}, size, (vec3){0,1,0},  DEG_TO_RAD(0),   COLOR_BLUE, shader);
-    draw_rect2((vec3){ 500, 500, 50}, size, (vec3){1,0,0},  DEG_TO_RAD(270), COLOR_BLUE, shader);
-    draw_rect2((vec3){ 500,-500, 50}, size, (vec3){0,-1,0}, DEG_TO_RAD(180), COLOR_BLUE, shader);
-    draw_rect2((vec3){-500,-500, 50}, size, (vec3){-1,0,0}, DEG_TO_RAD(90),  COLOR_BLUE, shader);
+    vec3 cam_dir;
+    camera_get_direction(&skycam, (vec3){0,0,1}, cam_dir);
+    shader_set_vec3(shader, "u_cam_dir", cam_dir);
+    shader_set_vec3(shader, "u_cam_pos", skycam.pos);
+
+    draw_rect2((vec3){-500, 500, /*50*/ 0}, size, (vec3){0,1,0},  DEG_TO_RAD(0),   COLOR_BLUE, shader);
+    draw_rect2((vec3){ 500, 500, /*50*/ 0}, size, (vec3){1,0,0},  DEG_TO_RAD(270), COLOR_BLUE, shader);
+    draw_rect2((vec3){ 500,-500, /*50*/ 0}, size, (vec3){0,-1,0}, DEG_TO_RAD(180), COLOR_BLUE, shader);
+    draw_rect2((vec3){-500,-500, /*50*/ 0}, size, (vec3){-1,0,0}, DEG_TO_RAD(90),  COLOR_BLUE, shader);
     glDisable(GL_CULL_FACE);
     draw_rect2((vec3){-500,-500, 500}, (vec2){1000, 1000}, (vec3){0,0,1}, 0,  COLOR_BLUE, shader);
     glEnable(GL_CULL_FACE);
@@ -886,6 +1002,8 @@ void underwater_draw_frame(SHADER* shader, double t, void* data) {
 
     shader_set_vec4(shader, "u_fog_color", COLOR_WATER.raw);
 
+    shader_set_float(shader, "u_water_height", water.pos[2]);
+
     shader_set_int(shader, "u_mode", 0);
     glCullFace(GL_FRONT);
     terrain_draw(&water, t);
@@ -895,10 +1013,8 @@ void underwater_draw_frame(SHADER* shader, double t, void* data) {
     terrain_draw(&terrain, t);
 
     shader_set_int(shader, "u_mode", 2);
-    draw_rect2((vec3){250,   250, -20}, (vec2){500, 100}, (vec3){0,1,0},  DEG_TO_RAD(180), COLOR_WATER, shader);
-    draw_rect2((vec3){250,  -250, -20}, (vec2){500, 100}, (vec3){1,0,0},  DEG_TO_RAD(90),  COLOR_WATER, shader);
-    draw_rect2((vec3){-250, -250, -20}, (vec2){500, 100}, (vec3){0,-1,0}, DEG_TO_RAD(0),   COLOR_WATER, shader);
-    draw_rect2((vec3){-250,  250, -20}, (vec2){500, 100}, (vec3){-1,0,0}, DEG_TO_RAD(-90), COLOR_WATER, shader);
+
+    draw_border(shader, t);
 }
 
 
@@ -922,8 +1038,10 @@ void wire_draw_frame(SHADER* shader, double t, void* data) {
 void simple_draw_frame(SHADER* shader, double t, void* data) {
     camera_apply(&camera, shader->program);
 
-    draw_rect2((vec3){250,  250,-20}, (vec2){500, 100}, (vec3){0,1,0},  DEG_TO_RAD(180), COLOR_BLACK, shader);
+    /*draw_rect2((vec3){250,  250,-20}, (vec2){500, 100}, (vec3){0,1,0},  DEG_TO_RAD(180), COLOR_BLACK, shader);
     draw_rect2((vec3){250, -250,-20}, (vec2){500, 100}, (vec3){1,0,0},  DEG_TO_RAD(90),  COLOR_BLACK, shader);
     draw_rect2((vec3){-250,-250,-20}, (vec2){500, 100}, (vec3){0,-1,0}, DEG_TO_RAD(0),   COLOR_BLACK, shader);
     draw_rect2((vec3){-250, 250,-20}, (vec2){500, 100}, (vec3){-1,0,0}, DEG_TO_RAD(-90), COLOR_BLACK, shader);
+    */
+    draw_border(shader, t);
 }
