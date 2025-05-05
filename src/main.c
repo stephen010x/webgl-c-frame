@@ -415,7 +415,7 @@ void update_frame_time(double _t, double* t, float* dt, float* fps) {
 char* terrain_filename = "terrain.mesh";
 char* uniquekey_filename = "key";
 
-#define UNIQUE_KEY 0xABCD0134
+#define UNIQUE_KEY 0xABCD0135
 
 unsigned int uniquekey = UNIQUE_KEY;
 
@@ -536,7 +536,7 @@ void init_scene(void) {
     mouse.grabby = true;
 
     camera.pos[1] = 100;
-    camera.pos[2] = 40;
+    camera.pos[2] = 20;
 
     static GEN_MODEL water_model = (GEN_MODEL){
         .mode = GENMODE_GEN,
