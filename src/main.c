@@ -545,7 +545,7 @@ void init_scene(void) {
         .cols = 250,
     };
 
-    terrain_init(&water, (vec3){-250,-250,0}, (vec3){2,2,1},
+    terrain_init(&water, (vec3){-250,-250,-20}, (vec3){2,2,1},
         &water_model, COLOR_WATER, &terrain_shader);
 
 
