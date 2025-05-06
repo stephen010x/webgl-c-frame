@@ -39,6 +39,8 @@ typedef struct {
     vec3 pos;
     float rot;
     float scale;
+
+    int tpe_id;
     
     //COLOR color;
     
@@ -53,6 +55,8 @@ typedef struct {
     vec3 pos;
     float rot;
     float scale;
+
+    int tpe_id;
 
     //COLOR color_black;
     //COLOR color_white;
@@ -103,6 +107,8 @@ typedef union {
 } MESH_ORGANIZER;
 
 
+
+void chess_physics_init(void)
 
 
 int chess_piece_init(CHESS_PIECE *self, COLOR color, NEWMESH *mesh, float padding, int flags);

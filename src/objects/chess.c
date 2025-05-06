@@ -3,6 +3,7 @@
 #include <cglm/cglm.h>
 
 #include "../core/model.h"
+#include "../lib/tpe/tinyphysicengine.h"
 #include "chess.h"
 
 
@@ -10,6 +11,48 @@
 //#define BOARD_HEIGHT 0.1
 #define MATH_PI 3.1415926535897
 #define DEG_TO_RAD(__n) ((__n)*MATH_PI/180.0)
+
+
+
+
+TPE_World tpe_world;
+TPE_Body tpe_bodies[TPE_MAX_BODIES];
+
+
+TPE_Joint chess_piece_joints[6][8];
+TPE_Connection chess_piece_connections[7][16];
+
+TPE_Joint chess_board_joints[9][9][2];
+TPE_Connection chess_board_connections_x[9][8][2];
+TPE_Connection chess_board_connections_y[8][9][2];
+TPE_Connection chess_board_connections_z[9][9];
+TPE_Connection chess_board_connections_cross[8][8][4];
+
+
+
+#define TPE_ROOK   0
+#define TPE_KNIGHT 1
+#define TPE_BISHOP 2
+#define TPE_KING   3
+#define TPE_QUEEN  4
+#define TPE_PAWN   5
+
+
+
+
+void chess_physics_init(void) {
+    TPE_worldInit(tpe_world, tpe_bodies, 0, NULL);
+    
+    TPE_makeBox(chess_piece_joints[TPE_ROOK],   chess_piece_connections[TPE_ROOK],   0.75, 0.75, 2.0, 0.2);
+    TPE_makeBox(chess_piece_joints[TPE_KNIGHT], chess_piece_connections[TPE_KNIGHT], 0.75, 0.75, 2.0, 0.2);
+    TPE_makeBox(chess_piece_joints[TPE_BISHOP], chess_piece_connections[TPE_BISHOP], 0.75, 0.75, 2.0, 0.2);
+    TPE_makeBox(chess_piece_joints[TPE_KING],   chess_piece_connections[TPE_KING],   0.75, 0.75, 2.0, 0.2);
+    TPE_makeBox(chess_piece_joints[TPE_QUEEN],  chess_piece_connections[TPE_QUEEN],  0.75, 0.75, 2.0, 0.2);
+    TPE_makeBox(chess_piece_joints[TPE_PAWN],   chess_piece_connections[TPE_PAWN],   0.75, 0.75, 2.0, 0.2);
+
+    TPE_makeBox(chess_board_joints, chess_board_connections, 5, 5, 0.5, 0.2);
+    
+}
 
 
 
@@ -24,13 +67,18 @@ int chess_piece_init(CHESS_PIECE *self, COLOR color, NEWMESH *mesh, float paddin
         .rot = DEG_TO_RAD(90),
     };
 
+    float mass;
+    int tpe_type;
+
     switch (flags & CHESS_TYPE_MASK) {
-        case CHESS_ROOK:   self->pos[0] =  3.5; break;
-        case CHESS_KNIGHT: self->pos[0] =  2.5; break;
-        case CHESS_BISHOP: self->pos[0] =  1.5; break;
-        case CHESS_KING:   self->pos[0] =  0.5; break;
-        case CHESS_QUEEN:  self->pos[0] = -0.5; break;
+        case CHESS_ROOK:   self->pos[0] =  3.5; mass = 0.85*0.85; tpe_type = TPE_ROOK;   break;
+        case CHESS_KNIGHT: self->pos[0] =  2.5; mass = 0.85*0.85; tpe_type = TPE_KNIGHT; break;
+        case CHESS_BISHOP: self->pos[0] =  1.5; mass = 0.80*0.80; tpe_type = TPE_BISHOP; break;
+        case CHESS_KING:   self->pos[0] =  0.5; mass = 0.95*0.95; tpe_type = TPE_KING;   break;
+        case CHESS_QUEEN:  self->pos[0] = -0.5; mass = 1.00*1.00; tpe_type = TPE_QUEEN;  break;
         default: {
+            mass = 0.70*0.70;
+            tpe_type = TPE_PAWN;
             int pawnid = (flags & CHESS_TYPE_MASK) - CHESS_PAWN1;
             if (pawnid + CHESS_PAWN1 <= CHESS_PAWN4) {
                 self->pos[0] = pawnid + 0.5;
@@ -59,6 +107,13 @@ int chess_piece_init(CHESS_PIECE *self, COLOR color, NEWMESH *mesh, float paddin
 
     model_newinit(&self->model, mesh);
     self->model.color = color;
+
+
+
+    int id = self->tpe_id = tpe_world.bodyCount++;
+    TPE_bodyInit(tpe_bodies[id], chess_piece_joints, LENOF(chess_piece_joints), 
+        chess_piece_connections, LENOF(chess_piece_joints), mass * CHESS_PIECE_MASS);
+
     
     return 0;
 }
@@ -100,6 +155,11 @@ int chess_board_init(CHESS_BOARD *self, COLOR color_white, COLOR color_black, CO
 
     model_newinit(self->model+2, mesh_border);
     self->model[2].color = color_border;
+
+
+    int id = self->tpe_id = tpe_world.bodyCount++;
+    TPE_bodyInit(tpe_bodies[id], chess_board_joints, LENOF(chess_board_joints), 
+        chess_board_connections, LENOF(chess_board_joints), CHESS_BOARD_MASS);
     
     return 0;
 }
