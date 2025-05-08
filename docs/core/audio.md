@@ -14,8 +14,8 @@ The Audio API makes use of HTML5's audio capabilities in order to play soundtrac
 ## Functions
 
 ---
-\
-\
+<br><br><br><br>
+
 
 
 ---
@@ -38,8 +38,8 @@ Plays a sound that cannot be paused nor stopped. Typically meant for smaller sou
 &emsp; Returns `-1` if sound not found
 
 ---
-\
-\
+<br><br><br><br>
+
 
 
 ---
@@ -65,8 +65,8 @@ Like [sound_play_unsafe](#sound_play_unsafe) but with more parameter options.
 &emsp; Returns `-1` if sound not found
 
 ---
-\
-\
+<br><br><br><br>
+
 
 
 ---
@@ -90,9 +90,9 @@ Plays a sound. Multiple sounds can be played at once, but the same sound cannot 
 &emsp; Returns `-1` if sound not found
 
 ---
-\
-\
-\
+<br><br><br><br>
+
+
 
 ---
 
