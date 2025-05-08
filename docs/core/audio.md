@@ -18,6 +18,8 @@ The Audio API makes use of HTML5's audio capabilities in order to play soundtrac
 
 
 
+---
+
 <a name="sound_play_unsafe"></a>
 
 ```c
@@ -25,7 +27,6 @@ int sound_play_unsafe(const char* sound_id);
 ```
 
 <ins>Description</ins> \
-
 Plays a sound that cannot be paused nor stopped. Typically meant for smaller sound bites like footsteps. This allows for being able to play the same soundbite overlapping.
 
 | Parameter | Description |
@@ -41,6 +42,8 @@ Plays a sound that cannot be paused nor stopped. Typically meant for smaller sou
 
 
 
+---
+
 <a name="sound_play_unsafe2"></a>
 
 ```c
@@ -48,7 +51,6 @@ int sound_play_unsafe2(const char* _sound_id, double volume, double speed, bool 
 ```
 
 <ins>Description</ins> \
-
 Like [sound_play_unsafe](#sound_play_unsafe) but with more parameter options.
 
 | Parameter | Description |
@@ -66,6 +68,8 @@ Like [sound_play_unsafe](#sound_play_unsafe) but with more parameter options.
 
 
 
+
+---
 
 <a name="sound_play"></a>
 
@@ -87,6 +91,10 @@ Plays a sound. Multiple sounds can be played at once, but the same sound cannot 
 
 ---
 
+
+
+
+---
 
 ``
 
