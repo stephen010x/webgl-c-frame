@@ -17,7 +17,7 @@ The Audio API makes use of HTML5's audio capabilities in order to play soundtrac
 \
 \
 \
-\
+
 ---
 
 <a name="sound_play_unsafe"></a>
@@ -41,7 +41,7 @@ Plays a sound that cannot be paused nor stopped. Typically meant for smaller sou
 \
 \
 \
-\
+
 ---
 
 <a name="sound_play_unsafe2"></a>
@@ -68,7 +68,7 @@ Like [sound_play_unsafe](#sound_play_unsafe) but with more parameter options.
 \
 \
 \
-\
+
 ---
 
 <a name="sound_play"></a>
@@ -93,7 +93,7 @@ Plays a sound. Multiple sounds can be played at once, but the same sound cannot 
 \
 \
 \
-\
+
 ---
 
 ``
