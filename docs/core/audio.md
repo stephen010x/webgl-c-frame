@@ -14,16 +14,16 @@ The Audio API makes use of HTML5's audio capabilities in order to play soundtrac
 int sound_play_unsafe(const char* sound_id);
 ```
 
-`Plays a sound that is unsafe`
+Plays a sound that is unsafe
 
-| `Parameter` | `Description` |
+| Parameter | Description |
 |:---|:---|
-| `sound_id` | `String pointer to HTML/CSS ID of <audio> tag that contains the sound bite` |
+| `sound_id` | String pointer to HTML/CSS ID of <audio> tag that contains the sound bite |
 
-| `Return value` |
+| Return value |
 |:---|
-| `Returns zero if success` |
-| `Returns nonzero if error` |
+| Returns zero if success |
+| Returns nonzero if error |
 
 ---
 
