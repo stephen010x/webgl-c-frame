@@ -44,6 +44,9 @@ in vec3 N;
 
 out vec4 o_color;
 
+uniform bool u_animate;
+uniform float u_time;
+
 
 vec3 color_to_norm(vec4 color);
 vec4 norm_to_color(vec3 norm);
@@ -70,11 +73,21 @@ void main() {
 
     vec2 tex_coord = v_tex_coord / u_tex0_scale;
     
-    vec4 norm_color = texture(u_tex0_norm, tex_coord);
+    vec2 tex_coord_a = tex_coord;
+    vec2 tex_coord_b = tex_coord;
+
+    if (u_animate) {
+        tex_coord_a.y += u_time / 200.0;
+        tex_coord_b.y += u_time / 250.0;
+        tex_coord_b.x += u_time / 400.0;
+    }
+    
+    vec4 norm_color_a = texture(u_tex0_norm, tex_coord_a);
+    vec4 norm_color_b = texture(u_tex0_norm, tex_coord_b);
     vec4 tex_color = u_enable_texture ? texture(u_tex0_tex, tex_coord) : vec4(1.0);
     vec4 occl_color = texture(u_tex0_occl, tex_coord);
 
-    vec3 prenorm = color_to_norm(norm_color);
+    vec3 prenorm = normalize(color_to_norm(norm_color_a) + color_to_norm(norm_color_b));
     vec3 norm = normalize(TBN * normalize(vec3(prenorm.xy, prenorm.z / u_tex0_strength)));
 
 
@@ -160,13 +173,13 @@ void main() {
 
 vec3 color_to_norm(vec4 color) {
     vec3 norm = normalize(color.rgb * 2.0 - 1.0);
-    return vec3(norm.x, norm.y, norm.z);
+    return vec3(norm.x, -norm.y, norm.z);
     //return vec3(norm.x, norm.y, norm.z);
 }
 
 
 vec4 norm_to_color(vec3 norm) {
-    vec3 _norm = vec3(norm.x, norm.y, norm.z);
+    vec3 _norm = vec3(norm.x, -norm.y, norm.z);
     return vec4(clamp((_norm + 1.0) / 2.0, 0.0, 1.0), 1.0);
     //return vec4(clamp((norm + 1.0) / 2.0, 0.0, 1.0), 1.0);
 }

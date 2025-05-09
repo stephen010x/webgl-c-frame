@@ -298,13 +298,13 @@ void main() {
 
 vec3 color_to_norm(vec4 color) {
     vec3 norm = normalize(color.rgb * 2.0 - 1.0);
-    return vec3(norm.x, norm.y, norm.z);
+    return vec3(-norm.x, -norm.y, norm.z);
     //return vec3(norm.x, norm.y, norm.z);
 }
 
 
 vec4 norm_to_color(vec3 norm) {
-    vec3 _norm = vec3(norm.x, norm.y, norm.z);
+    vec3 _norm = vec3(-norm.x, -norm.y, norm.z);
     return vec4(clamp((_norm + 1.0) / 2.0, 0.0, 1.0), 1.0);
     //return vec4(clamp((norm + 1.0) / 2.0, 0.0, 1.0), 1.0);
 }
