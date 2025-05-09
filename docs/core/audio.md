@@ -153,7 +153,7 @@ Stops a sound. Cannot be resumed.
 
 ---
 
-<a name="sound_stop"></a>
+<a name="sound_pause"></a>
 ```c
 int sound_pause(const char* sound_id);
 ```
