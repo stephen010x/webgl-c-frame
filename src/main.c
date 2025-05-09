@@ -464,7 +464,7 @@ void init_scene(void) {
         .padding = 1.0,
         .scale = 6.4*4,
         .height = 2.0,
-        .rootpath = "/assets/models/",
+        .rootpath = "assets/models/",
         .board_path = "board.obj",
         .pawn_path = "pawn.obj",
         .rook_path = "rook.obj",
