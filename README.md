@@ -75,8 +75,8 @@ The formula I eventually derived for the terrain generation:
 ```math
 \begin{align*}
 &\quad\text{Given an } x\in\mathbb{R} \text{ and } y\in\mathbb{R}, \\
-&\quad\text{Let } P, H, N, \text{ and } X \text{ denote subsets of } \mathbb{Z} \text{ all of equal size to describe} \\
-&\quad\text{the generation.}\\
+&\quad\text{Let } P, H, N, \text{ and } X \text{ denote subsets of } \mathbb{Z} \text{ all of equal size to} \\
+&\quad\text{describe the generation.}\\
 &K(x,y,n)=\sin\Bigg(\frac{x+H_n\cdot\cos\big(\frac{y}{P_n}\big)}{P_n}\Bigg)^{N_n}+\cos\Bigg(\frac{y-H_n\cdot\cos\big(\frac{x}{P_n}\big)}{P_n}\Bigg)^{N_n} \\
 &S(x,y,n)=\sin\Bigg(\frac{x+X_n\cdot\cos\big(\frac{y}{X_n}\big)}{X_n}\Bigg)+\cos\Bigg(\frac{y-X_n\cdot\cos\big(\frac{x}{X_n}\big)}{X_n}\Bigg) \\
 &z(x,y)=\sum^{|P|}_{n=1}H_n\cdot K(x,y,n)\cdot S(x,y,n)
