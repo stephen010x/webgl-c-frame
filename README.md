@@ -82,7 +82,7 @@ The formula I eventually derived for the terrain generation:
 &z(x,y)=\sum^{|P|}_{n=1}H_n\cdot K(x,y,n)\cdot S(x,y,n)
 \end{align*}
 ```
-P is a set of period slopes, H is a set of height multipliers for each slope, N is a set of powers for each slope, which can help generate more realistic looking mountains, X is a set of smoothing periods.
+`P` is a set of period slopes, `H` is a set of height multipliers for each slope, `N` is a set of powers for each slope, which can help generate more realistic looking mountains, `X` is a set of smoothing periods.
 
 All of the texture assets were obtained from free external sources.
 <br><br>
