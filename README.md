@@ -77,7 +77,7 @@ The formula I eventually derived for the terrain generation:
 &\quad\text{Given an } x\in\mathbb{R} \text{ and } y\in\mathbb{R}, \\
 &\quad\text{Let } P, H, \text{ and } N \text{ denote sets all of equal size to describe} \\
 &\quad\text{the generation.}\\
-&z=\!\!\sum^{|P|}_{n=1}H_n\cdot\Bigg(\sin\Bigg(\frac{x+H_n\cdot\cos\big(\frac{y}{P_n}\big)}{P_n}\Bigg)^{N_n}+\cos\Bigg(\frac{y-H_n\cdot\cos\big(\frac{x}{P_n}\big)}{P_n}\Bigg)^{N_n}\Bigg)
+&z=\hspace{-0.5em}\sum^{|P|}_{n=1}H_n\cdot\Bigg(\sin\Bigg(\frac{x+H_n\cdot\cos\big(\frac{y}{P_n}\big)}{P_n}\Bigg)^{N_n}+\cos\Bigg(\frac{y-H_n\cdot\cos\big(\frac{x}{P_n}\big)}{P_n}\Bigg)^{N_n}\Bigg)
 \end{align*}
 ```
 <br>
