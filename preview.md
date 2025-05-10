@@ -1,3 +1,7 @@
+# Gif Demo Previews
+
+(Please wait while the GIFs Load)
+
 <image src="media/balls.gif" width="256" height="256" alt="balls.gif"></image>
 <image src="media/chess.gif" width="256" alt="chess.gif"></image> \
 <image src="media/bezier.gif" width="256" height="256" alt="bezier.gif"></image>

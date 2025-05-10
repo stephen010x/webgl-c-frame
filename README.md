@@ -117,4 +117,3 @@ Development of this project will halt in favor of completely rewriting this proj
 ## Previews
 
 [View All Gif Demo Previews](preview.md) \
-(warning, the gifs will load slowly)
