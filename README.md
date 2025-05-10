@@ -65,18 +65,20 @@ This demo demonstrates random maze generation with rooms, lighting shaders that 
 
 ## Terrain Demo
 
-While not as impactful to the engine as the [3D Maze Demo](#3d-maze-demo), the Terrain demo refines some of the concepts of the previous demo. Particularly with lighting sources by improving on the normal map shader code to be more versatile and robus, as well as implementing occlusion maps to improve the lighting aesthetic.
+While not as impactful to the engine as the [3D Maze Demo](#3d-maze-demo), the Terrain demo refines some of the concepts of the previous demo. Particularly with lighting sources by improving on the normal map shader code to be more versatile and robus, adding the Blinn–Phong spectral shading model, as well as implementing occlusion maps to improve the lighting aesthetic.
+
+As an end result, I feel I've achieved a pleasing aesthetic with the terrain. I added logic in the shaders for implementing cliffs, grass, sand, and wetstone. And I added water wave animations, alongside linear depth fog for the water with dithering for style, and similar fog effects when underwater.
 
 The terrain generation used sinusoidal generation rather than noise. This decision was made simply because noise generation is a concept that I didn't want to research at the time, and I already had a good idea of how to use sinusoids to generate realistic looking terrain.
 
 The formula I eventually derived for the terrain generation: \
-$$
+```math
 \begin{align*}
 &\quad\text{Given an } x\in\mathbb{R} \text{ and } y\in\mathbb{R}, \\
 &\quad\text{Let } H, P, \text{ and } R \text{ denote sets all of equal size.}\\
 &z=\sum^{|A|}_{n=1}H_n\cdot\Bigg(\sin\Bigg(\frac{x+H_n\cdot\cos\big(\frac{y}{P_n}\big)}{P_n}\Bigg)^{N_n}+\cos\Bigg(\frac{y-H_n\cdot\cos\big(\frac{x}{P_n}\big)}{P_n}\Bigg)^{N_n}\Bigg)
 \end{align*}
-$$
+```
 
 All of the texture assets were obtained from free external sources.
 
