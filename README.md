@@ -75,15 +75,17 @@ The formula I eventually derived for the terrain generation:
 ```math
 \begin{align*}
 &\quad\text{Given an } x\in\mathbb{R} \text{ and } y\in\mathbb{R}, \\
-&\quad\text{Let } P, H, \text{ and } N \text{ denote sets all of equal size to describe} \\
+&\quad\text{Let } P, H, N, \text{ and } X \text{ denote subsets of } \mathbb{Z} \text{ all of equal size to describe} \\
 &\quad\text{the generation.}\\
-&z=\hspace{-0.5em}\sum^{|P|}_{n=1}H_n\cdot\Bigg(\sin\Bigg(\frac{x+H_n\cdot\cos\big(\frac{y}{P_n}\big)}{P_n}\Bigg)^{N_n}+\cos\Bigg(\frac{y-H_n\cdot\cos\big(\frac{x}{P_n}\big)}{P_n}\Bigg)^{N_n}\Bigg)
+&K(x,y,n)=\sin\Bigg(\frac{x+H_n\cdot\cos\big(\frac{y}{P_n}\big)}{P_n}\Bigg)^{N_n}+\cos\Bigg(\frac{y-H_n\cdot\cos\big(\frac{x}{P_n}\big)}{P_n}\Bigg)^{N_n} \\
+&S(x,y,n)=\sin\Bigg(\frac{x+X_n\cdot\cos\big(\frac{y}{X_n}\big)}{X_n}\Bigg)+\cos\Bigg(\frac{y-X_n\cdot\cos\big(\frac{x}{X_n}\big)}{X_n}\Bigg) \\
+&z(x,y)=\sum^{|P|}_{n=1}H_n\cdot K(x,y,n)\cdot S(x,y,n)
 \end{align*}
 ```
-<br>
+P is a set of period slopes, H is a set of height multipliers for each slope, N is a set of powers for each slope, which can help generate more realistic looking mountains, X is a set of smoothing periods.
+
 All of the texture assets were obtained from free external sources.
-<br>
-<br>
+<br><br>
 
 <image src="media/graph.webp" width="200" alt="graph.webp"></image>
 <image src="media/terrain.webp" width="200"></image> \
