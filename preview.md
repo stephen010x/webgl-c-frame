@@ -1,6 +1,6 @@
 # Gif Demo Previews
 
-(Please wait while the GIFs Load)
+(Please wait while the GIFs Load. there are 10 GIFs in total)
 
 <image src="media/balls.gif" width="256" height="256" alt="balls.gif"></image>
 <image src="media/chess.gif" width="256" alt="chess.gif"></image> \
