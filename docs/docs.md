@@ -9,7 +9,7 @@ WebGL C Frame, or "WebGL C Framework", is a small WebGL and WebASM 3D engine bui
 These are the core files and functions of the system, and act as the vital components of the engine.
 
 &emsp; [Audio API](core/audio.md) \
-&emsp; [Camera API](core/camera.md) \
+&emsp; [Camera/Lightsource API](core/camera.md) \
 &emsp; [Files API](core/files.md) \
 &emsp; [Input API](core/input.md) \
 &emsp; [Model API](core/model.md) \
