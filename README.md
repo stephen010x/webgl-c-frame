@@ -71,7 +71,7 @@ As an end result, I feel I've achieved a pleasing aesthetic with the terrain. I 
 
 The terrain generation used sinusoidal generation rather than noise. This decision was made simply because noise generation is a concept that I didn't want to research at the time, and I already had a good idea of how to use sinusoids to generate realistic looking terrain.
 
-The formula I eventually derived for the terrain generation: \
+The formula I eventually derived for the terrain generation:
 ```math
 \begin{align*}
 &\quad\text{Given an } x\in\mathbb{R} \text{ and } y\in\mathbb{R}, \\
@@ -79,8 +79,10 @@ The formula I eventually derived for the terrain generation: \
 &z=\sum^{|A|}_{n=1}H_n\cdot\Bigg(\sin\Bigg(\frac{x+H_n\cdot\cos\big(\frac{y}{P_n}\big)}{P_n}\Bigg)^{N_n}+\cos\Bigg(\frac{y-H_n\cdot\cos\big(\frac{x}{P_n}\big)}{P_n}\Bigg)^{N_n}\Bigg)
 \end{align*}
 ```
-
+<br>
 All of the texture assets were obtained from free external sources.
+<br>
+<br>
 
 <image src="media/graph.webp" width="200" alt="graph.webp"></image>
 <image src="media/terrain.webp" width="200"></image> \
