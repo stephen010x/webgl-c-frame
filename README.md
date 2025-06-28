@@ -43,7 +43,7 @@ This demo showcases 3D cubic bezier curves, where the points randomly drift arou
 
 ### Fractal Zoom Demo
 
-This demo showcases an *interactive* Mandelbrot fractal zoom. This was mostly an excercise of the GLSL shading language, and ultimately did not contribute any new features to the library.\
+This demo showcases an *interactive* Mandelbrot fractal zoom. This was mostly an exercise of the GLSL shading language, and ultimately did not contribute any new features to the library.\
 (P.S. Beware of floating point limitations.)
 
 <image src="media/fractal.webp" width="200"></image>
